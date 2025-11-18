@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="csrf-token" content={get_csrf_token()} />
+    <title>GroceryPlanner - Manage Your Groceries and Meal Planning</title>
+    <link phx-track-static rel="stylesheet" href={~p"/assets/css/app.css"} />
+    <script defer phx-track-static type="text/javascript" src={~p"/assets/js/app.js"}>
+    </script>
+  </head>
+  <body class="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50 text-gray-900">
+    <Layouts.flash_group flash={@flash} />
+
+    <div class="relative overflow-hidden">
+      <header class="px-4 py-6">
+        <nav class="flex items-center justify-between max-w-7xl mx-auto">
+          <div class="flex items-center gap-2">
+            <img src={~p"/images/logo.svg"} width="40" alt="GroceryPlanner Logo" />
+            <span class="text-2xl font-bold text-gray-900">GroceryPlanner</span>
+          </div>
+          <div class="flex gap-4">
+            <.link navigate="/sign-in" class="px-4 py-2 text-gray-700 hover:text-gray-900">
+              Sign In
+            </.link>
+            <.link
+              navigate="/sign-up"
+              class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+            >
+              Get Started
+            </.link>
+          </div>
+        </nav>
+      </header>
+
+      <main class="max-w-7xl mx-auto px-4 py-16 sm:py-24">
+        <div class="text-center">
+          <h1 class="text-5xl sm:text-6xl font-bold text-gray-900 tracking-tight">
+            Smart Grocery Management <span class="block text-blue-600">Made Simple</span>
+          </h1>
+
+          <p class="mt-6 text-xl text-gray-600 max-w-3xl mx-auto">
+            Track your inventory, plan meals, generate shopping lists, and reduce food waste with our comprehensive grocery planning solution.
+          </p>
+
+          <div class="mt-10 flex gap-4 justify-center">
+            <.link
+              navigate="/sign-up"
+              class="px-8 py-4 bg-blue-600 text-white text-lg font-semibold rounded-lg hover:bg-blue-700 transition shadow-lg"
+            >
+              Start Free Today
+            </.link>
+            <.link
+              navigate="/sign-in"
+              class="px-8 py-4 bg-white text-gray-700 text-lg font-semibold rounded-lg hover:bg-gray-50 transition border-2 border-gray-300"
+            >
+              Sign In
+            </.link>
+          </div>
+        </div>
+
+        <div class="mt-24 grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
+          <div class="p-8 bg-white rounded-2xl shadow-sm border border-gray-100">
+            <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mb-4">
+              <svg
+                class="w-6 h-6 text-blue-600"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"
+                />
+              </svg>
+            </div>
+            <h3 class="text-xl font-semibold text-gray-900 mb-2">Inventory Management</h3>
+            <p class="text-gray-600">
+              Keep track of what you have, where it's stored, and when it expires.
+            </p>
+          </div>
+
+          <div class="p-8 bg-white rounded-2xl shadow-sm border border-gray-100">
+            <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mb-4">
+              <svg
+                class="w-6 h-6 text-green-600"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
+                />
+              </svg>
+            </div>
+            <h3 class="text-xl font-semibold text-gray-900 mb-2">Recipe Collection</h3>
+            <p class="text-gray-600">
+              Store your favorite recipes and see what you can make with what you have.
+            </p>
+          </div>
+
+          <div class="p-8 bg-white rounded-2xl shadow-sm border border-gray-100">
+            <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mb-4">
+              <svg
+                class="w-6 h-6 text-purple-600"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                />
+              </svg>
+            </div>
+            <h3 class="text-xl font-semibold text-gray-900 mb-2">Meal Planning</h3>
+            <p class="text-gray-600">
+              Plan your meals for the week and automatically generate shopping lists.
+            </p>
+          </div>
+
+          <div class="p-8 bg-white rounded-2xl shadow-sm border border-gray-100">
+            <div class="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center mb-4">
+              <svg
+                class="w-6 h-6 text-orange-600"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"
+                />
+              </svg>
+            </div>
+            <h3 class="text-xl font-semibold text-gray-900 mb-2">Smart Shopping Lists</h3>
+            <p class="text-gray-600">
+              Generate shopping lists based on your meal plans and current inventory.
+            </p>
+          </div>
+
+          <div class="p-8 bg-white rounded-2xl shadow-sm border border-gray-100">
+            <div class="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center mb-4">
+              <svg
+                class="w-6 h-6 text-red-600"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </svg>
+            </div>
+            <h3 class="text-xl font-semibold text-gray-900 mb-2">Expiration Tracking</h3>
+            <p class="text-gray-600">
+              Get notifications before items expire and receive recipe suggestions to use them up.
+            </p>
+          </div>
+
+          <div class="p-8 bg-white rounded-2xl shadow-sm border border-gray-100">
+            <div class="w-12 h-12 bg-teal-100 rounded-lg flex items-center justify-center mb-4">
+              <svg
+                class="w-6 h-6 text-teal-600"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+                />
+              </svg>
+            </div>
+            <h3 class="text-xl font-semibold text-gray-900 mb-2">Waste Analytics</h3>
+            <p class="text-gray-600">
+              Track your food waste and get insights on how to save money and reduce waste.
+            </p>
+          </div>
+        </div>
+
+        <div class="mt-24 text-center">
+          <h2 class="text-3xl font-bold text-gray-900 mb-4">Ready to get started?</h2>
+          <p class="text-xl text-gray-600 mb-8">
+            Join thousands of households managing their groceries smarter.
+          </p>
+          <.link
+            navigate="/sign-up"
+            class="inline-block px-8 py-4 bg-blue-600 text-white text-lg font-semibold rounded-lg hover:bg-blue-700 transition shadow-lg"
+          >
+            Create Your Free Account
+          </.link>
+        </div>
+      </main>
+
+      <footer class="mt-24 border-t border-gray-200 py-12">
+        <div class="max-w-7xl mx-auto px-4 text-center text-gray-600">
+          <p>&copy; 2024 GroceryPlanner. Built with Phoenix and Elixir.</p>
+        </div>
+      </footer>
+    </div>
+  </body>
+</html>

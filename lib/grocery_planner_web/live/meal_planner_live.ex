@@ -1,0 +1,245 @@
+defmodule GroceryPlannerWeb.MealPlannerLive do
+  use GroceryPlannerWeb, :live_view
+
+  on_mount {GroceryPlannerWeb.Auth, :require_authenticated_user}
+
+  def mount(_params, _session, socket) do
+    socket = assign(socket, :current_scope, socket.assigns.current_account)
+
+    today = Date.utc_today()
+    week_start = get_week_start(today)
+
+    socket =
+      socket
+      |> assign(:week_start, week_start)
+      |> assign(:days, get_week_days(week_start))
+      |> assign(:selected_day, nil)
+      |> assign(:show_add_meal_modal, false)
+      |> assign(:selected_date, nil)
+      |> assign(:selected_meal_type, nil)
+      |> assign(:available_recipes, [])
+      |> load_meal_plans()
+
+    {:ok, socket}
+  end
+
+  def handle_event("select_day", %{"date" => date_str}, socket) do
+    date = Date.from_iso8601!(date_str)
+    {:noreply, assign(socket, :selected_day, date)}
+  end
+
+  def handle_event("back_to_week", _params, socket) do
+    {:noreply, assign(socket, :selected_day, nil)}
+  end
+
+  def handle_event("prev_week", _params, socket) do
+    week_start = Date.add(socket.assigns.week_start, -7)
+
+    socket =
+      socket
+      |> assign(:week_start, week_start)
+      |> assign(:days, get_week_days(week_start))
+      |> assign(:selected_day, nil)
+      |> load_meal_plans()
+
+    {:noreply, socket}
+  end
+
+  def handle_event("next_week", _params, socket) do
+    week_start = Date.add(socket.assigns.week_start, 7)
+
+    socket =
+      socket
+      |> assign(:week_start, week_start)
+      |> assign(:days, get_week_days(week_start))
+      |> assign(:selected_day, nil)
+      |> load_meal_plans()
+
+    {:noreply, socket}
+  end
+
+  def handle_event("today", _params, socket) do
+    today = Date.utc_today()
+    week_start = get_week_start(today)
+
+    socket =
+      socket
+      |> assign(:week_start, week_start)
+      |> assign(:days, get_week_days(week_start))
+      |> assign(:selected_day, nil)
+      |> load_meal_plans()
+
+    {:noreply, socket}
+  end
+
+  def handle_event("add_meal", %{"date" => date_str, "meal_type" => meal_type}, socket) do
+    date = Date.from_iso8601!(date_str)
+    meal_type_atom = String.to_existing_atom(meal_type)
+
+    recipes =
+      GroceryPlanner.Recipes.Recipe
+      |> Ash.Query.for_read(:read, %{}, tenant: socket.assigns.current_account.id)
+      |> Ash.Query.load(:recipe_ingredients)
+      |> Ash.Query.sort(name: :asc)
+      |> Ash.read!(actor: socket.assigns.current_user)
+
+    socket =
+      socket
+      |> assign(:show_add_meal_modal, true)
+      |> assign(:selected_date, date)
+      |> assign(:selected_meal_type, meal_type_atom)
+      |> assign(:available_recipes, recipes)
+
+    {:noreply, socket}
+  end
+
+  def handle_event("close_modal", _params, socket) do
+    socket =
+      socket
+      |> assign(:show_add_meal_modal, false)
+      |> assign(:selected_date, nil)
+      |> assign(:selected_meal_type, nil)
+      |> assign(:available_recipes, [])
+
+    {:noreply, socket}
+  end
+
+  def handle_event("prevent_close", _params, socket) do
+    {:noreply, socket}
+  end
+
+  def handle_event("select_recipe", %{"id" => recipe_id}, socket) do
+    result =
+      GroceryPlanner.MealPlanning.MealPlan
+      |> Ash.Changeset.new()
+      |> Ash.Changeset.set_argument(:account_id, socket.assigns.current_account.id)
+      |> Ash.Changeset.for_create(
+        :create,
+        %{
+          recipe_id: recipe_id,
+          scheduled_date: socket.assigns.selected_date,
+          meal_type: socket.assigns.selected_meal_type,
+          servings: 4
+        }
+      )
+      |> Ash.create(actor: socket.assigns.current_user, tenant: socket.assigns.current_account.id)
+
+    case result do
+      {:ok, _meal_plan} ->
+        socket =
+          socket
+          |> assign(:show_add_meal_modal, false)
+          |> assign(:selected_date, nil)
+          |> assign(:selected_meal_type, nil)
+          |> assign(:available_recipes, [])
+          |> load_meal_plans()
+          |> put_flash(:info, "Meal added successfully")
+
+        {:noreply, socket}
+
+      {:error, _changeset} ->
+        {:noreply, put_flash(socket, :error, "Failed to add meal")}
+    end
+  end
+
+  def handle_event("remove_meal", %{"id" => meal_plan_id}, socket) do
+    case Ash.get(
+           GroceryPlanner.MealPlanning.MealPlan,
+           meal_plan_id,
+           actor: socket.assigns.current_user,
+           tenant: socket.assigns.current_account.id
+         ) do
+      {:ok, meal_plan} ->
+        case Ash.destroy(meal_plan, actor: socket.assigns.current_user) do
+          :ok ->
+            socket =
+              socket
+              |> load_meal_plans()
+              |> put_flash(:info, "Meal removed successfully")
+
+            {:noreply, socket}
+
+          {:error, _} ->
+            {:noreply, put_flash(socket, :error, "Failed to remove meal")}
+        end
+
+      {:error, _} ->
+        {:noreply, put_flash(socket, :error, "Meal not found")}
+    end
+  end
+
+  def handle_event("edit_meal", %{"id" => _meal_plan_id}, socket) do
+    {:noreply, put_flash(socket, :info, "Edit functionality coming soon")}
+  end
+
+  def handle_event("search_recipes", %{"value" => search_term}, socket) do
+    all_recipes =
+      GroceryPlanner.Recipes.Recipe
+      |> Ash.Query.for_read(:read, %{}, tenant: socket.assigns.current_account.id)
+      |> Ash.Query.load(:recipe_ingredients)
+      |> Ash.Query.sort(name: :asc)
+      |> Ash.read!(actor: socket.assigns.current_user)
+
+    recipes =
+      if String.trim(search_term) == "" do
+        all_recipes
+      else
+        search_lower = String.downcase(search_term)
+
+        Enum.filter(all_recipes, fn recipe ->
+          String.contains?(String.downcase(recipe.name), search_lower)
+        end)
+      end
+
+    {:noreply, assign(socket, :available_recipes, recipes)}
+  end
+
+  defp load_meal_plans(socket) do
+    week_start = socket.assigns.week_start
+    week_end = Date.add(week_start, 6)
+
+    all_meal_plans =
+      GroceryPlanner.MealPlanning.MealPlan
+      |> Ash.Query.for_read(:read, %{}, tenant: socket.assigns.current_account.id)
+      |> Ash.Query.load(:recipe)
+      |> Ash.read!(actor: socket.assigns.current_user)
+
+    meal_plans =
+      Enum.filter(all_meal_plans, fn mp ->
+        Date.compare(mp.scheduled_date, week_start) in [:eq, :gt] and
+          Date.compare(mp.scheduled_date, week_end) in [:eq, :lt]
+      end)
+
+    assign(socket, :meal_plans, meal_plans)
+  end
+
+  defp get_week_start(date) do
+    day_of_week = Date.day_of_week(date)
+    Date.add(date, -(day_of_week - 1))
+  end
+
+  defp get_week_days(week_start) do
+    Enum.map(0..6, fn i -> Date.add(week_start, i) end)
+  end
+
+  defp get_meal_plan(date, meal_type, meal_plans) do
+    Enum.find(meal_plans, fn mp ->
+      mp.scheduled_date == date && mp.meal_type == meal_type
+    end)
+  end
+
+  defp meal_icon(:breakfast), do: "🌅"
+  defp meal_icon(:lunch), do: "☀️"
+  defp meal_icon(:dinner), do: "🌙"
+  defp meal_icon(:snack), do: "🍪"
+
+  defp meal_icon_bg(:breakfast), do: "bg-orange-50"
+  defp meal_icon_bg(:lunch), do: "bg-yellow-50"
+  defp meal_icon_bg(:dinner), do: "bg-indigo-50"
+  defp meal_icon_bg(:snack), do: "bg-pink-50"
+
+  defp meal_card_style(:breakfast), do: "bg-orange-50 border-orange-200"
+  defp meal_card_style(:lunch), do: "bg-yellow-50 border-yellow-200"
+  defp meal_card_style(:dinner), do: "bg-indigo-50 border-indigo-200"
+  defp meal_card_style(:snack), do: "bg-pink-50 border-pink-200"
+end

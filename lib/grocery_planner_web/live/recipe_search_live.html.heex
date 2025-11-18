@@ -1,0 +1,133 @@
+<Layouts.app
+  flash={@flash}
+  current_user={@current_user}
+  current_account={@current_account}
+  current_scope={@current_scope}
+>
+  <div class="px-4 py-10 sm:px-6 lg:px-8">
+    <div class="max-w-6xl mx-auto">
+      <div class="mb-6">
+        <.link
+          navigate="/recipes"
+          class="text-purple-600 hover:text-purple-700 flex items-center gap-2"
+        >
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M10 19l-7-7m0 0l7-7m-7 7h18"
+            />
+          </svg>
+          Back to Recipes
+        </.link>
+      </div>
+
+      <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
+        <h1 class="text-3xl font-bold text-gray-900 mb-2">Search TheMealDB</h1>
+        <p class="text-gray-600 mb-8">
+          Browse thousands of free recipes from TheMealDB and import them to your collection
+        </p>
+
+        <form phx-submit="search" class="mb-8">
+          <div class="flex gap-4">
+            <input
+              type="text"
+              name="query"
+              value={@search_query}
+              placeholder="Search for recipes..."
+              class="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-900"
+              required
+            />
+            <.button
+              type="submit"
+              class="px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition font-medium"
+            >
+              Search
+            </.button>
+            <.button
+              type="button"
+              phx-click="random"
+              class="px-6 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition font-medium"
+            >
+              Random
+            </.button>
+          </div>
+        </form>
+
+        <div :if={@loading} class="text-center py-12">
+          <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600">
+          </div>
+          <p class="mt-4 text-gray-600">Searching...</p>
+        </div>
+
+        <div
+          :if={@error}
+          class="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg mb-6"
+        >
+          {@error}
+        </div>
+
+        <div :if={@searched && !@loading && @results == []} class="text-center py-12">
+          <svg
+            class="w-16 h-16 text-gray-300 mx-auto mb-4"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+            />
+          </svg>
+          <p class="text-gray-500 font-medium">No recipes found</p>
+          <p class="text-gray-400 text-sm mt-1">Try a different search term</p>
+        </div>
+
+        <div
+          :if={!@loading && @results != []}
+          class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+        >
+          <div
+            :for={meal <- @results}
+            class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition"
+          >
+            <div class="h-48 bg-gray-100">
+              <img src={meal.image_url} alt={meal.name} class="w-full h-full object-cover" />
+            </div>
+
+            <div class="p-5">
+              <h3 class="text-lg font-semibold text-gray-900 mb-2">{meal.name}</h3>
+
+              <p :if={meal.category || meal.area} class="text-sm text-gray-600 mb-3">
+                {Enum.join(Enum.filter([meal.category, meal.area], & &1), " · ")}
+              </p>
+
+              <div class="flex items-center gap-2 text-sm text-gray-500 mb-4">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
+                  />
+                </svg>
+                <span>{length(meal.ingredients)} ingredients</span>
+              </div>
+
+              <.button
+                phx-click="import"
+                phx-value-id={meal.external_id}
+                class="w-full px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition font-medium"
+              >
+                Import Recipe
+              </.button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</Layouts.app>

@@ -1,0 +1,369 @@
+<Layouts.app
+  flash={@flash}
+  current_user={@current_user}
+  current_account={@current_account}
+  current_scope={@current_scope}
+>
+  <div class="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
+    <div class="max-w-[1400px] mx-auto px-4 py-8 sm:px-6 lg:px-8">
+      <div class="mb-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div>
+          <h1 class="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+            Meal Planner
+          </h1>
+          <p class="mt-2 text-gray-600 text-lg">Plan your weekly meals with ease</p>
+        </div>
+
+        <div class="flex items-center gap-2 bg-white rounded-xl shadow-sm p-1.5 border border-gray-200">
+          <button
+            phx-click="prev_week"
+            class="p-2.5 hover:bg-gray-100 rounded-lg transition-all duration-200 group"
+            title="Previous week"
+          >
+            <.icon
+              name="hero-chevron-left"
+              class="w-5 h-5 text-gray-600 group-hover:text-blue-600 transition-colors"
+            />
+          </button>
+
+          <button
+            phx-click="today"
+            class="px-6 py-2.5 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-lg transition-all duration-200 font-medium shadow-sm"
+          >
+            Today
+          </button>
+
+          <button
+            phx-click="next_week"
+            class="p-2.5 hover:bg-gray-100 rounded-lg transition-all duration-200 group"
+            title="Next week"
+          >
+            <.icon
+              name="hero-chevron-right"
+              class="w-5 h-5 text-gray-600 group-hover:text-blue-600 transition-colors"
+            />
+          </button>
+        </div>
+      </div>
+
+      <div class="mb-6 text-center bg-white rounded-xl shadow-sm py-4 border border-gray-200">
+        <p class="text-xl font-semibold text-gray-800">
+          {Calendar.strftime(@week_start, "%B %d")} - {Calendar.strftime(
+            Date.add(@week_start, 6),
+            "%B %d, %Y"
+          )}
+        </p>
+      </div>
+
+      <%= if @selected_day do %>
+        <div class="mb-4">
+          <button
+            phx-click="back_to_week"
+            class="flex items-center gap-2 text-blue-600 hover:text-blue-700 font-medium transition-colors"
+          >
+            <.icon name="hero-arrow-left" class="w-5 h-5" /> Back to week overview
+          </button>
+        </div>
+
+        <div class="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden">
+          <div class={[
+            "p-6 border-b transition-colors duration-200",
+            if(Date.compare(@selected_day, Date.utc_today()) == :eq,
+              do: "bg-gradient-to-r from-blue-600 to-purple-600 text-white border-transparent",
+              else: "bg-gray-50 text-gray-900 border-gray-200"
+            )
+          ]}>
+            <div class="flex items-center justify-between">
+              <div>
+                <h2 class="text-3xl font-bold">
+                  {Calendar.strftime(@selected_day, "%A")}
+                </h2>
+                <p class={[
+                  "text-lg mt-1",
+                  if(Date.compare(@selected_day, Date.utc_today()) == :eq,
+                    do: "text-blue-100",
+                    else: "text-gray-600"
+                  )
+                ]}>
+                  {Calendar.strftime(@selected_day, "%B %d, %Y")}
+                </p>
+              </div>
+              <div class={[
+                "text-5xl font-bold",
+                if(Date.compare(@selected_day, Date.utc_today()) == :eq,
+                  do: "text-white",
+                  else: "text-gray-300"
+                )
+              ]}>
+                {Calendar.strftime(@selected_day, "%d")}
+              </div>
+            </div>
+          </div>
+
+          <div class="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+            <%= for meal_type <- [:breakfast, :lunch, :dinner, :snack] do %>
+              <div class="group">
+                <div class={[
+                  "flex items-center gap-3 mb-3 px-4 py-2 rounded-lg transition-colors duration-200",
+                  meal_icon_bg(meal_type)
+                ]}>
+                  <div class="text-2xl">
+                    {meal_icon(meal_type)}
+                  </div>
+                  <span class="text-lg font-bold capitalize text-gray-800">
+                    {meal_type}
+                  </span>
+                </div>
+
+                <%= case get_meal_plan(@selected_day, meal_type, @meal_plans) do %>
+                  <% nil -> %>
+                    <button
+                      phx-click="add_meal"
+                      phx-value-date={@selected_day}
+                      phx-value-meal_type={meal_type}
+                      class="w-full py-8 px-4 border-2 border-dashed border-gray-300 rounded-xl text-gray-500 hover:border-blue-500 hover:bg-blue-50 hover:text-blue-600 transition-all duration-200 flex flex-col items-center justify-center gap-2 group"
+                    >
+                      <.icon name="hero-plus-circle" class="w-8 h-8" />
+                      <span class="font-medium">Add meal</span>
+                    </button>
+                  <% meal_plan -> %>
+                    <div class="bg-gradient-to-br from-blue-50 to-purple-50 rounded-xl p-4 border-2 border-blue-200 hover:border-blue-300 transition-all duration-200">
+                      <div class="flex items-start gap-4 mb-3">
+                        <%= if meal_plan.recipe.image_url do %>
+                          <img
+                            src={meal_plan.recipe.image_url}
+                            alt={meal_plan.recipe.name}
+                            class="w-24 h-24 rounded-xl object-cover shadow-md"
+                          />
+                        <% else %>
+                          <div class="w-24 h-24 rounded-xl bg-gradient-to-br from-blue-100 to-purple-100 flex items-center justify-center shadow-md">
+                            <.icon name="hero-cake" class="w-12 h-12 text-blue-600" />
+                          </div>
+                        <% end %>
+                        <div class="flex-1 min-w-0">
+                          <h4 class="font-bold text-gray-900 text-lg leading-tight">
+                            {meal_plan.recipe.name}
+                          </h4>
+                          <div class="flex items-center gap-2 mt-2 text-sm text-gray-600">
+                            <.icon name="hero-user-group" class="w-4 h-4" />
+                            <span>{meal_plan.servings} servings</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div class="flex gap-2">
+                        <button
+                          phx-click="edit_meal"
+                          phx-value-id={meal_plan.id}
+                          class="flex-1 px-4 py-2 text-sm font-medium bg-white hover:bg-blue-600 text-blue-600 hover:text-white border border-blue-600 rounded-lg transition-all duration-200 flex items-center justify-center gap-2"
+                        >
+                          <.icon name="hero-pencil-square" class="w-4 h-4" /> Edit
+                        </button>
+                        <button
+                          phx-click="remove_meal"
+                          phx-value-id={meal_plan.id}
+                          class="flex-1 px-4 py-2 text-sm font-medium bg-white hover:bg-red-600 text-red-600 hover:text-white border border-red-600 rounded-lg transition-all duration-200 flex items-center justify-center gap-2"
+                        >
+                          <.icon name="hero-trash" class="w-4 h-4" /> Remove
+                        </button>
+                      </div>
+                    </div>
+                <% end %>
+              </div>
+            <% end %>
+          </div>
+        </div>
+      <% else %>
+        <div class="grid grid-cols-1 md:grid-cols-7 gap-4">
+          <%= for day <- @days do %>
+            <button
+              phx-click="select_day"
+              phx-value-date={day}
+              class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-lg hover:scale-105 transition-all duration-200 text-left group"
+            >
+              <div class={[
+                "p-4 text-center font-semibold border-b transition-colors duration-200",
+                if(Date.compare(day, Date.utc_today()) == :eq,
+                  do:
+                    "bg-gradient-to-r from-blue-600 to-purple-600 text-white border-transparent",
+                  else: "bg-gray-50 text-gray-900 border-gray-200 group-hover:bg-blue-50"
+                )
+              ]}>
+                <div class="text-xs font-medium uppercase tracking-wide">
+                  {Calendar.strftime(day, "%a")}
+                </div>
+                <div class="text-3xl font-bold mt-1">
+                  {Calendar.strftime(day, "%d")}
+                </div>
+              </div>
+
+              <div class="p-3 space-y-2">
+                <%= for meal_type <- [:breakfast, :lunch, :dinner, :snack] do %>
+                  <%= case get_meal_plan(day, meal_type, @meal_plans) do %>
+                    <% nil -> %>
+                      <div class="flex items-center gap-2 py-1.5 px-2 rounded-lg bg-gray-50 text-gray-400 text-xs">
+                        <div class="text-sm">{meal_icon(meal_type)}</div>
+                        <span class="flex-1 capitalize font-medium">{meal_type}</span>
+                        <.icon name="hero-plus" class="w-3 h-3" />
+                      </div>
+                    <% meal_plan -> %>
+                      <div class={[
+                        "flex items-center gap-2 py-1.5 px-2 rounded-lg text-xs border-2 transition-colors",
+                        meal_card_style(meal_type)
+                      ]}>
+                        <div class="text-sm">{meal_icon(meal_type)}</div>
+                        <span class="flex-1 font-semibold text-gray-900 truncate">
+                          {meal_plan.recipe.name}
+                        </span>
+                        <%= if meal_plan.recipe.image_url do %>
+                          <img
+                            src={meal_plan.recipe.image_url}
+                            alt=""
+                            class="w-6 h-6 rounded object-cover"
+                          />
+                        <% end %>
+                      </div>
+                  <% end %>
+                <% end %>
+
+                <div class="pt-2 border-t border-gray-100">
+                  <div class="text-xs text-gray-500 text-center font-medium">
+                    <% meal_count =
+                      Enum.count(@meal_plans, fn mp ->
+                        mp.scheduled_date == day
+                      end) %>
+                    <%= if meal_count == 0 do %>
+                      No meals planned
+                    <% else %>
+                      {meal_count} <%= if meal_count == 1,
+                        do: "meal",
+                        else: "meals" %> planned
+                    <% end %>
+                  </div>
+                </div>
+              </div>
+            </button>
+          <% end %>
+        </div>
+      <% end %>
+    </div>
+  </div>
+
+  <%= if @show_add_meal_modal do %>
+    <div
+      class="fixed inset-0 bg-black bg-opacity-60 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-in fade-in duration-200"
+      phx-click="close_modal"
+      id="meal-modal-backdrop"
+    >
+      <div
+        class="bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-hidden animate-in zoom-in-95 duration-200"
+        phx-click="prevent_close"
+      >
+        <div class="bg-gradient-to-r from-blue-600 to-purple-600 p-6 text-white">
+          <div class="flex items-center justify-between">
+            <div>
+              <h2 class="text-2xl font-bold">Add Meal</h2>
+              <p class="text-blue-100 mt-1 text-sm">
+                {Calendar.strftime(@selected_date, "%A, %B %d")} · {String.capitalize(
+                  to_string(@selected_meal_type)
+                )}
+              </p>
+            </div>
+            <button
+              phx-click="close_modal"
+              class="p-2 hover:bg-white hover:bg-opacity-20 rounded-lg transition-colors"
+            >
+              <.icon name="hero-x-mark" class="w-6 h-6" />
+            </button>
+          </div>
+        </div>
+
+        <div class="p-6">
+          <div class="mb-4">
+            <div class="relative">
+              <.icon
+                name="hero-magnifying-glass"
+                class="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+              />
+              <input
+                type="text"
+                placeholder="Search recipes by name..."
+                phx-keyup="search_recipes"
+                phx-debounce="300"
+                class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+              />
+            </div>
+          </div>
+
+          <div class="space-y-2 max-h-[50vh] overflow-y-auto pr-2">
+            <%= if @available_recipes == [] do %>
+              <div class="text-center py-12 text-gray-500">
+                <.icon name="hero-magnifying-glass" class="w-12 h-12 mx-auto mb-3 opacity-50" />
+                <p>No recipes found</p>
+              </div>
+            <% else %>
+              <%= for recipe <- @available_recipes do %>
+                <button
+                  phx-click="select_recipe"
+                  phx-value-id={recipe.id}
+                  class="w-full p-4 border-2 border-gray-200 rounded-xl hover:border-blue-500 hover:bg-blue-50 transition-all duration-200 text-left group"
+                >
+                  <div class="flex items-start gap-4">
+                    <%= if recipe.image_url do %>
+                      <img
+                        src={recipe.image_url}
+                        alt={recipe.name}
+                        class="w-20 h-20 rounded-xl object-cover shadow-sm group-hover:shadow-md transition-shadow"
+                      />
+                    <% else %>
+                      <div class="w-20 h-20 rounded-xl bg-gradient-to-br from-blue-100 to-purple-100 flex items-center justify-center">
+                        <.icon name="hero-cake" class="w-10 h-10 text-blue-600" />
+                      </div>
+                    <% end %>
+                    <div class="flex-1 min-w-0">
+                      <h3 class="font-bold text-gray-900 text-lg group-hover:text-blue-600 transition-colors">
+                        {recipe.name}
+                      </h3>
+                      <%= if recipe.description do %>
+                        <p class="text-sm text-gray-600 mt-1 line-clamp-2">
+                          {recipe.description}
+                        </p>
+                      <% end %>
+                      <div class="flex flex-wrap gap-2 mt-2">
+                        <%= if recipe.prep_time_minutes do %>
+                          <span class="inline-flex items-center gap-1 text-xs text-gray-600 bg-gray-100 px-2 py-1 rounded-full">
+                            <.icon name="hero-clock" class="w-3.5 h-3.5" />
+                            Prep: {recipe.prep_time_minutes}m
+                          </span>
+                        <% end %>
+                        <%= if recipe.cook_time_minutes do %>
+                          <span class="inline-flex items-center gap-1 text-xs text-gray-600 bg-gray-100 px-2 py-1 rounded-full">
+                            <.icon name="hero-fire" class="w-3.5 h-3.5" />
+                            Cook: {recipe.cook_time_minutes}m
+                          </span>
+                        <% end %>
+                        <span class="inline-flex items-center gap-1 text-xs text-gray-600 bg-gray-100 px-2 py-1 rounded-full capitalize">
+                          <.icon name="hero-signal" class="w-3.5 h-3.5" />
+                          {recipe.difficulty}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </button>
+              <% end %>
+            <% end %>
+          </div>
+        </div>
+
+        <div class="p-6 border-t border-gray-200 bg-gray-50 flex justify-end">
+          <button
+            phx-click="close_modal"
+            class="px-6 py-2.5 bg-white hover:bg-gray-100 text-gray-700 border border-gray-300 rounded-xl transition-all font-medium"
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+  <% end %>
+</Layouts.app>

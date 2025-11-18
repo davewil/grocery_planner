@@ -1,0 +1,70 @@
+<Layouts.app flash={@flash}>
+  <div class="mx-auto max-w-sm mt-20">
+    <.header>
+      Create Account
+      <:subtitle>
+        Already have an account?
+        <.link navigate="/sign-in" class="font-semibold text-brand hover:underline">
+          Sign in
+        </.link>
+      </:subtitle>
+    </.header>
+
+    <.form for={@form} id="sign-up-form" phx-submit="sign_up" phx-change="validate" class="mt-10">
+      <div class="space-y-4">
+        <div>
+          <label for="user_name" class="block text-sm font-medium">Name</label>
+          <input
+            type="text"
+            name="user[name]"
+            id="user_name"
+            value={@form[:name].value}
+            required
+            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-zinc-400 focus:ring focus:ring-zinc-200 focus:ring-opacity-50"
+          />
+        </div>
+
+        <div>
+          <label for="user_email" class="block text-sm font-medium">Email</label>
+          <input
+            type="email"
+            name="user[email]"
+            id="user_email"
+            value={@form[:email].value}
+            required
+            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-zinc-400 focus:ring focus:ring-zinc-200 focus:ring-opacity-50"
+          />
+        </div>
+
+        <div>
+          <label for="user_password" class="block text-sm font-medium">Password</label>
+          <input
+            type="password"
+            name="user[password]"
+            id="user_password"
+            required
+            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-zinc-400 focus:ring focus:ring-zinc-200 focus:ring-opacity-50"
+          />
+        </div>
+
+        <div>
+          <label for="user_account_name" class="block text-sm font-medium">Household Name</label>
+          <input
+            type="text"
+            name="user[account_name]"
+            id="user_account_name"
+            value={@form[:account_name].value}
+            required
+            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-zinc-400 focus:ring focus:ring-zinc-200 focus:ring-opacity-50"
+          />
+        </div>
+
+        <div>
+          <.button phx-disable-with="Creating account..." class="w-full">
+            Create Account
+          </.button>
+        </div>
+      </div>
+    </.form>
+  </div>
+</Layouts.app>
