@@ -1,5 +1,6 @@
 defmodule GroceryPlannerWeb.MealPlannerLive do
   use GroceryPlannerWeb, :live_view
+  require Logger
 
   on_mount {GroceryPlannerWeb.Auth, :require_authenticated_user}
 
@@ -15,6 +16,8 @@ defmodule GroceryPlannerWeb.MealPlannerLive do
       |> assign(:days, get_week_days(week_start))
       |> assign(:selected_day, nil)
       |> assign(:show_add_meal_modal, false)
+      |> assign(:show_edit_meal_modal, false)
+      |> assign(:editing_meal_plan, nil)
       |> assign(:selected_date, nil)
       |> assign(:selected_meal_type, nil)
       |> assign(:available_recipes, [])
@@ -168,8 +171,61 @@ defmodule GroceryPlannerWeb.MealPlannerLive do
     end
   end
 
-  def handle_event("edit_meal", %{"id" => _meal_plan_id}, socket) do
-    {:noreply, put_flash(socket, :info, "Edit functionality coming soon")}
+  def handle_event("edit_meal", %{"id" => meal_plan_id}, socket) do
+    Logger.info("=== EDIT MEAL CLICKED === ID: #{meal_plan_id}")
+    
+    meal_plan =
+      Ash.get!(
+        GroceryPlanner.MealPlanning.MealPlan,
+        meal_plan_id,
+        actor: socket.assigns.current_user,
+        tenant: socket.assigns.current_account.id,
+        load: [:recipe]
+      )
+
+    Logger.info("=== MEAL PLAN LOADED === #{inspect(meal_plan.recipe.name)}")
+
+    socket =
+      socket
+      |> assign(:show_edit_meal_modal, true)
+      |> assign(:editing_meal_plan, meal_plan)
+
+    Logger.info("=== MODAL SHOULD BE SHOWING ===")
+    {:noreply, socket}
+  end
+
+  def handle_event("close_edit_modal", _params, socket) do
+    socket =
+      socket
+      |> assign(:show_edit_meal_modal, false)
+      |> assign(:editing_meal_plan, nil)
+
+    {:noreply, socket}
+  end
+
+  def handle_event("update_meal", %{"servings" => servings, "notes" => notes}, socket) do
+    result =
+      socket.assigns.editing_meal_plan
+      |> Ash.Changeset.for_update(:update, %{
+        servings: String.to_integer(servings),
+        notes: notes
+      })
+      |> Ash.update(actor: socket.assigns.current_user)
+
+    case result do
+      {:ok, _meal_plan} ->
+        socket =
+          socket
+          |> assign(:show_edit_meal_modal, false)
+          |> assign(:editing_meal_plan, nil)
+          |> load_meal_plans()
+          |> put_flash(:info, "Meal updated successfully")
+
+        {:noreply, socket}
+
+      {:error, _changeset} ->
+        {:noreply, put_flash(socket, :error, "Failed to update meal")}
+    end
   end
 
   def handle_event("search_recipes", %{"value" => search_term}, socket) do
