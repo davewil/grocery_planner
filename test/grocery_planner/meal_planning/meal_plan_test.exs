@@ -106,7 +106,14 @@ defmodule GroceryPlanner.MealPlanning.MealPlanTest do
                    :create,
                    %{
                      recipe_id: recipe.id,
-                     scheduled_date: Date.add(today, Enum.find_index([:breakfast, :lunch, :dinner, :snack], &(&1 == meal_type))),
+                     scheduled_date:
+                       Date.add(
+                         today,
+                         Enum.find_index(
+                           [:breakfast, :lunch, :dinner, :snack],
+                           &(&1 == meal_type)
+                         )
+                       ),
                      meal_type: meal_type,
                      servings: 4
                    }

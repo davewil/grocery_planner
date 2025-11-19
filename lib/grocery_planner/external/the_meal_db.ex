@@ -198,11 +198,12 @@ defmodule GroceryPlanner.External.TheMealDB do
 
     # Disable retries in test mode to improve test performance
     # Retries cause slow 500 error tests due to exponential backoff
-    base_opts = if Keyword.has_key?(opts, :plug) do
-      Keyword.put(base_opts, :retry, false)
-    else
-      base_opts
-    end
+    base_opts =
+      if Keyword.has_key?(opts, :plug) do
+        Keyword.put(base_opts, :retry, false)
+      else
+        base_opts
+      end
 
     Req.new(Keyword.merge(base_opts, opts))
   end

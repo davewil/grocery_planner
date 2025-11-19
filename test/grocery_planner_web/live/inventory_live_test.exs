@@ -90,8 +90,8 @@ defmodule GroceryPlannerWeb.InventoryLiveTest do
     end
 
     test "displays existing grocery items", %{conn: conn, account: account, user: user} do
-      item1 = create_grocery_item(account, user, %{name: "Milk", description: "Whole milk"})
-      item2 = create_grocery_item(account, user, %{name: "Bread", description: "Whole wheat"})
+      _item1 = create_grocery_item(account, user, %{name: "Milk", description: "Whole milk"})
+      _item2 = create_grocery_item(account, user, %{name: "Bread", description: "Whole wheat"})
 
       {:ok, _view, html} = live(conn, "/inventory")
 
@@ -307,8 +307,8 @@ defmodule GroceryPlannerWeb.InventoryLiveTest do
 
   describe "Categories tab" do
     test "displays existing categories", %{conn: conn, account: account, user: user} do
-      category1 = create_category(account, user, %{name: "Dairy", icon: "milk"})
-      category2 = create_category(account, user, %{name: "Produce", icon: "apple"})
+      _category1 = create_category(account, user, %{name: "Dairy", icon: "milk"})
+      _category2 = create_category(account, user, %{name: "Produce", icon: "apple"})
 
       {:ok, view, _html} = live(conn, "/inventory")
 
@@ -398,10 +398,10 @@ defmodule GroceryPlannerWeb.InventoryLiveTest do
 
   describe "Storage Locations tab" do
     test "displays existing storage locations", %{conn: conn, account: account, user: user} do
-      location1 =
+      _location1 =
         create_storage_location(account, user, %{name: "Fridge", temperature_zone: :cold})
 
-      location2 =
+      _location2 =
         create_storage_location(account, user, %{name: "Pantry", temperature_zone: :room_temp})
 
       {:ok, view, _html} = live(conn, "/inventory")

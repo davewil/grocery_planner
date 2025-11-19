@@ -2,8 +2,11 @@ defmodule GroceryPlanner.Checks.ActorMemberOfAccount do
   use Ash.Policy.Check
   require Ash.Query
 
-  def strict_check(actor, %{changeset: %{action_type: :create} = changeset}, _opts) when not is_nil(actor) do
-    account_id = Ash.Changeset.get_attribute(changeset, :account_id) || Ash.Changeset.get_argument(changeset, :account_id)
+  def strict_check(actor, %{changeset: %{action_type: :create} = changeset}, _opts)
+      when not is_nil(actor) do
+    account_id =
+      Ash.Changeset.get_attribute(changeset, :account_id) ||
+        Ash.Changeset.get_argument(changeset, :account_id)
 
     exists? =
       GroceryPlanner.Accounts.AccountMembership

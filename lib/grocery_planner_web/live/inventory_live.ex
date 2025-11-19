@@ -269,7 +269,7 @@ defmodule GroceryPlannerWeb.InventoryLive do
     <%= if @show_form == :item do %>
       <div class="mb-6 bg-blue-50 border border-blue-200 rounded-xl p-6">
         <h3 class="text-lg font-semibold text-gray-900 mb-4">
-          <%= if @editing_id, do: "Edit Grocery Item", else: "Add New Grocery Item" %>
+          {if @editing_id, do: "Edit Grocery Item", else: "Add New Grocery Item"}
         </h3>
         <.form for={@form} id="item-form" phx-submit="save_item">
           <div class="space-y-4">
@@ -286,9 +286,7 @@ defmodule GroceryPlannerWeb.InventoryLive do
               field={@form[:category_id]}
               type="select"
               label="Category"
-              options={
-                [{"None", nil}] ++ Enum.map(@categories, fn c -> {c.name, c.id} end)
-              }
+              options={[{"None", nil}] ++ Enum.map(@categories, fn c -> {c.name, c.id} end)}
             />
 
             <div class="flex gap-2 justify-end">
@@ -321,7 +319,10 @@ defmodule GroceryPlannerWeb.InventoryLive do
         </h3>
 
         <div class="space-y-3">
-          <div :for={tag <- @tags} class="flex items-center justify-between p-3 bg-white rounded-lg border border-gray-200">
+          <div
+            :for={tag <- @tags}
+            class="flex items-center justify-between p-3 bg-white rounded-lg border border-gray-200"
+          >
             <div class="flex items-center gap-3">
               <div
                 class="w-8 h-8 rounded flex items-center justify-center"
@@ -534,7 +535,13 @@ defmodule GroceryPlannerWeb.InventoryLive do
               options={Enum.map(@storage_locations, fn l -> {l.name, l.id} end)}
             />
             <.input field={@form[:quantity]} type="number" label="Quantity" required step="0.01" />
-            <.input field={@form[:unit]} type="text" label="Unit" required placeholder="e.g., lbs, oz, liters" />
+            <.input
+              field={@form[:unit]}
+              type="text"
+              label="Unit"
+              required
+              placeholder="e.g., lbs, oz, liters"
+            />
             <.input field={@form[:purchase_date]} type="date" label="Purchase Date" />
             <.input field={@form[:use_by_date]} type="date" label="Use By Date" />
             <.input field={@form[:notes]} type="textarea" label="Notes" />
@@ -945,7 +952,7 @@ defmodule GroceryPlannerWeb.InventoryLive do
     <%= if @show_form == :tag do %>
       <div class="mb-6 bg-pink-50 border border-pink-200 rounded-xl p-6">
         <h3 class="text-lg font-semibold text-gray-900 mb-4">
-          <%= if @editing_id, do: "Edit Tag", else: "Add New Tag" %>
+          {if @editing_id, do: "Edit Tag", else: "Add New Tag"}
         </h3>
         <.form for={@form} id="tag-form" phx-submit="save_tag">
           <div class="space-y-4">
@@ -1342,7 +1349,10 @@ defmodule GroceryPlannerWeb.InventoryLive do
           |> assign(show_form: nil, form: nil, editing_id: nil)
           |> put_flash(
             :info,
-            if(socket.assigns.editing_id, do: "Tag updated successfully", else: "Tag created successfully")
+            if(socket.assigns.editing_id,
+              do: "Tag updated successfully",
+              else: "Tag created successfully"
+            )
           )
 
         {:noreply, socket}
@@ -1475,7 +1485,7 @@ defmodule GroceryPlannerWeb.InventoryLive do
     {:ok, categories} = Category.read(actor: user, tenant: account_id)
     {:ok, locations} = StorageLocation.read(actor: user, tenant: account_id)
     tags = GroceryPlanner.Inventory.list_grocery_item_tags!(authorize?: false, tenant: account_id)
-    
+
     {:ok, entries} =
       InventoryEntry
       |> Ash.Query.load([:grocery_item, :storage_location])

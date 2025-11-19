@@ -7,7 +7,7 @@ defmodule GroceryPlanner.Recipes.RecipeCalculationsTest do
 
   describe "ingredient_availability calculation" do
     test "returns 100% when recipe has no ingredients" do
-      {account, user} = create_account_and_user()
+      {account, _user} = create_account_and_user()
 
       {:ok, recipe} =
         Recipes.create_recipe(
@@ -79,7 +79,7 @@ defmodule GroceryPlanner.Recipes.RecipeCalculationsTest do
 
   describe "can_make calculation" do
     test "returns true when recipe has no ingredients" do
-      {account, user} = create_account_and_user()
+      {account, _user} = create_account_and_user()
 
       {:ok, recipe} =
         Recipes.create_recipe(

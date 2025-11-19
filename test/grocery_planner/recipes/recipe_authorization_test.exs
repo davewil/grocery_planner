@@ -105,7 +105,6 @@ defmodule GroceryPlanner.Recipes.RecipeAuthorizationTest do
 
       assert recipe2.account_id == account2.id
     end
-
   end
 
   describe "Recipe update and destroy authorization" do

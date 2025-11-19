@@ -236,9 +236,9 @@
                     <%= if meal_count == 0 do %>
                       No meals planned
                     <% else %>
-                      {meal_count} <%= if meal_count == 1,
+                      {meal_count} {if meal_count == 1,
                         do: "meal",
-                        else: "meals" %> planned
+                        else: "meals"} planned
                     <% end %>
                   </div>
                 </div>

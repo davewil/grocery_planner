@@ -173,7 +173,7 @@ defmodule GroceryPlannerWeb.MealPlannerLive do
 
   def handle_event("edit_meal", %{"id" => meal_plan_id}, socket) do
     Logger.info("=== EDIT MEAL CLICKED === ID: #{meal_plan_id}")
-    
+
     meal_plan =
       Ash.get!(
         GroceryPlanner.MealPlanning.MealPlan,
