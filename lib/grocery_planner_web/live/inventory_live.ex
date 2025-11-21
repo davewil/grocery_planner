@@ -3,7 +3,7 @@ defmodule GroceryPlannerWeb.InventoryLive do
 
   on_mount {GroceryPlannerWeb.Auth, :require_authenticated_user}
 
-  alias GroceryPlanner.Inventory.{Category, StorageLocation, GroceryItem, InventoryEntry}
+  alias GroceryPlanner.Inventory.{GroceryItem, InventoryEntry}
 
   def render(assigns) do
     ~H"""
@@ -1199,16 +1199,15 @@ defmodule GroceryPlannerWeb.InventoryLive do
   end
 
   def handle_event("delete_item", %{"id" => id}, socket) do
-    case GroceryItem.by_id(id,
+    case GroceryPlanner.Inventory.get_grocery_item(id,
            actor: socket.assigns.current_user,
            tenant: socket.assigns.current_account.id
          ) do
       {:ok, item} ->
-        result =
-          Ash.destroy(item,
-            actor: socket.assigns.current_user,
-            tenant: socket.assigns.current_account.id
-          )
+        result = GroceryPlanner.Inventory.destroy_grocery_item(item,
+          actor: socket.assigns.current_user,
+          tenant: socket.assigns.current_account.id
+        )
 
         case result do
           {:ok, _} ->
@@ -1237,16 +1236,15 @@ defmodule GroceryPlannerWeb.InventoryLive do
   end
 
   def handle_event("delete_category", %{"id" => id}, socket) do
-    case Category.by_id(id,
+    case GroceryPlanner.Inventory.get_category(id,
            actor: socket.assigns.current_user,
            tenant: socket.assigns.current_account.id
          ) do
       {:ok, category} ->
-        result =
-          Ash.destroy(category,
-            actor: socket.assigns.current_user,
-            tenant: socket.assigns.current_account.id
-          )
+        result = GroceryPlanner.Inventory.destroy_category(category,
+          actor: socket.assigns.current_user,
+          tenant: socket.assigns.current_account.id
+        )
 
         case result do
           {:ok, _} ->
@@ -1275,16 +1273,15 @@ defmodule GroceryPlannerWeb.InventoryLive do
   end
 
   def handle_event("delete_location", %{"id" => id}, socket) do
-    case StorageLocation.by_id(id,
+    case GroceryPlanner.Inventory.get_storage_location(id,
            actor: socket.assigns.current_user,
            tenant: socket.assigns.current_account.id
          ) do
       {:ok, location} ->
-        result =
-          Ash.destroy(location,
-            actor: socket.assigns.current_user,
-            tenant: socket.assigns.current_account.id
-          )
+        result = GroceryPlanner.Inventory.destroy_storage_location(location,
+          actor: socket.assigns.current_user,
+          tenant: socket.assigns.current_account.id
+        )
 
         case result do
           {:ok, _} ->
@@ -1427,16 +1424,15 @@ defmodule GroceryPlannerWeb.InventoryLive do
   end
 
   def handle_event("delete_entry", %{"id" => id}, socket) do
-    case InventoryEntry.by_id(id,
+    case GroceryPlanner.Inventory.get_inventory_entry(id,
            actor: socket.assigns.current_user,
            tenant: socket.assigns.current_account.id
          ) do
       {:ok, entry} ->
-        result =
-          Ash.destroy(entry,
-            actor: socket.assigns.current_user,
-            tenant: socket.assigns.current_account.id
-          )
+        result = GroceryPlanner.Inventory.destroy_inventory_entry(entry,
+          actor: socket.assigns.current_user,
+          tenant: socket.assigns.current_account.id
+        )
 
         case result do
           {:ok, _} ->
@@ -1480,16 +1476,17 @@ defmodule GroceryPlannerWeb.InventoryLive do
         items_query
       end
 
-    {:ok, items} = Ash.read(items_query, actor: user, tenant: account_id)
+    {:ok, items} = GroceryPlanner.Inventory.list_grocery_items(actor: user, tenant: account_id, query: items_query)
 
-    {:ok, categories} = Category.read(actor: user, tenant: account_id)
-    {:ok, locations} = StorageLocation.read(actor: user, tenant: account_id)
-    tags = GroceryPlanner.Inventory.list_grocery_item_tags!(authorize?: false, tenant: account_id)
+    {:ok, categories} = GroceryPlanner.Inventory.list_categories(actor: user, tenant: account_id)
+    {:ok, locations} = GroceryPlanner.Inventory.list_storage_locations(actor: user, tenant: account_id)
+    {:ok, tags} = GroceryPlanner.Inventory.list_grocery_item_tags(authorize?: false, tenant: account_id)
 
-    {:ok, entries} =
-      InventoryEntry
-      |> Ash.Query.load([:grocery_item, :storage_location])
-      |> Ash.read(actor: user, tenant: account_id)
+    {:ok, entries} = GroceryPlanner.Inventory.list_inventory_entries(
+      actor: user,
+      tenant: account_id,
+      query: InventoryEntry |> Ash.Query.load([:grocery_item, :storage_location])
+    )
 
     socket
     |> assign(:items, items)

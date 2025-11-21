@@ -21,23 +21,28 @@ defmodule GroceryPlanner.Shopping.Changes.GenerateFromMealPlans do
 
   defp generate_items(shopping_list, start_date, end_date, account_id, context) do
     # Get all meal plans in the date range
-    meal_plans =
-      GroceryPlanner.MealPlanning.MealPlan
-      |> Ash.Query.filter(scheduled_date >= ^start_date and scheduled_date <= ^end_date)
-      |> Ash.Query.load(recipe: [recipe_ingredients: :grocery_item])
-      |> Ash.read!(tenant: account_id, actor: context.actor)
-      # Filter for planned status in Elixir to avoid query issues
-      |> Enum.filter(fn mp -> mp.status == :planned end)
+    {:ok, all_meal_plans} = GroceryPlanner.MealPlanning.list_meal_plans(
+      actor: context.actor,
+      tenant: account_id,
+      query: GroceryPlanner.MealPlanning.MealPlan
+        |> Ash.Query.filter(scheduled_date >= ^start_date and scheduled_date <= ^end_date)
+        |> Ash.Query.load(recipe: [recipe_ingredients: :grocery_item])
+    )
+
+    meal_plans = Enum.filter(all_meal_plans, fn mp -> mp.status == :planned end)
 
     # Aggregate ingredients from all meal plans
     ingredient_map = aggregate_ingredients(meal_plans, account_id)
 
     # Get current inventory
+    {:ok, all_inventory} = GroceryPlanner.Inventory.list_inventory_entries(
+      actor: context.actor,
+      tenant: account_id,
+      query: GroceryPlanner.Inventory.InventoryEntry |> Ash.Query.load(:grocery_item)
+    )
+
     inventory =
-      GroceryPlanner.Inventory.InventoryEntry
-      |> Ash.Query.load(:grocery_item)
-      |> Ash.read!(tenant: account_id, actor: context.actor)
-      # Filter in Elixir for simplicity
+      all_inventory
       |> Enum.filter(fn entry ->
         entry.status == :available && Decimal.compare(entry.quantity, Decimal.new(0)) == :gt
       end)
@@ -62,14 +67,14 @@ defmodule GroceryPlanner.Shopping.Changes.GenerateFromMealPlans do
       shortage = Decimal.sub(needed_qty, available_qty)
 
       if Decimal.compare(shortage, Decimal.new(0)) == :gt do
-        GroceryPlanner.Shopping.ShoppingListItem.create(
+        GroceryPlanner.Shopping.create_shopping_list_item(
+          account_id,
           %{
             shopping_list_id: shopping_list.id,
             grocery_item_id: grocery_item_id,
             name: name,
             quantity: shortage,
-            unit: unit,
-            account_id: account_id
+            unit: unit
           },
           tenant: account_id,
           actor: context.actor

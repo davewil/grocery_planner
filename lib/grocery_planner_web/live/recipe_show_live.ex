@@ -54,11 +54,11 @@ defmodule GroceryPlannerWeb.RecipeShowLive do
   end
 
   def handle_event("delete_recipe", _, socket) do
-    result =
-      Ash.destroy(socket.assigns.recipe,
-        actor: socket.assigns.current_user,
-        tenant: socket.assigns.current_account.id
-      )
+    result = GroceryPlanner.Recipes.destroy_recipe(
+      socket.assigns.recipe,
+      actor: socket.assigns.current_user,
+      tenant: socket.assigns.current_account.id
+    )
 
     case result do
       {:ok, _} ->

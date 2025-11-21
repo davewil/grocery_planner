@@ -122,12 +122,16 @@ defmodule GroceryPlannerWeb.VotingLive do
   end
 
   defp load_recipes_and_votes(socket) do
-    recipes =
-      Recipe
-      |> Ash.Query.for_read(:read, %{}, tenant: socket.assigns.current_account.id)
-      |> Ash.Query.filter(is_favorite == true)
-      |> Ash.Query.sort(name: :asc)
-      |> Ash.read!(actor: socket.assigns.current_user)
+    account_id = socket.assigns.current_account.id
+    user = socket.assigns.current_user
+
+    {:ok, recipes} = GroceryPlanner.Recipes.list_recipes(
+      actor: user,
+      tenant: account_id,
+      query: Recipe
+        |> Ash.Query.filter(is_favorite == true)
+        |> Ash.Query.sort(name: :asc)
+    )
 
     {user_votes, tally} = build_vote_state(socket.assigns.session, recipes, socket)
 
@@ -142,15 +146,18 @@ defmodule GroceryPlannerWeb.VotingLive do
   defp build_vote_state(_session, recipes, socket) do
     session_id = socket.assigns.session.id
     account_id = socket.assigns.current_account.id
-    
-    entries =
-      GroceryPlanner.MealPlanning.MealPlanVoteEntry
-      |> Ash.Query.filter(vote_session_id == ^session_id and account_id == ^account_id)
-      |> Ash.read!(actor: socket.assigns.current_user, tenant: account_id)
+    user = socket.assigns.current_user
+
+    {:ok, entries} = GroceryPlanner.MealPlanning.list_vote_entries(
+      actor: user,
+      tenant: account_id,
+      query: GroceryPlanner.MealPlanning.MealPlanVoteEntry
+        |> Ash.Query.filter(vote_session_id == ^session_id and account_id == ^account_id)
+    )
 
     user_votes =
       entries
-      |> Enum.filter(&(&1.user_id == socket.assigns.current_user.id))
+      |> Enum.filter(&(&1.user_id == user.id))
       |> Enum.map(& &1.recipe_id)
       |> MapSet.new()
 
@@ -160,7 +167,6 @@ defmodule GroceryPlannerWeb.VotingLive do
       |> Enum.map(fn {rid, votes} -> {rid, length(votes)} end)
       |> Map.new()
 
-    # Ensure all favorites appear with zero if no votes yet
     tally = Enum.reduce(recipes, tally, fn r, acc -> Map.put_new(acc, r.id, 0) end)
 
     {user_votes, tally}

@@ -84,12 +84,13 @@ defmodule GroceryPlannerWeb.MealPlannerLive do
     date = Date.from_iso8601!(date_str)
     meal_type_atom = String.to_existing_atom(meal_type)
 
-    recipes =
-      GroceryPlanner.Recipes.Recipe
-      |> Ash.Query.for_read(:read, %{}, tenant: socket.assigns.current_account.id)
-      |> Ash.Query.load(:recipe_ingredients)
-      |> Ash.Query.sort(name: :asc)
-      |> Ash.read!(actor: socket.assigns.current_user)
+    {:ok, recipes} = GroceryPlanner.Recipes.list_recipes(
+      actor: socket.assigns.current_user,
+      tenant: socket.assigns.current_account.id,
+      query: GroceryPlanner.Recipes.Recipe
+        |> Ash.Query.load(:recipe_ingredients)
+        |> Ash.Query.sort(name: :asc)
+    )
 
     socket =
       socket
@@ -117,20 +118,17 @@ defmodule GroceryPlannerWeb.MealPlannerLive do
   end
 
   def handle_event("select_recipe", %{"id" => recipe_id}, socket) do
-    result =
-      GroceryPlanner.MealPlanning.MealPlan
-      |> Ash.Changeset.new()
-      |> Ash.Changeset.set_argument(:account_id, socket.assigns.current_account.id)
-      |> Ash.Changeset.for_create(
-        :create,
-        %{
-          recipe_id: recipe_id,
-          scheduled_date: socket.assigns.selected_date,
-          meal_type: socket.assigns.selected_meal_type,
-          servings: 4
-        }
-      )
-      |> Ash.create(actor: socket.assigns.current_user, tenant: socket.assigns.current_account.id)
+    result = GroceryPlanner.MealPlanning.create_meal_plan(
+      socket.assigns.current_account.id,
+      %{
+        recipe_id: recipe_id,
+        scheduled_date: socket.assigns.selected_date,
+        meal_type: socket.assigns.selected_meal_type,
+        servings: 4
+      },
+      actor: socket.assigns.current_user,
+      tenant: socket.assigns.current_account.id
+    )
 
     case result do
       {:ok, _meal_plan} ->
@@ -151,14 +149,13 @@ defmodule GroceryPlannerWeb.MealPlannerLive do
   end
 
   def handle_event("remove_meal", %{"id" => meal_plan_id}, socket) do
-    case Ash.get(
-           GroceryPlanner.MealPlanning.MealPlan,
+    case GroceryPlanner.MealPlanning.get_meal_plan(
            meal_plan_id,
            actor: socket.assigns.current_user,
            tenant: socket.assigns.current_account.id
          ) do
       {:ok, meal_plan} ->
-        case Ash.destroy(meal_plan, actor: socket.assigns.current_user) do
+        case GroceryPlanner.MealPlanning.destroy_meal_plan(meal_plan, actor: socket.assigns.current_user) do
           :ok ->
             socket =
               socket
@@ -179,14 +176,12 @@ defmodule GroceryPlannerWeb.MealPlannerLive do
   def handle_event("edit_meal", %{"id" => meal_plan_id}, socket) do
     Logger.info("=== EDIT MEAL CLICKED === ID: #{meal_plan_id}")
 
-    meal_plan =
-      Ash.get!(
-        GroceryPlanner.MealPlanning.MealPlan,
-        meal_plan_id,
-        actor: socket.assigns.current_user,
-        tenant: socket.assigns.current_account.id,
-        load: [:recipe]
-      )
+    {:ok, meal_plan} = GroceryPlanner.MealPlanning.get_meal_plan(
+      meal_plan_id,
+      actor: socket.assigns.current_user,
+      tenant: socket.assigns.current_account.id,
+      load: [:recipe]
+    )
 
     Logger.info("=== MEAL PLAN LOADED === #{inspect(meal_plan.recipe.name)}")
 
@@ -209,13 +204,14 @@ defmodule GroceryPlannerWeb.MealPlannerLive do
   end
 
   def handle_event("update_meal", %{"servings" => servings, "notes" => notes}, socket) do
-    result =
-      socket.assigns.editing_meal_plan
-      |> Ash.Changeset.for_update(:update, %{
+    result = GroceryPlanner.MealPlanning.update_meal_plan(
+      socket.assigns.editing_meal_plan,
+      %{
         servings: String.to_integer(servings),
         notes: notes
-      })
-      |> Ash.update(actor: socket.assigns.current_user)
+      },
+      actor: socket.assigns.current_user
+    )
 
     case result do
       {:ok, _meal_plan} ->
@@ -234,12 +230,13 @@ defmodule GroceryPlannerWeb.MealPlannerLive do
   end
 
   def handle_event("search_recipes", %{"value" => search_term}, socket) do
-    all_recipes =
-      GroceryPlanner.Recipes.Recipe
-      |> Ash.Query.for_read(:read, %{}, tenant: socket.assigns.current_account.id)
-      |> Ash.Query.load(:recipe_ingredients)
-      |> Ash.Query.sort(name: :asc)
-      |> Ash.read!(actor: socket.assigns.current_user)
+    {:ok, all_recipes} = GroceryPlanner.Recipes.list_recipes(
+      actor: socket.assigns.current_user,
+      tenant: socket.assigns.current_account.id,
+      query: GroceryPlanner.Recipes.Recipe
+        |> Ash.Query.load(:recipe_ingredients)
+        |> Ash.Query.sort(name: :asc)
+    )
 
     recipes =
       if String.trim(search_term) == "" do
@@ -259,11 +256,11 @@ defmodule GroceryPlannerWeb.MealPlannerLive do
     week_start = socket.assigns.week_start
     week_end = Date.add(week_start, 6)
 
-    all_meal_plans =
-      GroceryPlanner.MealPlanning.MealPlan
-      |> Ash.Query.for_read(:read, %{}, tenant: socket.assigns.current_account.id)
-      |> Ash.Query.load(:recipe)
-      |> Ash.read!(actor: socket.assigns.current_user)
+    {:ok, all_meal_plans} = GroceryPlanner.MealPlanning.list_meal_plans(
+      actor: socket.assigns.current_user,
+      tenant: socket.assigns.current_account.id,
+      query: GroceryPlanner.MealPlanning.MealPlan |> Ash.Query.load(:recipe)
+    )
 
     meal_plans =
       Enum.filter(all_meal_plans, fn mp ->

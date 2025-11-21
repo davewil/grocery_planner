@@ -1,30 +1,20 @@
 defmodule GroceryPlanner.MealPlanning.Voting do
   require Ash.Query
-  alias GroceryPlanner.MealPlanning.MealPlanVoteSession
+  alias GroceryPlanner.MealPlanning
   alias GroceryPlanner.MealPlanning.MealPlanVoteEntry
-  alias GroceryPlanner.MealPlanning.MealPlan
-  alias Ash.Query
-  alias Ash.Changeset
 
   def start_vote(account_id, actor) do
-    MealPlanVoteSession
-    |> Changeset.new()
-    |> Changeset.set_argument(:account_id, account_id)
-    |> Changeset.for_create(:start, %{})
-    |> Ash.create(actor: actor, tenant: account_id)
+    MealPlanning.create_vote_session(account_id, %{}, actor: actor, tenant: account_id)
   end
 
   def open_session(account_id, actor) do
-    sessions =
-      MealPlanVoteSession
-      |> Ash.read!(tenant: account_id, actor: actor)
-      |> Enum.filter(fn session ->
-        session.account_id == account_id && session.status == :open
-      end)
-
-    case sessions do
-      [session | _] -> {:ok, session}
-      [] -> {:ok, nil}
+    case MealPlanning.list_vote_sessions(actor: actor, tenant: account_id) do
+      {:ok, sessions} ->
+        session = Enum.find(sessions, fn s ->
+          s.account_id == account_id && s.status == :open
+        end)
+        {:ok, session}
+      {:error, _} = error -> error
     end
   end
 
@@ -36,31 +26,37 @@ defmodule GroceryPlanner.MealPlanning.Voting do
   end
 
   def cast_vote(session_id, recipe_id, account_id, actor) do
-    MealPlanVoteEntry
-    |> Changeset.new()
-    |> Changeset.set_argument(:account_id, account_id)
-    |> Changeset.set_argument(:vote_session_id, session_id)
-    |> Changeset.set_argument(:recipe_id, recipe_id)
-    |> Changeset.set_argument(:user_id, actor.id)
-    |> Changeset.for_create(:vote, %{})
-    |> Ash.create(actor: actor, tenant: account_id)
+    MealPlanning.create_vote_entry(
+      account_id,
+      session_id,
+      recipe_id,
+      actor.id,
+      %{},
+      actor: actor,
+      tenant: account_id
+    )
   end
 
   def remove_vote(session_id, recipe_id, account_id, actor) do
-    entries =
-      MealPlanVoteEntry
-      |> Query.filter(vote_session_id == ^session_id and recipe_id == ^recipe_id and user_id == ^actor.id)
-      |> Ash.read!(actor: actor, tenant: account_id)
-
-    case entries do
-      [entry] -> Ash.destroy(entry, actor: actor, tenant: account_id)
-      [] -> {:ok, nil}
-      _ -> {:error, :multiple_entries}
+    case MealPlanning.list_vote_entries(
+      actor: actor,
+      tenant: account_id,
+      query: MealPlanVoteEntry
+        |> Ash.Query.filter(vote_session_id == ^session_id and recipe_id == ^recipe_id and user_id == ^actor.id)
+    ) do
+      {:ok, [entry]} ->
+        MealPlanning.destroy_vote_entry(entry, actor: actor, tenant: account_id)
+      {:ok, []} ->
+        {:ok, nil}
+      {:ok, _} ->
+        {:error, :multiple_entries}
+      {:error, _} = error ->
+        error
     end
   end
 
   def finalize_session(session_id, account_id, actor) do
-    with {:ok, session} <- Ash.get(MealPlanVoteSession, session_id, tenant: account_id, actor: actor),
+    with {:ok, session} <- MealPlanning.get_vote_session(session_id, tenant: account_id, actor: actor),
          true <- session.status in [:open, :closed],
          true <- DateTime.compare(DateTime.utc_now(), session.ends_at) != :lt,
          {:ok, entries} <- list_entries(session_id, account_id, actor) do
@@ -76,9 +72,12 @@ defmodule GroceryPlanner.MealPlanning.Voting do
   end
 
   defp list_entries(session_id, account_id, actor) do
-    MealPlanVoteEntry
-    |> Query.filter([account_id: account_id, vote_session_id: session_id])
-    |> Ash.read(actor: actor, tenant: account_id)
+    MealPlanning.list_vote_entries(
+      actor: actor,
+      tenant: account_id,
+      query: MealPlanVoteEntry
+        |> Ash.Query.filter(account_id == ^account_id and vote_session_id == ^session_id)
+    )
   end
 
   defp pick_winners(entries) do
@@ -92,9 +91,12 @@ defmodule GroceryPlanner.MealPlanning.Voting do
   end
 
   defp mark_processed(session, winning_recipe_ids, account_id, actor) do
-    session
-    |> Changeset.for_update(:mark_processed, %{winning_recipe_ids: winning_recipe_ids})
-    |> Ash.update(actor: actor, tenant: account_id)
+    MealPlanning.mark_session_processed(
+      session,
+      %{winning_recipe_ids: winning_recipe_ids},
+      actor: actor,
+      tenant: account_id
+    )
   end
 
   defp distribute_winners(winning_recipe_ids, account_id, actor) do
@@ -113,16 +115,17 @@ defmodule GroceryPlanner.MealPlanning.Voting do
   end
 
   defp create_meal_plan(date, recipe_id, account_id, actor) do
-    MealPlan
-    |> Changeset.new()
-    |> Changeset.set_argument(:account_id, account_id)
-    |> Changeset.for_create(:create, %{
-      recipe_id: recipe_id,
-      scheduled_date: date,
-      meal_type: :dinner,
-      servings: 4
-    })
-    |> Ash.create(actor: actor, tenant: account_id)
+    MealPlanning.create_meal_plan(
+      account_id,
+      %{
+        recipe_id: recipe_id,
+        scheduled_date: date,
+        meal_type: :dinner,
+        servings: 4
+      },
+      actor: actor,
+      tenant: account_id
+    )
   end
 
   defp next_week_start(today) do
