@@ -5,5 +5,7 @@ defmodule GroceryPlanner.MealPlanning do
     resource GroceryPlanner.MealPlanning.MealPlan
     resource GroceryPlanner.MealPlanning.MealPlanTemplate
     resource GroceryPlanner.MealPlanning.MealPlanTemplateEntry
+    resource GroceryPlanner.MealPlanning.MealPlanVoteSession
+    resource GroceryPlanner.MealPlanning.MealPlanVoteEntry
   end
 end

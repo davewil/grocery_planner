@@ -3,10 +3,15 @@ defmodule GroceryPlannerWeb.RecipeFormLive do
 
   on_mount {GroceryPlannerWeb.Auth, :require_authenticated_user}
 
+  alias GroceryPlanner.MealPlanning.Voting
+
   def mount(params, _session, socket) do
+    voting_active = Voting.voting_active?(socket.assigns.current_account.id, socket.assigns.current_user)
+
     socket =
       socket
       |> assign(:current_scope, socket.assigns.current_account)
+      |> assign(:voting_active, voting_active)
 
     case socket.assigns.live_action do
       :new ->
@@ -48,7 +53,7 @@ defmodule GroceryPlannerWeb.RecipeFormLive do
 
     recipe_params =
       recipe_params
-      |> Map.put("is_favorite", Map.get(recipe_params, "is_favorite") == "true")
+      |> Map.put("is_favorite", Map.has_key?(recipe_params, "is_favorite"))
       |> convert_empty_to_nil(["prep_time_minutes", "cook_time_minutes", "image_url", "source"])
 
     result =
@@ -82,6 +87,22 @@ defmodule GroceryPlannerWeb.RecipeFormLive do
       {:error, _error} ->
         {:noreply, put_flash(socket, :error, "Failed to save recipe")}
     end
+  end
+
+  def handle_event("toggle_favorite", _, socket) do
+    # Toggle the favorite value in the form
+    current_value = socket.assigns.form[:is_favorite].value || false
+    new_value = !current_value
+
+    # Get current form data
+    form_data =
+      socket.assigns.form.source
+      |> Map.put("is_favorite", new_value)
+
+    # Update the form
+    form = to_form(form_data, as: :recipe)
+
+    {:noreply, assign(socket, :form, form)}
   end
 
   def handle_event("cancel", _, socket) do

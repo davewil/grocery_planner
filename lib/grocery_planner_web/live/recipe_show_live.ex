@@ -1,7 +1,10 @@
 defmodule GroceryPlannerWeb.RecipeShowLive do
   use GroceryPlannerWeb, :live_view
+  require Logger
 
   on_mount {GroceryPlannerWeb.Auth, :require_authenticated_user}
+
+  alias GroceryPlanner.MealPlanning.Voting
 
   def mount(%{"id" => id}, _session, socket) do
     case load_recipe(socket, id) do
@@ -19,16 +22,29 @@ defmodule GroceryPlannerWeb.RecipeShowLive do
   end
 
   def handle_event("toggle_favorite", _, socket) do
+    Logger.info("Toggle favorite clicked for recipe #{socket.assigns.recipe.id}")
+    Logger.info("Current favorite status: #{socket.assigns.recipe.is_favorite}")
+
     case GroceryPlanner.Recipes.update_recipe(
            socket.assigns.recipe,
            %{is_favorite: !socket.assigns.recipe.is_favorite},
            actor: socket.assigns.current_user,
            tenant: socket.assigns.current_account.id
          ) do
-      {:ok, _updated_recipe} ->
-        {:noreply, load_recipe(socket, socket.assigns.recipe.id) |> elem(1)}
+      {:ok, updated_recipe} ->
+        Logger.info("Successfully updated recipe, new favorite status: #{updated_recipe.is_favorite}")
 
-      {:error, _} ->
+        case load_recipe(socket, socket.assigns.recipe.id) do
+          {:ok, updated_socket} ->
+            {:noreply, updated_socket}
+
+          {:error, reason} ->
+            Logger.error("Failed to reload recipe: #{inspect(reason)}")
+            {:noreply, put_flash(socket, :error, "Failed to reload recipe")}
+        end
+
+      {:error, error} ->
+        Logger.error("Failed to update favorite status: #{inspect(error)}")
         {:noreply, put_flash(socket, :error, "Failed to update favorite status")}
     end
   end
@@ -73,6 +89,7 @@ defmodule GroceryPlannerWeb.RecipeShowLive do
   defp load_recipe(socket, id) do
     account_id = socket.assigns.current_account.id
     user = socket.assigns.current_user
+    voting_active = Voting.voting_active?(account_id, user)
 
     case GroceryPlanner.Recipes.get_recipe(id, actor: user, tenant: account_id) do
       {:ok, recipe} ->
@@ -99,6 +116,7 @@ defmodule GroceryPlannerWeb.RecipeShowLive do
         socket =
           socket
           |> assign(:current_scope, socket.assigns.current_account)
+          |> assign(:voting_active, voting_active)
           |> assign(:recipe, recipe_with_ingredients)
           |> assign(:ingredients, ingredients)
 

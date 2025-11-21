@@ -42,6 +42,8 @@ defmodule GroceryPlannerWeb.Router do
     live "/recipes/:id/edit", RecipeFormLive, :edit
     live "/recipes/:id", RecipeShowLive
     live "/meal-planner", MealPlannerLive
+    live "/shopping", ShoppingLive
+    live "/voting", VotingLive
   end
 
   # Other scopes may use custom stacks.

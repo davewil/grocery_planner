@@ -3,6 +3,7 @@
   current_user={@current_user}
   current_account={@current_account}
   current_scope={@current_scope}
+  voting_active={@voting_active}
 >
   <div class="px-4 py-10 sm:px-6 lg:px-8">
     <div class="flex items-center justify-between mb-8">
@@ -139,8 +140,13 @@
             <button
               phx-click="toggle_favorite"
               phx-value-id={recipe.id}
-              onclick="event.stopPropagation()"
-              class="flex-shrink-0 ml-2 text-gray-400 hover:text-purple-600 transition"
+              phx-no-bubble
+              class={[
+                "flex-shrink-0 ml-2 transition",
+                recipe.is_favorite && "text-yellow-500",
+                !recipe.is_favorite && "text-gray-400",
+                "hover:text-purple-600"
+              ]}
               type="button"
             >
               <svg

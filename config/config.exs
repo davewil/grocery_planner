@@ -56,7 +56,8 @@ config :grocery_planner,
     GroceryPlanner.Inventory,
     GroceryPlanner.Recipes,
     GroceryPlanner.External,
-    GroceryPlanner.MealPlanning
+    GroceryPlanner.MealPlanning,
+    GroceryPlanner.Shopping
   ]
 
 # Configures the endpoint

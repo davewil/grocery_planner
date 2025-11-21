@@ -4,11 +4,15 @@ defmodule GroceryPlannerWeb.RecipesLive do
   on_mount {GroceryPlannerWeb.Auth, :require_authenticated_user}
 
   alias GroceryPlanner.Recipes.Recipe
+  alias GroceryPlanner.MealPlanning.Voting
 
   def mount(_params, _session, socket) do
+    voting_active = Voting.voting_active?(socket.assigns.current_account.id, socket.assigns.current_user)
+
     socket =
       socket
       |> assign(:current_scope, socket.assigns.current_account)
+      |> assign(:voting_active, voting_active)
       |> assign(:search_query, "")
       |> assign(:show_favorites, false)
       |> assign(:difficulty_filter, nil)

@@ -3,6 +3,7 @@
   current_user={@current_user}
   current_account={@current_account}
   current_scope={@current_scope}
+  voting_active={@voting_active}
 >
   <div class="px-4 py-10 sm:px-6 lg:px-8">
     <div class="text-center mb-12">
@@ -77,8 +78,11 @@
         <p class="text-gray-600">Plan your meals for the week and stay organized</p>
       </.link>
 
-      <div class="p-8 bg-white/60 rounded-2xl shadow-sm border border-gray-100">
-        <div class="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center mb-4 opacity-60">
+      <.link
+        navigate={~p"/shopping"}
+        class="group p-8 bg-white rounded-2xl shadow-sm border border-gray-100 hover:shadow-lg hover:border-orange-300 transition-all"
+      >
+        <div class="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center mb-4 group-hover:bg-orange-200 transition">
           <svg
             class="w-6 h-6 text-orange-600"
             fill="none"
@@ -93,10 +97,9 @@
             />
           </svg>
         </div>
-        <h3 class="text-xl font-semibold text-gray-900 mb-2">Smart Shopping Lists</h3>
-        <p class="text-gray-600 mb-2">Generate shopping lists based on your meal plans</p>
-        <p class="text-sm text-blue-600 font-medium">Coming Soon</p>
-      </div>
+        <h3 class="text-xl font-semibold text-gray-900 mb-2">Shopping Lists</h3>
+        <p class="text-gray-600">Create lists and generate from your meal plans</p>
+      </.link>
 
       <div class="p-8 bg-white/60 rounded-2xl shadow-sm border border-gray-100">
         <div class="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center mb-4 opacity-60">

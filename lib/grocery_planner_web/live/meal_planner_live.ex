@@ -4,7 +4,11 @@ defmodule GroceryPlannerWeb.MealPlannerLive do
 
   on_mount {GroceryPlannerWeb.Auth, :require_authenticated_user}
 
+  alias GroceryPlanner.MealPlanning.Voting
+
   def mount(_params, _session, socket) do
+    voting_active = Voting.voting_active?(socket.assigns.current_account.id, socket.assigns.current_user)
+
     socket = assign(socket, :current_scope, socket.assigns.current_account)
 
     today = Date.utc_today()
@@ -12,6 +16,7 @@ defmodule GroceryPlannerWeb.MealPlannerLive do
 
     socket =
       socket
+      |> assign(:voting_active, voting_active)
       |> assign(:week_start, week_start)
       |> assign(:days, get_week_days(week_start))
       |> assign(:selected_day, nil)

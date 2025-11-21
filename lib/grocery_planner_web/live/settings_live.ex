@@ -4,8 +4,11 @@ defmodule GroceryPlannerWeb.SettingsLive do
   on_mount {GroceryPlannerWeb.Auth, :require_authenticated_user}
 
   alias GroceryPlanner.Accounts
+  alias GroceryPlanner.MealPlanning.Voting
 
   def mount(_params, _session, socket) do
+    voting_active = Voting.voting_active?(socket.assigns.current_account.id, socket.assigns.current_user)
+
     socket = assign(socket, :current_scope, socket.assigns.current_account)
     account = Ash.load!(socket.assigns.current_account, [:memberships])
     memberships = Ash.load!(account.memberships, [:user])
@@ -29,6 +32,7 @@ defmodule GroceryPlannerWeb.SettingsLive do
 
     {:ok,
      socket
+     |> assign(:voting_active, voting_active)
      |> assign(:account_form, account_form)
      |> assign(:user_form, user_form)
      |> assign(:invite_form, invite_form)

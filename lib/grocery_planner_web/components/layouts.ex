@@ -28,6 +28,7 @@ defmodule GroceryPlannerWeb.Layouts do
   attr :flash, :map, required: true, doc: "the map of flash messages"
   attr :current_user, :any, default: nil
   attr :current_account, :any, default: nil
+  attr :voting_active, :boolean, default: false
 
   attr :current_scope, :map,
     default: nil,
@@ -80,6 +81,30 @@ defmodule GroceryPlannerWeb.Layouts do
                       class="px-4 py-2 text-gray-700 hover:text-gray-900 font-medium transition"
                     >
                       Meal Planner
+                    </.link>
+                  </li>
+                  <li>
+                    <.link
+                      navigate="/voting"
+                      class="px-4 py-2 text-gray-700 hover:text-gray-900 font-medium transition flex items-center gap-1"
+                    >
+                      Voting
+                      <span
+                        :if={@voting_active}
+                        class="relative flex h-2 w-2"
+                        title="Voting in progress"
+                      >
+                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-purple-400 opacity-75"></span>
+                        <span class="relative inline-flex rounded-full h-2 w-2 bg-purple-500"></span>
+                      </span>
+                    </.link>
+                  </li>
+                  <li>
+                    <.link
+                      navigate="/shopping"
+                      class="px-4 py-2 text-gray-700 hover:text-gray-900 font-medium transition"
+                    >
+                      Shopping
                     </.link>
                   </li>
                   <li>
