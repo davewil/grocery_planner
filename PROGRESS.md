@@ -177,10 +177,16 @@
   - Color-coded urgency cards (red/orange/yellow/blue)
   - Visual count indicators
   - Action-oriented messaging
+  - Clickable cards navigate to filtered inventory
 - ✅ Recipe suggestion cards on dashboard
   - Click-through to recipe details
   - Shows suggestion reasoning
   - Highlights favorites
+- ✅ Inventory filtering by expiration category
+  - URL-based filtering with query parameters
+  - SQL fragment filters for date-based queries
+  - Mobile-responsive filter badge with clear option
+  - Deep linking from dashboard alerts
 
 ### Technical Implementation:
 **Resources:**
@@ -235,6 +241,9 @@
 ### UI/UX Features:
 - ✅ Real-time updates with LiveView
 - ✅ Mobile-responsive design with Tailwind CSS
+  - Responsive navigation menu with hamburger (< 1024px)
+  - Desktop horizontal navigation (≥ 1024px)
+  - Mobile-friendly layouts throughout
 - ✅ Toast notifications
 - ✅ Loading states
 - ✅ Modal dialogs
@@ -242,6 +251,7 @@
 - ✅ Gradient backgrounds
 - ✅ Card-based layouts
 - ✅ Hover effects and transitions
+- ✅ Accessibility improvements (alt text, heading hierarchy, ARIA labels)
 
 ---
 
