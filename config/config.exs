@@ -57,7 +57,8 @@ config :grocery_planner,
     GroceryPlanner.Recipes,
     GroceryPlanner.External,
     GroceryPlanner.MealPlanning,
-    GroceryPlanner.Shopping
+    GroceryPlanner.Shopping,
+    GroceryPlanner.Notifications
   ]
 
 # Configures the endpoint

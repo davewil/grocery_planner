@@ -13,6 +13,61 @@
       <p class="mt-3 text-xl text-gray-600">{@current_account.name}</p>
     </div>
 
+    <!-- Expiration Alerts -->
+    <div :if={@expiring_summary.total_count > 0} class="mb-8">
+      <h2 class="text-2xl font-bold text-gray-900 mb-4">⚠️ Expiration Alerts</h2>
+      <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div :if={@expiring_summary.expired_count > 0} class="p-6 bg-red-50 rounded-xl border-2 border-red-300">
+          <h3 class="text-sm font-medium text-red-900 mb-1">Expired</h3>
+          <p class="text-3xl font-bold text-red-600">{@expiring_summary.expired_count}</p>
+          <p class="text-sm text-red-700 mt-1">Remove immediately</p>
+        </div>
+
+        <div :if={@expiring_summary.today_count > 0} class="p-6 bg-orange-50 rounded-xl border-2 border-orange-300">
+          <h3 class="text-sm font-medium text-orange-900 mb-1">Expires Today</h3>
+          <p class="text-3xl font-bold text-orange-600">{@expiring_summary.today_count}</p>
+          <p class="text-sm text-orange-700 mt-1">Use today</p>
+        </div>
+
+        <div :if={@expiring_summary.tomorrow_count > 0} class="p-6 bg-yellow-50 rounded-xl border-2 border-yellow-300">
+          <h3 class="text-sm font-medium text-yellow-900 mb-1">Expires Tomorrow</h3>
+          <p class="text-3xl font-bold text-yellow-600">{@expiring_summary.tomorrow_count}</p>
+          <p class="text-sm text-yellow-700 mt-1">Plan to use soon</p>
+        </div>
+
+        <div :if={@expiring_summary.this_week_count > 0} class="p-6 bg-blue-50 rounded-xl border-2 border-blue-300">
+          <h3 class="text-sm font-medium text-blue-900 mb-1">This Week</h3>
+          <p class="text-3xl font-bold text-blue-600">{@expiring_summary.this_week_count}</p>
+          <p class="text-sm text-blue-700 mt-1">Next 3 days</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Recipe Suggestions -->
+    <div :if={length(@recipe_suggestions) > 0} class="mb-8">
+      <h2 class="text-2xl font-bold text-gray-900 mb-4">💡 Suggested Recipes (Use Expiring Items)</h2>
+      <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <.link :for={suggestion <- @recipe_suggestions} navigate={~p"/recipes/#{suggestion.recipe.id}"} class="p-6 bg-green-50 rounded-xl border border-green-200 hover:border-green-400 hover:shadow-md transition">
+          <div class="flex items-start justify-between mb-2">
+            <h3 class="text-lg font-semibold text-gray-900">{suggestion.recipe.name}</h3>
+            <span :if={suggestion.recipe.is_favorite} class="text-yellow-500">★</span>
+          </div>
+          <p class="text-sm text-green-700 mb-2">{suggestion.reason}</p>
+          <div class="flex items-center gap-2 text-xs text-gray-600">
+            <span class={[
+              "px-2 py-1 rounded-full",
+              suggestion.recipe.can_make && "bg-green-100 text-green-800",
+              !suggestion.recipe.can_make && "bg-gray-100 text-gray-600"
+            ]}>
+              {if suggestion.recipe.can_make, do: "Ready to cook!", else: "Missing ingredients"}
+            </span>
+            <span class="capitalize">{suggestion.recipe.difficulty}</span>
+          </div>
+        </.link>
+      </div>
+    </div>
+
+    <!-- Main Navigation -->
     <div class="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
       <.link
         navigate={~p"/inventory"}
@@ -100,22 +155,6 @@
         <h3 class="text-xl font-semibold text-gray-900 mb-2">Shopping Lists</h3>
         <p class="text-gray-600">Create lists and generate from your meal plans</p>
       </.link>
-
-      <div class="p-8 bg-white/60 rounded-2xl shadow-sm border border-gray-100">
-        <div class="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center mb-4 opacity-60">
-          <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-            />
-          </svg>
-        </div>
-        <h3 class="text-xl font-semibold text-gray-900 mb-2">Expiration Tracking</h3>
-        <p class="text-gray-600 mb-2">Get notifications before items expire</p>
-        <p class="text-sm text-blue-600 font-medium">Coming Soon</p>
-      </div>
 
       <div class="p-8 bg-white/60 rounded-2xl shadow-sm border border-gray-100">
         <div class="w-12 h-12 bg-teal-100 rounded-lg flex items-center justify-center mb-4 opacity-60">
