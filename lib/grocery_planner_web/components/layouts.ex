@@ -44,11 +44,13 @@ defmodule GroceryPlannerWeb.Layouts do
           <div class="flex items-center justify-between py-4">
             <div class="flex-1">
               <.link navigate="/dashboard" class="flex items-center gap-2">
-                <img src={~p"/images/logo.svg"} width="36" />
+                <img src={~p"/images/logo.svg"} width="36" alt="GroceryPlanner logo" />
                 <span class="text-xl font-bold text-gray-900">GroceryPlanner</span>
               </.link>
             </div>
-            <div class="flex-none">
+
+            <!-- Desktop Navigation -->
+            <nav class="hidden lg:flex flex-none">
               <ul class="flex items-center space-x-2">
                 <%= if assigns[:current_user] do %>
                   <li>
@@ -144,7 +146,106 @@ defmodule GroceryPlannerWeb.Layouts do
                   </li>
                 <% end %>
               </ul>
-            </div>
+            </nav>
+
+            <!-- Mobile Menu Button -->
+            <button
+              class="lg:hidden p-2 text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition"
+              phx-click={JS.toggle(to: "#mobile-menu") |> JS.toggle_class("hidden", to: "#mobile-menu")}
+              aria-label="Toggle menu"
+            >
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+            </button>
+          </div>
+
+          <!-- Mobile Navigation Menu -->
+          <div id="mobile-menu" class="hidden lg:hidden pb-4">
+            <nav class="flex flex-col space-y-2">
+              <%= if assigns[:current_user] do %>
+                <.link
+                  navigate="/dashboard"
+                  class="px-4 py-2 text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg font-medium transition"
+                  phx-click={JS.add_class("hidden", to: "#mobile-menu")}
+                >
+                  Dashboard
+                </.link>
+                <.link
+                  navigate="/inventory"
+                  class="px-4 py-2 text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg font-medium transition"
+                  phx-click={JS.add_class("hidden", to: "#mobile-menu")}
+                >
+                  Inventory
+                </.link>
+                <.link
+                  navigate="/recipes"
+                  class="px-4 py-2 text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg font-medium transition"
+                  phx-click={JS.add_class("hidden", to: "#mobile-menu")}
+                >
+                  Recipes
+                </.link>
+                <.link
+                  navigate="/meal-planner"
+                  class="px-4 py-2 text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg font-medium transition"
+                  phx-click={JS.add_class("hidden", to: "#mobile-menu")}
+                >
+                  Meal Planner
+                </.link>
+                <.link
+                  navigate="/voting"
+                  class="px-4 py-2 text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg font-medium transition flex items-center gap-2"
+                  phx-click={JS.add_class("hidden", to: "#mobile-menu")}
+                >
+                  Voting
+                  <span
+                    :if={@voting_active}
+                    class="relative flex h-2 w-2"
+                    title="Voting in progress"
+                  >
+                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-purple-400 opacity-75"></span>
+                    <span class="relative inline-flex rounded-full h-2 w-2 bg-purple-500"></span>
+                  </span>
+                </.link>
+                <.link
+                  navigate="/shopping"
+                  class="px-4 py-2 text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg font-medium transition"
+                  phx-click={JS.add_class("hidden", to: "#mobile-menu")}
+                >
+                  Shopping
+                </.link>
+                <.link
+                  navigate="/settings"
+                  class="px-4 py-2 text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg font-medium transition"
+                  phx-click={JS.add_class("hidden", to: "#mobile-menu")}
+                >
+                  Settings
+                </.link>
+                <.link
+                  href="/auth/sign-out"
+                  method="delete"
+                  class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition font-medium"
+                  data-confirm="Are you sure you want to sign out?"
+                >
+                  Sign Out
+                </.link>
+              <% else %>
+                <.link
+                  navigate="/sign-in"
+                  class="px-4 py-2 text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg font-medium transition"
+                  phx-click={JS.add_class("hidden", to: "#mobile-menu")}
+                >
+                  Sign In
+                </.link>
+                <.link
+                  navigate="/sign-up"
+                  class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium text-center"
+                  phx-click={JS.add_class("hidden", to: "#mobile-menu")}
+                >
+                  Sign Up
+                </.link>
+              <% end %>
+            </nav>
           </div>
         </div>
       </header>

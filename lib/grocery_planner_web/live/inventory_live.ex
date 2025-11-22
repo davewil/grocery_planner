@@ -20,6 +20,19 @@ defmodule GroceryPlannerWeb.InventoryLive do
             <p class="mt-2 text-lg text-gray-600">
               Manage your grocery items and track what's in stock
             </p>
+            <%= if @expiring_filter do %>
+              <div class="mt-4 flex flex-col sm:flex-row sm:items-center gap-2">
+                <span class="inline-flex items-center gap-2 px-3 py-2 sm:px-4 bg-blue-50 border border-blue-200 rounded-lg text-xs sm:text-sm font-medium text-blue-900">
+                  <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+                  </svg>
+                  <span class="truncate">Showing: <%= format_expiring_filter(@expiring_filter) %></span>
+                </span>
+                <.link patch="/inventory" class="text-xs sm:text-sm text-blue-600 hover:text-blue-800 underline">
+                  Clear filter
+                </.link>
+              </div>
+            <% end %>
           </div>
         </div>
 
@@ -1064,16 +1077,28 @@ defmodule GroceryPlannerWeb.InventoryLive do
     socket =
       socket
       |> assign(:current_scope, socket.assigns.current_account)
-      |> assign(:active_tab, "items")
+      |> assign(:active_tab, "inventory")
       |> assign(:show_form, nil)
       |> assign(:form, nil)
       |> assign(:editing_id, nil)
       |> assign(:managing_tags_for, nil)
       |> assign(:show_tag_modal, false)
       |> assign(:filter_tag_ids, [])
-      |> load_data()
+      |> assign(:expiring_filter, nil)
 
     {:ok, socket}
+  end
+
+  def handle_params(params, _uri, socket) do
+    expiring_filter = params["expiring"]
+
+    socket =
+      socket
+      |> assign(:expiring_filter, expiring_filter)
+      |> assign(:active_tab, if(expiring_filter, do: "inventory", else: socket.assigns.active_tab))
+      |> load_data()
+
+    {:noreply, socket}
   end
 
   def handle_event("change_tab", %{"tab" => tab}, socket) do
@@ -1460,6 +1485,12 @@ defmodule GroceryPlannerWeb.InventoryLive do
     end
   end
 
+  def format_expiring_filter("expired"), do: "Expired Items"
+  def format_expiring_filter("today"), do: "Expires Today"
+  def format_expiring_filter("tomorrow"), do: "Expires Tomorrow"
+  def format_expiring_filter("this_week"), do: "Expires This Week (2-3 days)"
+  def format_expiring_filter(_), do: "All Items"
+
   defp load_data(socket) do
     import Ash.Query, only: [filter: 2]
     account_id = socket.assigns.current_account.id
@@ -1482,10 +1513,39 @@ defmodule GroceryPlannerWeb.InventoryLive do
     {:ok, locations} = GroceryPlanner.Inventory.list_storage_locations(actor: user, tenant: account_id)
     {:ok, tags} = GroceryPlanner.Inventory.list_grocery_item_tags(authorize?: false, tenant: account_id)
 
+    # Build inventory entries query with expiration filter
+    entries_query = InventoryEntry
+      |> Ash.Query.load([:grocery_item, :storage_location, :days_until_expiry, :is_expired])
+      |> filter(status == :available)
+
+    entries_query = case socket.assigns[:expiring_filter] do
+      "expired" ->
+        entries_query
+        |> filter(is_expired == true)
+
+      "today" ->
+        entries_query
+        |> filter(not(is_nil(use_by_date)))
+        |> filter(fragment("DATE(?) = CURRENT_DATE", use_by_date))
+
+      "tomorrow" ->
+        entries_query
+        |> filter(not(is_nil(use_by_date)))
+        |> filter(fragment("DATE(?) = CURRENT_DATE + INTERVAL '1 day'", use_by_date))
+
+      "this_week" ->
+        entries_query
+        |> filter(not(is_nil(use_by_date)))
+        |> filter(fragment("DATE(?) BETWEEN CURRENT_DATE + INTERVAL '2 days' AND CURRENT_DATE + INTERVAL '3 days'", use_by_date))
+
+      _ ->
+        entries_query
+    end
+
     {:ok, entries} = GroceryPlanner.Inventory.list_inventory_entries(
       actor: user,
       tenant: account_id,
-      query: InventoryEntry |> Ash.Query.load([:grocery_item, :storage_location])
+      query: entries_query
     )
 
     socket
