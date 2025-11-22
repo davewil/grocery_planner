@@ -134,11 +134,10 @@ defmodule GroceryPlannerWeb.VotingLiveTest do
 
       {:ok, view, _html} = live(conn, ~p"/voting")
 
-      view
-      |> element("button", "Start Voting")
-      |> render_click()
-
-      assert render(view) =~ "Failed to start session"
+      # When an open session exists, the UI should not show "Start Voting" button
+      # It should show the voting interface instead
+      refute render(view) =~ "Start Voting"
+      assert render(view) =~ "Time Remaining"
     end
   end
 
@@ -201,11 +200,7 @@ defmodule GroceryPlannerWeb.VotingLiveTest do
         |> Ash.Changeset.for_create(:start, %{})
         |> Ash.create(actor: user, tenant: account.id, authorize?: false)
 
-      session =
-        session
-        |> Ash.Changeset.for_update(:update, %{ends_at: DateTime.add(DateTime.utc_now(), -1, :second)})
-        |> Ash.update!(actor: user, tenant: account.id)
-
+      # Create vote entries BEFORE updating ends_at
       {:ok, _entry1} =
         MealPlanVoteEntry
         |> Ash.Changeset.new()
@@ -225,6 +220,12 @@ defmodule GroceryPlannerWeb.VotingLiveTest do
         |> Ash.Changeset.set_argument(:user_id, user.id)
         |> Ash.Changeset.for_create(:vote, %{})
         |> Ash.create(actor: user, tenant: account.id, authorize?: false)
+
+      # NOW update ends_at to the past so finalization is allowed
+      session =
+        session
+        |> Ash.Changeset.for_update(:update, %{ends_at: DateTime.add(DateTime.utc_now(), -1, :second)})
+        |> Ash.update!(actor: user, tenant: account.id)
 
       %{session: session}
     end
