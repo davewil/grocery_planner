@@ -1077,7 +1077,7 @@ defmodule GroceryPlannerWeb.InventoryLive do
     socket =
       socket
       |> assign(:current_scope, socket.assigns.current_account)
-      |> assign(:active_tab, "inventory")
+      |> assign(:active_tab, "items")
       |> assign(:show_form, nil)
       |> assign(:form, nil)
       |> assign(:editing_id, nil)
