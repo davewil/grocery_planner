@@ -36,73 +36,94 @@ defmodule GroceryPlannerWeb.VotingLive do
   end
 
   def handle_event("start_vote", _, socket) do
-    case Voting.start_vote(socket.assigns.current_account.id, socket.assigns.current_user) do
-      {:ok, session} ->
-        socket =
-          socket
-          |> assign(:session, session)
-          |> load_recipes_and_votes()
-          |> put_flash(:info, "Voting session started")
+    try do
+      case Voting.start_vote(socket.assigns.current_account.id, socket.assigns.current_user) do
+        {:ok, session} ->
+          socket =
+            socket
+            |> assign(:session, session)
+            |> load_recipes_and_votes()
+            |> put_flash(:info, "Voting session started")
 
-        {:noreply, socket}
+          {:noreply, socket}
 
-      {:error, _} ->
+        {:error, _} ->
+          {:noreply, put_flash(socket, :error, "Failed to start session")}
+      end
+    rescue
+      _ ->
         {:noreply, put_flash(socket, :error, "Failed to start session")}
     end
   end
 
   def handle_event("vote", %{"id" => recipe_id}, socket) do
-    session = socket.assigns.session
-    account_id = socket.assigns.current_account.id
-    user = socket.assigns.current_user
+    try do
+      session = socket.assigns.session
+      account_id = socket.assigns.current_account.id
+      user = socket.assigns.current_user
 
-    # Check if user has already voted for this recipe
-    already_voted? = MapSet.member?(socket.assigns.user_votes, recipe_id)
+      # Check if user has already voted for this recipe
+      already_voted? = MapSet.member?(socket.assigns.user_votes, recipe_id)
 
-    result =
-      if already_voted? do
-        Voting.remove_vote(session.id, recipe_id, account_id, user)
-      else
-        Voting.cast_vote(session.id, recipe_id, account_id, user)
+      result =
+        if already_voted? do
+          Voting.remove_vote(session.id, recipe_id, account_id, user)
+        else
+          Voting.cast_vote(session.id, recipe_id, account_id, user)
+        end
+
+      case result do
+        {:ok, _} ->
+          socket = load_recipes_and_votes(socket)
+          {:noreply, socket}
+
+        :ok ->
+          socket = load_recipes_and_votes(socket)
+          {:noreply, socket}
+
+        {:error, _} ->
+          {:noreply, put_flash(socket, :error, "Failed to update vote")}
       end
-
-    case result do
-      {:ok, _} ->
-        socket = load_recipes_and_votes(socket)
-        {:noreply, socket}
-
-      :ok ->
-        socket = load_recipes_and_votes(socket)
-        {:noreply, socket}
-
-      {:error, _} ->
+    rescue
+      _ ->
         {:noreply, put_flash(socket, :error, "Failed to update vote")}
     end
   end
 
   def handle_event("finalize", _, socket) do
-    socket = assign(socket, :finalizing, true)
+    try do
+      socket = assign(socket, :finalizing, true)
 
-    case Voting.finalize_session(
-           socket.assigns.session.id,
-           socket.assigns.current_account.id,
-           socket.assigns.current_user
-         ) do
-      {:ok, result} ->
-        socket =
-          socket
-          |> assign(:session, nil)
-          |> assign(:finalizing, false)
-          |> put_flash(:info, "Voting finalized: scheduled #{length(result.created_meal_plans)} meals")
-          |> load_recipes_and_votes()
+      case Voting.finalize_session(
+             socket.assigns.session.id,
+             socket.assigns.current_account.id,
+             socket.assigns.current_user
+           ) do
+        {:ok, result} ->
+          socket =
+            socket
+            |> assign(:session, nil)
+            |> assign(:finalizing, false)
+            |> put_flash(
+              :info,
+              "Voting finalized: scheduled #{length(result.created_meal_plans)} meals"
+            )
+            |> load_recipes_and_votes()
 
-        {:noreply, socket}
+          {:noreply, socket}
 
-      {:error, :not_ready} ->
-        {:noreply, socket |> assign(:finalizing, false) |> put_flash(:error, "Voting still in progress")}
+        {:error, :not_ready} ->
+          {:noreply,
+           socket |> assign(:finalizing, false) |> put_flash(:error, "Voting still in progress")}
 
-      {:error, _} ->
-        {:noreply, socket |> assign(:finalizing, false) |> put_flash(:error, "Failed to finalize")}
+        {:error, _} ->
+          {:noreply,
+           socket |> assign(:finalizing, false) |> put_flash(:error, "Failed to finalize")}
+      end
+    rescue
+      _ ->
+        {:noreply,
+         socket |> assign(:finalizing, false) |> put_flash(:error, "Failed to finalize")}
     end
   end
 
@@ -125,13 +146,15 @@ defmodule GroceryPlannerWeb.VotingLive do
     account_id = socket.assigns.current_account.id
     user = socket.assigns.current_user
 
-    {:ok, recipes} = GroceryPlanner.Recipes.list_recipes(
-      actor: user,
-      tenant: account_id,
-      query: Recipe
-        |> Ash.Query.filter(is_favorite == true)
-        |> Ash.Query.sort(name: :asc)
-    )
+    {:ok, recipes} =
+      GroceryPlanner.Recipes.list_recipes(
+        actor: user,
+        tenant: account_id,
+        query:
+          Recipe
+          |> Ash.Query.filter(is_favorite == true)
+          |> Ash.Query.sort(name: :asc)
+      )
 
     {user_votes, tally} = build_vote_state(socket.assigns.session, recipes, socket)
 
@@ -148,12 +171,14 @@ defmodule GroceryPlannerWeb.VotingLive do
     account_id = socket.assigns.current_account.id
     user = socket.assigns.current_user
 
-    {:ok, entries} = GroceryPlanner.MealPlanning.list_vote_entries(
-      actor: user,
-      tenant: account_id,
-      query: GroceryPlanner.MealPlanning.MealPlanVoteEntry
-        |> Ash.Query.filter(vote_session_id == ^session_id and account_id == ^account_id)
-    )
+    {:ok, entries} =
+      GroceryPlanner.MealPlanning.list_vote_entries(
+        actor: user,
+        tenant: account_id,
+        query:
+          GroceryPlanner.MealPlanning.MealPlanVoteEntry
+          |> Ash.Query.filter(vote_session_id == ^session_id and account_id == ^account_id)
+      )
 
     user_votes =
       entries
@@ -173,12 +198,14 @@ defmodule GroceryPlannerWeb.VotingLive do
   end
 
   def remaining_seconds(nil, _now), do: 0
+
   def remaining_seconds(session, now) do
     diff = DateTime.diff(session.ends_at, now, :second)
     if diff < 0, do: 0, else: diff
   end
 
   defp seconds_to_hms(seconds) when seconds <= 0, do: "00:00:00"
+
   defp seconds_to_hms(seconds) do
     hours = div(seconds, 3600)
     minutes = div(rem(seconds, 3600), 60)

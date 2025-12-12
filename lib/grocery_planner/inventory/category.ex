@@ -82,6 +82,10 @@ defmodule GroceryPlanner.Inventory.Category do
     end
   end
 
+  aggregates do
+    count :item_count, :grocery_items
+  end
+
   identities do
     identity :unique_name_per_account, [:account_id, :name]
   end

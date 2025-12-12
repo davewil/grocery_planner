@@ -12,8 +12,17 @@ defmodule GroceryPlanner.MealPlanning do
       define :skip_meal_plan, action: :skip
     end
 
-    resource GroceryPlanner.MealPlanning.MealPlanTemplate
-    resource GroceryPlanner.MealPlanning.MealPlanTemplateEntry
+    resource GroceryPlanner.MealPlanning.MealPlanTemplate do
+      define :create_meal_plan_template, action: :create, args: [:account_id]
+      define :activate_meal_plan_template, action: :activate
+      define :deactivate_meal_plan_template, action: :deactivate
+      define :list_meal_plan_templates, action: :read
+    end
+
+    resource GroceryPlanner.MealPlanning.MealPlanTemplateEntry do
+      define :create_meal_plan_template_entry, action: :create, args: [:account_id]
+      define :list_meal_plan_template_entries, action: :read
+    end
 
     resource GroceryPlanner.MealPlanning.MealPlanVoteSession do
       define :create_vote_session, action: :start, args: [:account_id]

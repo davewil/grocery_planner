@@ -7,7 +7,8 @@ defmodule GroceryPlannerWeb.RecipesLive do
   alias GroceryPlanner.MealPlanning.Voting
 
   def mount(_params, _session, socket) do
-    voting_active = Voting.voting_active?(socket.assigns.current_account.id, socket.assigns.current_user)
+    voting_active =
+      Voting.voting_active?(socket.assigns.current_account.id, socket.assigns.current_user)
 
     socket =
       socket
@@ -30,21 +31,30 @@ defmodule GroceryPlannerWeb.RecipesLive do
   end
 
   def handle_event("toggle_favorite", %{"id" => id}, socket) do
-    with {:ok, recipe} <-
-           GroceryPlanner.Recipes.get_recipe(id,
-             actor: socket.assigns.current_user,
-             tenant: socket.assigns.current_account.id
-           ),
-         {:ok, _updated_recipe} <-
-           GroceryPlanner.Recipes.update_recipe(
-             recipe,
-             %{is_favorite: !recipe.is_favorite},
+    try do
+      case GroceryPlanner.Recipes.get_recipe(id,
              actor: socket.assigns.current_user,
              tenant: socket.assigns.current_account.id
            ) do
-      {:noreply, load_recipes(socket)}
-    else
-      {:error, _} ->
+        {:ok, recipe} ->
+          case GroceryPlanner.Recipes.update_recipe(
+                 recipe,
+                 %{is_favorite: !recipe.is_favorite},
+                 actor: socket.assigns.current_user,
+                 tenant: socket.assigns.current_account.id
+               ) do
+            {:ok, _updated_recipe} ->
+              {:noreply, load_recipes(socket)}
+
+            {:error, _} ->
+              {:noreply, put_flash(socket, :error, "Failed to update favorite status")}
+          end
+
+        _ ->
+          {:noreply, put_flash(socket, :error, "Failed to update favorite status")}
+      end
+    rescue
+      _ ->
         {:noreply, put_flash(socket, :error, "Failed to update favorite status")}
     end
   end

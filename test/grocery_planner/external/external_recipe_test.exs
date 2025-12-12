@@ -1,17 +1,101 @@
 defmodule GroceryPlanner.External.ExternalRecipeTest do
   use ExUnit.Case, async: true
-
   alias GroceryPlanner.External
   alias GroceryPlanner.External.ExternalRecipe
-  alias GroceryPlanner.TheMealDBStubs
+  alias GroceryPlanner.External.TheMealDB
 
   describe "search_recipes/1" do
     test "returns ExternalRecipe structs when API returns results" do
-      Req.Test.stub(GroceryPlanner.External.TheMealDB, &TheMealDBStubs.search_chicken/1)
+      Req.Test.stub(TheMealDB, fn conn ->
+        assert conn.request_path == "/api/json/v1/1/search.php"
+        assert conn.query_params["s"] == "Test"
 
-      # Need to pass plug option through Ash somehow
-      # For now, testing the integration without stubbing would hit real API
-      # Let's create a test that verifies the resource structure instead
+        Req.Test.json(conn, %{
+          "meals" => [
+            %{
+              "idMeal" => "123",
+              "strMeal" => "Test Recipe",
+              "strCategory" => "Chicken",
+              "strArea" => "American",
+              "strInstructions" => "Cook it",
+              "strMealThumb" => "https://example.com/image.jpg",
+              "strYoutube" => nil,
+              "strSource" => nil,
+              "strTags" => "dinner",
+              "strIngredient1" => "",
+              "strMeasure1" => ""
+            }
+          ]
+        })
+      end)
+
+      assert {:ok, recipes} = External.search_recipes("Test")
+      assert length(recipes) == 1
+      assert hd(recipes).name == "Test Recipe"
+    end
+  end
+
+  describe "random_recipe/0" do
+    test "returns a random recipe from the external API" do
+      Req.Test.stub(TheMealDB, fn conn ->
+        assert conn.request_path == "/api/json/v1/1/random.php"
+
+        Req.Test.json(conn, %{
+          "meals" => [
+            %{
+              "idMeal" => "12345",
+              "strMeal" => "Random Test Recipe",
+              "strCategory" => "Beef",
+              "strArea" => "British",
+              "strInstructions" => "Cook it.",
+              "strMealThumb" => "http://example.com/image.jpg",
+              "strTags" => nil,
+              "strYoutube" => nil,
+              "strSource" => nil
+            }
+          ]
+        })
+      end)
+
+      assert {:ok, [recipe]} = External.random_recipe()
+      assert recipe.external_id == "12345"
+      assert recipe.name == "Random Test Recipe"
+    end
+
+    test "handles API errors" do
+      Req.Test.stub(TheMealDB, fn conn ->
+        Req.Test.transport_error(conn, :econnrefused)
+      end)
+
+      assert {:error, _} = External.random_recipe()
+    end
+  end
+
+  describe "recipes_by_category/1" do
+    test "returns recipes for a given category" do
+      Req.Test.stub(TheMealDB, fn conn ->
+        assert conn.request_path == "/api/json/v1/1/filter.php"
+        assert conn.query_params["c"] == "Seafood"
+
+        Req.Test.json(conn, %{
+          "meals" => [
+            %{"idMeal" => "1", "strMeal" => "Meal 1", "strMealThumb" => "thumb1.jpg"},
+            %{"idMeal" => "2", "strMeal" => "Meal 2", "strMealThumb" => "thumb2.jpg"}
+          ]
+        })
+      end)
+
+      assert {:ok, recipes} = External.recipes_by_category("Seafood")
+      assert length(recipes) == 2
+      assert hd(recipes).name == "Meal 1"
+    end
+
+    test "handles API errors" do
+      Req.Test.stub(TheMealDB, fn conn ->
+        Plug.Conn.send_resp(conn, 500, "Internal Server Error")
+      end)
+
+      assert {:error, _} = External.recipes_by_category("Invalid")
     end
   end
 

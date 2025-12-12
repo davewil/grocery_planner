@@ -44,6 +44,7 @@ defmodule GroceryPlannerWeb.Router do
     live "/meal-planner", MealPlannerLive
     live "/shopping", ShoppingLive
     live "/voting", VotingLive
+    live "/analytics", AnalyticsLive
   end
 
   # Other scopes may use custom stacks.

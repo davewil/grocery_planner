@@ -22,12 +22,12 @@ defmodule GroceryPlanner.External.ExternalRecipe do
       manual fn query, _ecto_query, _opts ->
         search_term = query.arguments.query
 
-        case TheMealDB.search_by_name(search_term) do
+        case client().search(search_term) do
           {:ok, meals} ->
             {:ok, Enum.map(meals, &struct(__MODULE__, &1))}
 
           {:error, reason} ->
-            {:error, Ash.Error.Invalid.InvalidQuery.exception(message: inspect(reason))}
+            {:error, %RuntimeError{message: inspect(reason)}}
         end
       end
     end
@@ -41,7 +41,7 @@ defmodule GroceryPlanner.External.ExternalRecipe do
       manual fn query, _ecto_query, _opts ->
         meal_id = query.arguments.id
 
-        case TheMealDB.get_by_id(meal_id) do
+        case client().get(meal_id) do
           {:ok, meal} ->
             {:ok, [struct(__MODULE__, meal)]}
 
@@ -49,7 +49,7 @@ defmodule GroceryPlanner.External.ExternalRecipe do
             {:ok, []}
 
           {:error, reason} ->
-            {:error, Ash.Error.Invalid.InvalidQuery.exception(message: inspect(reason))}
+            {:error, %RuntimeError{message: inspect(reason)}}
         end
       end
     end
@@ -58,12 +58,12 @@ defmodule GroceryPlanner.External.ExternalRecipe do
       description "Get a random recipe from TheMealDB"
 
       manual fn _query, _ecto_query, _opts ->
-        case TheMealDB.random_meal() do
+        case client().random() do
           {:ok, meal} ->
             {:ok, [struct(__MODULE__, meal)]}
 
           {:error, reason} ->
-            {:error, Ash.Error.Invalid.InvalidQuery.exception(message: inspect(reason))}
+            {:error, %RuntimeError{message: inspect(reason)}}
         end
       end
     end
@@ -75,15 +75,19 @@ defmodule GroceryPlanner.External.ExternalRecipe do
       manual fn query, _ecto_query, _opts ->
         category = query.arguments.category
 
-        case TheMealDB.filter_by_category(category) do
+        case client().filter(c: category) do
           {:ok, meals} ->
             {:ok, Enum.map(meals, &struct(__MODULE__, &1))}
 
           {:error, reason} ->
-            {:error, Ash.Error.Invalid.InvalidQuery.exception(message: inspect(reason))}
+            {:error, %RuntimeError{message: inspect(reason)}}
         end
       end
     end
+  end
+
+  defp client do
+    Application.get_env(:grocery_planner, :the_meal_db_client, GroceryPlanner.External.TheMealDB)
   end
 
   attributes do

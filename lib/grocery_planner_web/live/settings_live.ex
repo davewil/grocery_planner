@@ -17,18 +17,68 @@ defmodule GroceryPlannerWeb.SettingsLive do
       Enum.find(memberships, fn m -> m.user_id == socket.assigns.current_user.id end)
 
     account_form =
-      to_form(%{
-        "name" => account.name,
-        "timezone" => account.timezone
-      })
+      to_form(
+        %{
+          "name" => account.name,
+          "timezone" => account.timezone
+        },
+        as: :account
+      )
 
     user_form =
-      to_form(%{
-        "name" => socket.assigns.current_user.name,
-        "email" => to_string(socket.assigns.current_user.email)
-      })
+      to_form(
+        %{
+          "name" => socket.assigns.current_user.name,
+          "email" => to_string(socket.assigns.current_user.email)
+        },
+        as: :user
+      )
 
     invite_form = to_form(%{})
+
+    # Load notification preferences
+    require Ash.Query
+    user_id = socket.assigns.current_user.id
+
+    notification_preference =
+      case GroceryPlanner.Notifications.list_notification_preferences(
+             actor: socket.assigns.current_user,
+             tenant: socket.assigns.current_account.id,
+             query:
+               Ash.Query.filter(
+                 GroceryPlanner.Notifications.NotificationPreference,
+                 user_id == ^user_id
+               )
+           ) do
+        {:ok, [pref | _]} -> pref
+        {:ok, []} -> nil
+        _ -> nil
+      end
+
+    notification_form =
+      if notification_preference do
+        to_form(
+          %{
+            "expiration_alerts_enabled" => notification_preference.expiration_alerts_enabled,
+            "expiration_alert_days" => notification_preference.expiration_alert_days,
+            "recipe_suggestions_enabled" => notification_preference.recipe_suggestions_enabled,
+            "email_notifications_enabled" => notification_preference.email_notifications_enabled,
+            "in_app_notifications_enabled" => notification_preference.in_app_notifications_enabled
+          },
+          as: :notification
+        )
+      else
+        to_form(
+          %{
+            "expiration_alerts_enabled" => true,
+            "expiration_alert_days" => 7,
+            "recipe_suggestions_enabled" => true,
+            "email_notifications_enabled" => false,
+            "in_app_notifications_enabled" => true
+          },
+          as: :notification
+        )
+      end
 
     {:ok,
      socket
@@ -36,9 +86,51 @@ defmodule GroceryPlannerWeb.SettingsLive do
      |> assign(:account_form, account_form)
      |> assign(:user_form, user_form)
      |> assign(:invite_form, invite_form)
+     |> assign(:notification_form, notification_form)
+     |> assign(:notification_preference, notification_preference)
      |> assign(:memberships, memberships)
      |> assign(:current_role, current_membership.role)
      |> assign(:show_invite_form, false)}
+  end
+
+  def handle_event("validate_notification", params, socket) do
+    # Just update the form to reflect changes (e.g. toggles)
+    {:noreply, assign(socket, :notification_form, to_form(params["notification"], as: :notification))}
+  end
+
+  def handle_event("save_notification", %{"notification" => params}, socket) do
+    user = socket.assigns.current_user
+    account = socket.assigns.current_account
+
+    result =
+      if socket.assigns.notification_preference do
+        GroceryPlanner.Notifications.update_notification_preference(
+          socket.assigns.notification_preference,
+          params,
+          actor: user,
+          tenant: account.id
+        )
+      else
+        GroceryPlanner.Notifications.create_notification_preference(
+          user.id,
+          account.id,
+          params,
+          actor: user,
+          tenant: account.id
+        )
+      end
+
+    case result do
+      {:ok, pref} ->
+        {:noreply,
+         socket
+         |> put_flash(:info, "Notification preferences updated successfully")
+         |> assign(:notification_preference, pref)
+         |> assign(:notification_form, to_form(params, as: :notification))}
+
+      {:error, _} ->
+        {:noreply, put_flash(socket, :error, "Failed to update notification preferences")}
+    end
   end
 
   def handle_event("validate_account", %{"name" => name, "timezone" => timezone}, socket) do

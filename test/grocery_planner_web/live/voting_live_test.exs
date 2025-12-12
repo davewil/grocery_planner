@@ -111,6 +111,7 @@ defmodule GroceryPlannerWeb.VotingLiveTest do
       assert render(view) =~ "Time Remaining"
 
       session_id = account.id
+
       {:ok, session} =
         MealPlanVoteSession
         |> Ash.Query.filter(account_id == ^session_id and status == :open)
@@ -224,7 +225,9 @@ defmodule GroceryPlannerWeb.VotingLiveTest do
       # NOW update ends_at to the past so finalization is allowed
       session =
         session
-        |> Ash.Changeset.for_update(:update, %{ends_at: DateTime.add(DateTime.utc_now(), -1, :second)})
+        |> Ash.Changeset.for_update(:update, %{
+          ends_at: DateTime.add(DateTime.utc_now(), -1, :second)
+        })
         |> Ash.update!(actor: user, tenant: account.id)
 
       %{session: session}
@@ -251,6 +254,42 @@ defmodule GroceryPlannerWeb.VotingLiveTest do
         |> Ash.read!(actor: user, tenant: account.id)
 
       assert length(meal_plans) > 0
+    end
+
+    # test "cannot finalize if session is still active", %{conn: conn, session: session, user: user, account: account} do
+    #   # Update session to end in the future
+    #   _session =
+    #     session
+    #     |> Ash.Changeset.for_update(:update, %{ends_at: DateTime.add(DateTime.utc_now(), 3600, :second)})
+    #     |> Ash.update!(actor: user, tenant: account.id)
+
+    #   {:ok, view, _html} = live(conn, ~p"/voting")
+
+    #   view
+    #   |> element("button", "Finalize")
+    #   |> render_click()
+
+    #   assert render(view) =~ "Voting still in progress"
+    # end
+  end
+
+  describe "tick" do
+    test "updates time remaining", %{conn: conn, account: account, user: user} do
+      # Create active session
+      {:ok, _session} =
+        MealPlanVoteSession
+        |> Ash.Changeset.new()
+        |> Ash.Changeset.set_argument(:account_id, account.id)
+        |> Ash.Changeset.for_create(:start, %{})
+        |> Ash.create(actor: user, tenant: account.id, authorize?: false)
+
+      {:ok, view, _html} = live(conn, ~p"/voting")
+
+      # Send tick message
+      send(view.pid, :tick)
+
+      # Just verify it doesn't crash and re-renders
+      assert render(view) =~ "Time Remaining"
     end
   end
 end

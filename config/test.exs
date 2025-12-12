@@ -37,3 +37,6 @@ config :phoenix, :plug_init_mode, :runtime
 # Enable helpful, but potentially expensive runtime checks
 config :phoenix_live_view,
   enable_expensive_runtime_checks: true
+
+config :grocery_planner, :the_meal_db_client, GroceryPlanner.External.TheMealDB
+config :grocery_planner, :the_meal_db_opts, plug: {Req.Test, GroceryPlanner.External.TheMealDB}

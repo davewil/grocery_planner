@@ -111,6 +111,14 @@ defmodule GroceryPlannerWeb.Layouts do
                   </li>
                   <li>
                     <.link
+                      navigate="/analytics"
+                      class="px-4 py-2 text-gray-700 hover:text-gray-900 font-medium transition"
+                    >
+                      Analytics
+                    </.link>
+                  </li>
+                  <li>
+                    <.link
                       navigate="/settings"
                       class="px-4 py-2 text-gray-700 hover:text-gray-900 font-medium transition"
                     >
@@ -213,6 +221,13 @@ defmodule GroceryPlannerWeb.Layouts do
                   phx-click={JS.add_class("hidden", to: "#mobile-menu")}
                 >
                   Shopping
+                </.link>
+                <.link
+                  navigate="/analytics"
+                  class="px-4 py-2 text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg font-medium transition"
+                  phx-click={JS.add_class("hidden", to: "#mobile-menu")}
+                >
+                  Analytics
                 </.link>
                 <.link
                   navigate="/settings"

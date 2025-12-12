@@ -3,276 +3,152 @@ warning: ignoring template "/mnt/usb-drive/Development/elixir/grocery_planner/li
 
 Getting extensions in current project...
 Running setup for AshPostgres.DataLayer...
-Running ExUnit with seed: 597184, max_cases: 16
+Running ExUnit with seed: 189408, max_cases: 16
 
-.............................................................................19:05:48.159 [error] Failed to create account: %Ash.Error.Invalid{bread_crumbs: ["Error returned from: GroceryPlanner.Accounts.User.create"],  changeset: "#Changeset<>",  errors: [%Ash.Error.Changes.InvalidAttribute{field: :email, message: "has already been taken", private_vars: [constraint: "users_unique_email_index", constraint_type: :unique, detail: "Key (email)=(duplicate6749@example.com) already exists."], value: nil, has_value?: false, splode: Ash.Error, bread_crumbs: ["Error returned from: GroceryPlanner.Accounts.User.create"], vars: [], path: [], stacktrace: #Splode.Stacktrace<>, class: :invalid}]}
-...19:05:48.908 [error] Failed to create account: %Ash.Error.Invalid{bread_crumbs: ["Error returned from: GroceryPlanner.Accounts.User.create"],  changeset: "#Changeset<>",  errors: [%Ash.Error.Changes.Required{field: :email, type: :attribute, resource: GroceryPlanner.Accounts.User, splode: Ash.Error, bread_crumbs: ["Error returned from: GroceryPlanner.Accounts.User.create"], vars: [], path: [], stacktrace: #Splode.Stacktrace<>, class: :invalid}]}
-.................................
+    warning: variable "view" is unused (if the variable is not meant to be used, prefix it with an underscore)
+    │
+ 22 │       {:ok, view, html} = live(conn, "/analytics")
+    │             ~~~~
+    │
+    └─ test/grocery_planner_web/live/analytics_live_test.exs:22:13: GroceryPlannerWeb.AnalyticsLiveTest."test Analytics Dashboard renders dashboard with empty state"/1
 
-  1) test Grocery Items tab deletes grocery item (GroceryPlannerWeb.InventoryLiveTest)
-     test/grocery_planner_web/live/inventory_live_test.exs:165
+Categories before load: [
+  %GroceryPlanner.Inventory.Category{
+    id: "cb485453-863d-4ff9-87b5-bb65887535a3",
+    name: "Test Category -576460752303418687",
+    icon: nil,
+    sort_order: 0,
+    account_id: "bdfd395c-bcb2-45de-a29a-d1fa46baa661",
+    created_at: ~U[2025-12-12 09:15:31.758946Z],
+    updated_at: ~U[2025-12-12 09:15:31.758946Z],
+    item_count: #Ash.NotLoaded<:aggregate, field: :item_count>,
+    account: #Ash.NotLoaded<:relationship, field: :account>,
+    grocery_items: #Ash.NotLoaded<:relationship, field: :grocery_items>,
+    __meta__: #Ecto.Schema.Metadata<:loaded, "categories">
+  },
+  %GroceryPlanner.Inventory.Category{
+    id: "fe00b333-08f7-4d87-8901-b5ce03c9127a",
+    name: "Test Category -576460752303418751",
+    icon: nil,
+    sort_order: 0,
+    account_id: "bdfd395c-bcb2-45de-a29a-d1fa46baa661",
+    created_at: ~U[2025-12-12 09:15:31.751987Z],
+    updated_at: ~U[2025-12-12 09:15:31.751987Z],
+    item_count: #Ash.NotLoaded<:aggregate, field: :item_count>,
+    account: #Ash.NotLoaded<:relationship, field: :account>,
+    grocery_items: #Ash.NotLoaded<:relationship, field: :grocery_items>,
+    __meta__: #Ecto.Schema.Metadata<:loaded, "categories">
+  }
+]
+Categories after load: [
+  %GroceryPlanner.Inventory.Category{
+    id: "cb485453-863d-4ff9-87b5-bb65887535a3",
+    name: "Test Category -576460752303418687",
+    icon: nil,
+    sort_order: 0,
+    account_id: "bdfd395c-bcb2-45de-a29a-d1fa46baa661",
+    created_at: ~U[2025-12-12 09:15:31.758946Z],
+    updated_at: ~U[2025-12-12 09:15:31.758946Z],
+    item_count: 0,
+    account: #Ash.NotLoaded<:relationship, field: :account>,
+    grocery_items: #Ash.NotLoaded<:relationship, field: :grocery_items>,
+    __meta__: #Ecto.Schema.Metadata<:loaded, "categories">
+  },
+  %GroceryPlanner.Inventory.Category{
+    id: "fe00b333-08f7-4d87-8901-b5ce03c9127a",
+    name: "Test Category -576460752303418751",
+    icon: nil,
+    sort_order: 0,
+    account_id: "bdfd395c-bcb2-45de-a29a-d1fa46baa661",
+    created_at: ~U[2025-12-12 09:15:31.751987Z],
+    updated_at: ~U[2025-12-12 09:15:31.751987Z],
+    item_count: 0,
+    account: #Ash.NotLoaded<:relationship, field: :account>,
+    grocery_items: #Ash.NotLoaded<:relationship, field: :grocery_items>,
+    __meta__: #Ecto.Schema.Metadata<:loaded, "categories">
+  }
+]
+Category Breakdown: [
+  %{count: 0, name: "Test Category -576460752303418687"},
+  %{count: 0, name: "Test Category -576460752303418751"}
+]
+Categories before load: [
+  %GroceryPlanner.Inventory.Category{
+    id: "cb485453-863d-4ff9-87b5-bb65887535a3",
+    name: "Test Category -576460752303418687",
+    icon: nil,
+    sort_order: 0,
+    account_id: "bdfd395c-bcb2-45de-a29a-d1fa46baa661",
+    created_at: ~U[2025-12-12 09:15:31.758946Z],
+    updated_at: ~U[2025-12-12 09:15:31.758946Z],
+    item_count: #Ash.NotLoaded<:aggregate, field: :item_count>,
+    account: #Ash.NotLoaded<:relationship, field: :account>,
+    grocery_items: #Ash.NotLoaded<:relationship, field: :grocery_items>,
+    __meta__: #Ecto.Schema.Metadata<:loaded, "categories">
+  },
+  %GroceryPlanner.Inventory.Category{
+    id: "fe00b333-08f7-4d87-8901-b5ce03c9127a",
+    name: "Test Category -576460752303418751",
+    icon: nil,
+    sort_order: 0,
+    account_id: "bdfd395c-bcb2-45de-a29a-d1fa46baa661",
+    created_at: ~U[2025-12-12 09:15:31.751987Z],
+    updated_at: ~U[2025-12-12 09:15:31.751987Z],
+    item_count: #Ash.NotLoaded<:aggregate, field: :item_count>,
+    account: #Ash.NotLoaded<:relationship, field: :account>,
+    grocery_items: #Ash.NotLoaded<:relationship, field: :grocery_items>,
+    __meta__: #Ecto.Schema.Metadata<:loaded, "categories">
+  }
+]
+Categories after load: [
+  %GroceryPlanner.Inventory.Category{
+    id: "cb485453-863d-4ff9-87b5-bb65887535a3",
+    name: "Test Category -576460752303418687",
+    icon: nil,
+    sort_order: 0,
+    account_id: "bdfd395c-bcb2-45de-a29a-d1fa46baa661",
+    created_at: ~U[2025-12-12 09:15:31.758946Z],
+    updated_at: ~U[2025-12-12 09:15:31.758946Z],
+    item_count: 0,
+    account: #Ash.NotLoaded<:relationship, field: :account>,
+    grocery_items: #Ash.NotLoaded<:relationship, field: :grocery_items>,
+    __meta__: #Ecto.Schema.Metadata<:loaded, "categories">
+  },
+  %GroceryPlanner.Inventory.Category{
+    id: "fe00b333-08f7-4d87-8901-b5ce03c9127a",
+    name: "Test Category -576460752303418751",
+    icon: nil,
+    sort_order: 0,
+    account_id: "bdfd395c-bcb2-45de-a29a-d1fa46baa661",
+    created_at: ~U[2025-12-12 09:15:31.751987Z],
+    updated_at: ~U[2025-12-12 09:15:31.751987Z],
+    item_count: 0,
+    account: #Ash.NotLoaded<:relationship, field: :account>,
+    grocery_items: #Ash.NotLoaded<:relationship, field: :grocery_items>,
+    __meta__: #Ecto.Schema.Metadata<:loaded, "categories">
+  }
+]
+Category Breakdown: [
+  %{count: 0, name: "Test Category -576460752303418687"},
+  %{count: 0, name: "Test Category -576460752303418751"}
+]
+
+
+  1) test Analytics Dashboard renders dashboard with data (GroceryPlannerWeb.AnalyticsLiveTest)
+     test/grocery_planner_web/live/analytics_live_test.exs:29
      Assertion with =~ failed
-     code:  assert render(view) =~ "Old Item"
-     left:  "<div id=\"phx-GIA-rXd_zZTYtw0m\" data-phx-main=\"\" data-phx-session=\"SFMyNTY.g2gDaAJhBnQAAAAIdwJpZG0AAAAUcGh4LUdJQS1yWGRfelpUWXR3MG13B3Nlc3Npb250AAAAAHcKcGFyZW50X3BpZHcDbmlsdwZyb3V0ZXJ3H0VsaXhpci5Hcm9jZXJ5UGxhbm5lcldlYi5Sb3V0ZXJ3BHZpZXd3JkVsaXhpci5Hcm9jZXJ5UGxhbm5lcldlYi5JbnZlbnRvcnlMaXZldwhyb290X3BpZHcDbmlsdwlyb290X3ZpZXd3JkVsaXhpci5Hcm9jZXJ5UGxhbm5lcldlYi5JbnZlbnRvcnlMaXZldxFsaXZlX3Nlc3Npb25fbmFtZXcHZGVmYXVsdG4GAMxvzg6bAWIAAVGA.ctA9ZAmeOLTyN6nz96YxFrVeQU3SWJWdhU3_RAKey9g\" data-phx-static=\"SFMyNTY.g2gDaAJhBnQAAAADdwJpZG0AAAAUcGh4LUdJQS1yWGRfelpUWXR3MG13BWZsYXNodAAAAAB3CmFzc2lnbl9uZXdsAAAAAncPY3VycmVudF9hY2NvdW50dwxjdXJyZW50X3VzZXJqbgYAzG_ODpsBYgABUYA.MyGZYl8wwIw62LYwe4NqFPOFjVSz0iw_NvNjBuTQsZI\"><div class=\"min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50\"><header class=\"bg-white/50 backdrop-blur-sm px-4 sm:px-6 lg:px-8 border-b border-gray-200 sticky top-0 z-50\"><div class=\"max-w-7xl mx-auto\"><div class=\"flex items-center justify-between py-4\"><div class=\"flex-1\"><a href=\"/dashboard\" data-phx-link=\"redirect\" data-phx-link-state=\"push\" class=\"flex items-center gap-2\"><img src=\"/images/logo.svg\" width=\"36\" alt=\"GroceryPlanner logo\"/><span class=\"text-xl font-bold text-gray-900\">GroceryPlanner</span></a></div><!-- Desktop Navigation --><nav class=\"hidden lg:flex flex-none\"><ul class=\"flex items-center space-x-2\"><li><a href=\"/dashboard\" data-phx-link=\"redirect\" data-phx-link-state=\"push\" class=\"px-4 py-2 text-gray-700 hover:text-gray-900 font-medium transition\">\n                  Dashboard\n                </a></li><li><a href=\"/inventory\" data-phx-link=\"redirect\" data-phx-link-state=\"push\" class=\"px-4 py-2 text-gray-700 hover:text-gray-900 font-medium transition\">\n                  Inventory\n                </a></li><li><a href=\"/recipes\" data-phx-link=\"redirect\" data-phx-link-state=\"push\" class=\"px-4 py-2 text-gray-700 hover:text-gray-900 font-medium transition\">\n                  Recipes\n                </a></li><li><a href=\"/meal-planner\" data-phx-link=\"redirect\" data-phx-link-state=\"push\" class=\"px-4 py-2 text-gray-700 hover:text-gray-900 font-medium transition\">\n                  Meal Planner\n                </a></li><li><a href=\"/voting\" data-phx-link=\"redirect\" data-phx-link-state=\"push\" class=\"px-4 py-2 text-gray-700 hover:text-gray-900 font-medium transition flex items-center gap-1\">\n                  Voting\n                  \n                </a></li><li><a href=\"/shopping\" data-phx-link=\"redirect\" data-phx-link-state=\"push\" class=\"px-4 py-2 text-gray-700 hover:text-gray-900 font-medium transition\">\n                  Shopping\n                </a></li><li><a href=\"/settings\" data-phx-link=\"redirect\" data-phx-link-state=\"push\" class=\"px-4 py-2 text-gray-700 hover:text-gray-900 font-medium transition\">\n                  Settings\n                </a></li><li><a href=\"/auth/sign-out\" data-method=\"delete\" data-csrf=\"fHMBGQAKfRceFD5ELSsENxcoODYIKicS490WXL5PAZz5gd3vYXaANkjF\" data-to=\"/auth/sign-out\" class=\"px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition font-medium\" data-confirm=\"Are you sure you want to sign out?\">\n                  Sign Out\n                </a></li></ul></nav><!-- Mobile Menu Button --><button class=\"lg:hidden p-2 text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition\" phx-click=\"[[&quot;toggle&quot;,{&quot;to&quot;:&quot;#mobile-menu&quot;}],[&quot;toggle_class&quot;,{&quot;names&quot;:[&quot;hidden&quot;],&quot;to&quot;:&quot;#mobile-menu&quot;}]]\" aria-label=\"Toggle menu\"><svg class=\"w-6 h-6\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M4 6h16M4 12h16M4 18h16\"></path></svg></button></div><!-- Mobile Navigation Menu --><div id=\"mobile-menu\" class=\"hidden lg:hidden pb-4\"><nav class=\"flex flex-col space-y-2\"><a href=\"/dashboard\" data-phx-link=\"redirect\" data-phx-link-state=\"push\" class=\"px-4 py-2 text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg font-medium transition\" phx-click=\"[[&quot;add_class&quot;,{&quot;names&quot;:[&quot;hidden&quot;],&quot" <> ...
-     right: "Old Item"
+     code:  assert html =~ "Fruits"
+     left:  "<html lang=\"en\"><head><meta charset=\"utf-8\"/><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"/><meta name=\"csrf-token\" content=\"AAhRPQchBxoBBWYdMiVbOD8PDUoiND8-cabPswsHr1QUtfjIFHH-PrlL\"/><title data-default=\"GroceryPlanner\" data-suffix=\" · Phoenix Framework\">\n      Analytics\n     · Phoenix Framework</title><link phx-track-static=\"\" rel=\"stylesheet\" href=\"/assets/css/app.css\"/><script defer=\"\" phx-track-static=\"\" type=\"text/javascript\" src=\"/assets/js/app.js\"></script><script>\n      (() => {\n        const setTheme = (theme) => {\n          if (theme === \"system\") {\n            localStorage.removeItem(\"phx:theme\");\n            document.documentElement.removeAttribute(\"data-theme\");\n          } else {\n            localStorage.setItem(\"phx:theme\", theme);\n            document.documentElement.setAttribute(\"data-theme\", theme);\n          }\n        };\n        if (!document.documentElement.hasAttribute(\"data-theme\")) {\n          setTheme(localStorage.getItem(\"phx:theme\") || \"system\");\n        }\n        window.addEventListener(\"storage\", (e) => e.key === \"phx:theme\" && setTheme(e.newValue || \"system\"));\n        \n        window.addEventListener(\"phx:set-theme\", (e) => setTheme(e.target.dataset.phxTheme));\n      })();\n    </script></head><body><div id=\"phx-GIBtB0kzZ1lqGhNh\" data-phx-main=\"\" data-phx-session=\"SFMyNTY.g2gDaAJhBnQAAAAIdwJpZG0AAAAUcGh4LUdJQnRCMGt6WjFscUdoTmh3B3Nlc3Npb250AAAAAHcKcGFyZW50X3BpZHcDbmlsdwZyb3V0ZXJ3H0VsaXhpci5Hcm9jZXJ5UGxhbm5lcldlYi5Sb3V0ZXJ3BHZpZXd3JkVsaXhpci5Hcm9jZXJ5UGxhbm5lcldlYi5BbmFseXRpY3NMaXZldwhyb290X3BpZHcDbmlsdwlyb290X3ZpZXd3JkVsaXhpci5Hcm9jZXJ5UGxhbm5lcldlYi5BbmFseXRpY3NMaXZldxFsaXZlX3Nlc3Npb25fbmFtZXcHZGVmYXVsdG4GALgT2BGbAWIAAVGA.z-5IHlkmdQEcZ0EFZVRtoc-yOvxayyWo4LJXtpvmzaM\" data-phx-static=\"SFMyNTY.g2gDaAJhBnQAAAADdwJpZG0AAAAUcGh4LUdJQnRCMGt6WjFscUdoTmh3BWZsYXNodAAAAAB3CmFzc2lnbl9uZXdsAAAAAncPY3VycmVudF9hY2NvdW50dwxjdXJyZW50X3VzZXJqbgYAwhPYEZsBYgABUYA.W5APO8DY6AibPp4IQ4jPZ14p-nfgy4XTZ4Wm9n04qGE\"><div class=\"min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50\"><header class=\"bg-white/50 backdrop-blur-sm px-4 sm:px-6 lg:px-8 border-b border-gray-200 sticky top-0 z-50\"><div class=\"max-w-7xl mx-auto\"><div class=\"flex items-center justify-between py-4\"><div class=\"flex-1\"><a href=\"/dashboard\" data-phx-link=\"redirect\" data-phx-link-state=\"push\" class=\"flex items-center gap-2\"><img src=\"/images/logo.svg\" width=\"36\" alt=\"GroceryPlanner logo\"/><span class=\"text-xl font-bold text-gray-900\">GroceryPlanner</span></a></div><!-- Desktop Navigation --><nav class=\"hidden lg:flex flex-none\"><ul class=\"flex items-center space-x-2\"><li><a href=\"/dashboard\" data-phx-link=\"redirect\" data-phx-link-state=\"push\" class=\"px-4 py-2 text-gray-700 hover:text-gray-900 font-medium transition\">\n                  Dashboard\n                </a></li><li><a href=\"/inventory\" data-phx-link=\"redirect\" data-phx-link-state=\"push\" class=\"px-4 py-2 text-gray-700 hover:text-gray-900 font-medium transition\">\n                  Inventory\n                </a></li><li><a href=\"/recipes\" data-phx-link=\"redirect\" data-phx-link-state=\"push\" class=\"px-4 py-2 text-gray-700 hover:text-gray-900 font-medium transition\">\n                  Recipes\n                </a></li><li><a href=\"/meal-planner\" data-phx-link=\"redirect\" data-phx-link-state=\"push\" class=\"px-4 py-2 text-gray-700 hover:text-gray-900 font-medium transition\">\n                  Meal Planner\n                </a></li><li><a href=\"/voting\" data-phx-link=\"redirect\" data-phx-link-state=\"push\" class=\"px-4 py-2 text-gray-700 hover:text-gray-900 font-medium transition flex items-center gap-1\">\n                  Voting\n                  \n                </a></li><li><a href=\"/shopping\" data-phx-link=\"redirect\" data-phx-link-state=\"push\" class=\"px-4 py-2 text-gray-700 hover:text-gray-900 font-medium transition\">\n                  Shopping\n                </a></li><li><a href=\"/analytics\" data-phx-link=\"redirect\" data-phx-link-state=\"push\" class=\"px-4 py-2 text-gray-700 hover:text-gray-900 font-medium transition\">\n                  Analytics\n                </a></li>" <> ...
+     right: "Fruits"
      stacktrace:
-       test/grocery_planner_web/live/inventory_live_test.exs:170: (test)
+       test/grocery_planner_web/live/analytics_live_test.exs:57: (test)
 
-..
-
-  2) test Grocery Items tab cancels form (GroceryPlannerWeb.InventoryLiveTest)
-     test/grocery_planner_web/live/inventory_live_test.exs:149
-     ** (ArgumentError) selector "button" returned 9 elements but none matched the text filter "New Item": 
-
-         <button class="lg:hidden p-2 text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition" phx-click="[[&quot;toggle&quot;,{&quot;to&quot;:&quot;#mobile-menu&quot;}],[&quot;toggle_class&quot;,{&quot;names&quot;:[&quot;hidden&quot;],&quot;to&quot;:&quot;#mobile-menu&quot;}]]" aria-label="Toggle menu"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg></button>
-         <button phx-click="change_tab" phx-value-tab="items" class="flex-1 px-6 py-4 text-sm font-medium transition text-gray-600 hover:text-gray-900 hover:bg-white/50"><svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>
-              Grocery Items
-            </button>
-         <button phx-click="change_tab" phx-value-tab="inventory" class="flex-1 px-6 py-4 text-sm font-medium transition bg-white border-b-2 border-blue-500 text-blue-600"><svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
-              Current Inventory
-            </button>
-         <button phx-click="change_tab" phx-value-tab="categories" class="flex-1 px-6 py-4 text-sm font-medium transition text-gray-600 hover:text-gray-900 hover:bg-white/50"><svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path></svg>
-              Categories
-            </button>
-         <button phx-click="change_tab" phx-value-tab="locations" class="flex-1 px-6 py-4 text-sm font-medium transition text-gray-600 hover:text-gray-900 hover:bg-white/50"><svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
-              Storage Locations
-            </button>
-         <button phx-click="change_tab" phx-value-tab="tags" class="flex-1 px-6 py-4 text-sm font-medium transition text-gray-600 hover:text-gray-900 hover:bg-white/50"><svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path></svg>
-              Tags
-            </button>
-         <button class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-medium" phx-click="new_entry"><svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
-            New Entry
-          
-        </button>
-         <button type="button" class="group self-start cursor-pointer" aria-label="close"><span class="hero-x-mark size-5 opacity-40 group-hover:opacity-70"></span></button>
-         <button type="button" class="group self-start cursor-pointer" aria-label="close"><span class="hero-x-mark size-5 opacity-40 group-hover:opacity-70"></span></button>
-
-     code: |> render_click()
-     stacktrace:
-       (phoenix_live_view 1.1.17) lib/phoenix_live_view/test/live_view_test.ex:1119: Phoenix.LiveViewTest.call/2
-       test/grocery_planner_web/live/inventory_live_test.exs:154: (test)
-
-...
-
-  3) test Grocery Items tab creates new grocery item (GroceryPlannerWeb.InventoryLiveTest)
-     test/grocery_planner_web/live/inventory_live_test.exs:124
-     ** (ArgumentError) selector "button" returned 9 elements but none matched the text filter "New Item": 
-
-         <button class="lg:hidden p-2 text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition" phx-click="[[&quot;toggle&quot;,{&quot;to&quot;:&quot;#mobile-menu&quot;}],[&quot;toggle_class&quot;,{&quot;names&quot;:[&quot;hidden&quot;],&quot;to&quot;:&quot;#mobile-menu&quot;}]]" aria-label="Toggle menu"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg></button>
-         <button phx-click="change_tab" phx-value-tab="items" class="flex-1 px-6 py-4 text-sm font-medium transition text-gray-600 hover:text-gray-900 hover:bg-white/50"><svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>
-              Grocery Items
-            </button>
-         <button phx-click="change_tab" phx-value-tab="inventory" class="flex-1 px-6 py-4 text-sm font-medium transition bg-white border-b-2 border-blue-500 text-blue-600"><svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
-              Current Inventory
-            </button>
-         <button phx-click="change_tab" phx-value-tab="categories" class="flex-1 px-6 py-4 text-sm font-medium transition text-gray-600 hover:text-gray-900 hover:bg-white/50"><svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path></svg>
-              Categories
-            </button>
-         <button phx-click="change_tab" phx-value-tab="locations" class="flex-1 px-6 py-4 text-sm font-medium transition text-gray-600 hover:text-gray-900 hover:bg-white/50"><svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
-              Storage Locations
-            </button>
-         <button phx-click="change_tab" phx-value-tab="tags" class="flex-1 px-6 py-4 text-sm font-medium transition text-gray-600 hover:text-gray-900 hover:bg-white/50"><svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path></svg>
-              Tags
-            </button>
-         <button class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-medium" phx-click="new_entry"><svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
-            New Entry
-          
-        </button>
-         <button type="button" class="group self-start cursor-pointer" aria-label="close"><span class="hero-x-mark size-5 opacity-40 group-hover:opacity-70"></span></button>
-         <button type="button" class="group self-start cursor-pointer" aria-label="close"><span class="hero-x-mark size-5 opacity-40 group-hover:opacity-70"></span></button>
-
-     code: |> render_click()
-     stacktrace:
-       (phoenix_live_view 1.1.17) lib/phoenix_live_view/test/live_view_test.ex:1119: Phoenix.LiveViewTest.call/2
-       test/grocery_planner_web/live/inventory_live_test.exs:131: (test)
-
+Categories before load: []
+Categories after load: []
+Category Breakdown: []
+Categories before load: []
+Categories after load: []
+Category Breakdown: []
 .
-
-  4) test Grocery Items tab displays existing grocery items (GroceryPlannerWeb.InventoryLiveTest)
-     test/grocery_planner_web/live/inventory_live_test.exs:92
-     Assertion with =~ failed
-     code:  assert html =~ "Milk"
-     left:  "<html lang=\"en\"><head><meta charset=\"utf-8\"/><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"/><meta name=\"csrf-token\" content=\"FnQEXGI1fygFHCAMBDcSYQAmOBJaCAURp8Qn3B2NOJGTCrW7UIJJhoRt\"/><title data-default=\"GroceryPlanner\" data-suffix=\" · Phoenix Framework\">GroceryPlanner · Phoenix Framework</title><link phx-track-static=\"\" rel=\"stylesheet\" href=\"/assets/css/app.css\"/><script defer=\"\" phx-track-static=\"\" type=\"text/javascript\" src=\"/assets/js/app.js\"></script><script>\n      (() => {\n        const setTheme = (theme) => {\n          if (theme === \"system\") {\n            localStorage.removeItem(\"phx:theme\");\n            document.documentElement.removeAttribute(\"data-theme\");\n          } else {\n            localStorage.setItem(\"phx:theme\", theme);\n            document.documentElement.setAttribute(\"data-theme\", theme);\n          }\n        };\n        if (!document.documentElement.hasAttribute(\"data-theme\")) {\n          setTheme(localStorage.getItem(\"phx:theme\") || \"system\");\n        }\n        window.addEventListener(\"storage\", (e) => e.key === \"phx:theme\" && setTheme(e.newValue || \"system\"));\n        \n        window.addEventListener(\"phx:set-theme\", (e) => setTheme(e.target.dataset.phxTheme));\n      })();\n    </script></head><body><div id=\"phx-GIA-rptF9Cipow6C\" data-phx-main=\"\" data-phx-session=\"SFMyNTY.g2gDaAJhBnQAAAAIdwJpZG0AAAAUcGh4LUdJQS1ycHRGOUNpcG93NkN3B3Nlc3Npb250AAAAAHcKcGFyZW50X3BpZHcDbmlsdwZyb3V0ZXJ3H0VsaXhpci5Hcm9jZXJ5UGxhbm5lcldlYi5Sb3V0ZXJ3BHZpZXd3JkVsaXhpci5Hcm9jZXJ5UGxhbm5lcldlYi5JbnZlbnRvcnlMaXZldwhyb290X3BpZHcDbmlsdwlyb290X3ZpZXd3JkVsaXhpci5Hcm9jZXJ5UGxhbm5lcldlYi5JbnZlbnRvcnlMaXZldxFsaXZlX3Nlc3Npb25fbmFtZXcHZGVmYXVsdG4GAOyCzg6bAWIAAVGA.CA6SFnxGpnJFvPM1vgG0RJhjWMjjSMBVSguvS9nqkBM\" data-phx-static=\"SFMyNTY.g2gDaAJhBnQAAAADdwJpZG0AAAAUcGh4LUdJQS1ycHRGOUNpcG93NkN3BWZsYXNodAAAAAB3CmFzc2lnbl9uZXdsAAAAAncPY3VycmVudF9hY2NvdW50dwxjdXJyZW50X3VzZXJqbgYA7ILODpsBYgABUYA.EdhhXbcVKKAb_GDvym7zZYSxjTwj8Ov5LmtrqABMSmY\"><div class=\"min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50\"><header class=\"bg-white/50 backdrop-blur-sm px-4 sm:px-6 lg:px-8 border-b border-gray-200 sticky top-0 z-50\"><div class=\"max-w-7xl mx-auto\"><div class=\"flex items-center justify-between py-4\"><div class=\"flex-1\"><a href=\"/dashboard\" data-phx-link=\"redirect\" data-phx-link-state=\"push\" class=\"flex items-center gap-2\"><img src=\"/images/logo.svg\" width=\"36\" alt=\"GroceryPlanner logo\"/><span class=\"text-xl font-bold text-gray-900\">GroceryPlanner</span></a></div><!-- Desktop Navigation --><nav class=\"hidden lg:flex flex-none\"><ul class=\"flex items-center space-x-2\"><li><a href=\"/dashboard\" data-phx-link=\"redirect\" data-phx-link-state=\"push\" class=\"px-4 py-2 text-gray-700 hover:text-gray-900 font-medium transition\">\n                  Dashboard\n                </a></li><li><a href=\"/inventory\" data-phx-link=\"redirect\" data-phx-link-state=\"push\" class=\"px-4 py-2 text-gray-700 hover:text-gray-900 font-medium transition\">\n                  Inventory\n                </a></li><li><a href=\"/recipes\" data-phx-link=\"redirect\" data-phx-link-state=\"push\" class=\"px-4 py-2 text-gray-700 hover:text-gray-900 font-medium transition\">\n                  Recipes\n                </a></li><li><a href=\"/meal-planner\" data-phx-link=\"redirect\" data-phx-link-state=\"push\" class=\"px-4 py-2 text-gray-700 hover:text-gray-900 font-medium transition\">\n                  Meal Planner\n                </a></li><li><a href=\"/voting\" data-phx-link=\"redirect\" data-phx-link-state=\"push\" class=\"px-4 py-2 text-gray-700 hover:text-gray-900 font-medium transition flex items-center gap-1\">\n                  Voting\n                  \n                </a></li><li><a href=\"/shopping\" data-phx-link=\"redirect\" data-phx-link-state=\"push\" class=\"px-4 py-2 text-gray-700 hover:text-gray-900 font-medium transition\">\n                  Shopping\n                </a></li><li><a href=\"/settings\" data-phx-link=\"redirect\" data-phx-link-state=\"push\" class=\"px-4 py-2 text-gray-700 hover:text-gray-900 font-medium transition\">\n                  Settings\n                </a></li><li><a hr" <> ...
-     right: "Milk"
-     stacktrace:
-       test/grocery_planner_web/live/inventory_live_test.exs:98: (test)
-
-..
-
-  5) test multi-tenancy only shows items from current account (GroceryPlannerWeb.InventoryLiveTest)
-     test/grocery_planner_web/live/inventory_live_test.exs:494
-     Assertion with =~ failed
-     code:  assert html =~ "My Item"
-     left:  "<html lang=\"en\"><head><meta charset=\"utf-8\"/><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"/><meta name=\"csrf-token\" content=\"KgkqYzIqRwVrHiA5IFUGPxldYgohFQkZZXgPve2AXNarF1vxZi0yRzlJ\"/><title data-default=\"GroceryPlanner\" data-suffix=\" · Phoenix Framework\">GroceryPlanner · Phoenix Framework</title><link phx-track-static=\"\" rel=\"stylesheet\" href=\"/assets/css/app.css\"/><script defer=\"\" phx-track-static=\"\" type=\"text/javascript\" src=\"/assets/js/app.js\"></script><script>\n      (() => {\n        const setTheme = (theme) => {\n          if (theme === \"system\") {\n            localStorage.removeItem(\"phx:theme\");\n            document.documentElement.removeAttribute(\"data-theme\");\n          } else {\n            localStorage.setItem(\"phx:theme\", theme);\n            document.documentElement.setAttribute(\"data-theme\", theme);\n          }\n        };\n        if (!document.documentElement.hasAttribute(\"data-theme\")) {\n          setTheme(localStorage.getItem(\"phx:theme\") || \"system\");\n        }\n        window.addEventListener(\"storage\", (e) => e.key === \"phx:theme\" && setTheme(e.newValue || \"system\"));\n        \n        window.addEventListener(\"phx:set-theme\", (e) => setTheme(e.target.dataset.phxTheme));\n      })();\n    </script></head><body><div id=\"phx-GIA-rxLpUUByEgTF\" data-phx-main=\"\" data-phx-session=\"SFMyNTY.g2gDaAJhBnQAAAAIdwJpZG0AAAAUcGh4LUdJQS1yeExwVVVCeUVnVEZ3B3Nlc3Npb250AAAAAHcKcGFyZW50X3BpZHcDbmlsdwZyb3V0ZXJ3H0VsaXhpci5Hcm9jZXJ5UGxhbm5lcldlYi5Sb3V0ZXJ3BHZpZXd3JkVsaXhpci5Hcm9jZXJ5UGxhbm5lcldlYi5JbnZlbnRvcnlMaXZldwhyb290X3BpZHcDbmlsdwlyb290X3ZpZXd3JkVsaXhpci5Hcm9jZXJ5UGxhbm5lcldlYi5JbnZlbnRvcnlMaXZldxFsaXZlX3Nlc3Npb25fbmFtZXcHZGVmYXVsdG4GAMGKzg6bAWIAAVGA.es6XDdBbAAEaYQWD5T1am0mKUW68GvpNC85sLo_yPRk\" data-phx-static=\"SFMyNTY.g2gDaAJhBnQAAAADdwJpZG0AAAAUcGh4LUdJQS1yeExwVVVCeUVnVEZ3BWZsYXNodAAAAAB3CmFzc2lnbl9uZXdsAAAAAncPY3VycmVudF9hY2NvdW50dwxjdXJyZW50X3VzZXJqbgYAwYrODpsBYgABUYA.fISF9ZLDMY4H2CaRCtukC1keotS4IHjP8xsFmVfrR9M\"><div class=\"min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50\"><header class=\"bg-white/50 backdrop-blur-sm px-4 sm:px-6 lg:px-8 border-b border-gray-200 sticky top-0 z-50\"><div class=\"max-w-7xl mx-auto\"><div class=\"flex items-center justify-between py-4\"><div class=\"flex-1\"><a href=\"/dashboard\" data-phx-link=\"redirect\" data-phx-link-state=\"push\" class=\"flex items-center gap-2\"><img src=\"/images/logo.svg\" width=\"36\" alt=\"GroceryPlanner logo\"/><span class=\"text-xl font-bold text-gray-900\">GroceryPlanner</span></a></div><!-- Desktop Navigation --><nav class=\"hidden lg:flex flex-none\"><ul class=\"flex items-center space-x-2\"><li><a href=\"/dashboard\" data-phx-link=\"redirect\" data-phx-link-state=\"push\" class=\"px-4 py-2 text-gray-700 hover:text-gray-900 font-medium transition\">\n                  Dashboard\n                </a></li><li><a href=\"/inventory\" data-phx-link=\"redirect\" data-phx-link-state=\"push\" class=\"px-4 py-2 text-gray-700 hover:text-gray-900 font-medium transition\">\n                  Inventory\n                </a></li><li><a href=\"/recipes\" data-phx-link=\"redirect\" data-phx-link-state=\"push\" class=\"px-4 py-2 text-gray-700 hover:text-gray-900 font-medium transition\">\n                  Recipes\n                </a></li><li><a href=\"/meal-planner\" data-phx-link=\"redirect\" data-phx-link-state=\"push\" class=\"px-4 py-2 text-gray-700 hover:text-gray-900 font-medium transition\">\n                  Meal Planner\n                </a></li><li><a href=\"/voting\" data-phx-link=\"redirect\" data-phx-link-state=\"push\" class=\"px-4 py-2 text-gray-700 hover:text-gray-900 font-medium transition flex items-center gap-1\">\n                  Voting\n                  \n                </a></li><li><a href=\"/shopping\" data-phx-link=\"redirect\" data-phx-link-state=\"push\" class=\"px-4 py-2 text-gray-700 hover:text-gray-900 font-medium transition\">\n                  Shopping\n                </a></li><li><a href=\"/settings\" data-phx-link=\"redirect\" data-phx-link-state=\"push\" class=\"px-4 py-2 text-gray-700 hover:text-gray-900 font-medium transition\">\n                  Settings\n                </a></li><li><a hr" <> ...
-     right: "My Item"
-     stacktrace:
-       test/grocery_planner_web/live/inventory_live_test.exs:503: (test)
-
-.
-
-  6) test mount and navigation defaults to Grocery Items tab (GroceryPlannerWeb.InventoryLiveTest)
-     test/grocery_planner_web/live/inventory_live_test.exs:38
-     Expected truthy, got false
-     code: assert has_element?(view, "button", "New Item")
-     arguments:
-
-         # 1
-         #Phoenix.LiveViewTest.View<
-           id: "phx-GIA-r1DKLlWzXQYF",
-           module: GroceryPlannerWeb.InventoryLive,
-           pid: #PID<0.2736.0>,
-           endpoint: GroceryPlannerWeb.Endpoint,
-           ...
-         >
-
-         # 2
-         "button"
-
-         # 3
-         "New Item"
-
-     stacktrace:
-       test/grocery_planner_web/live/inventory_live_test.exs:42: (test)
-
-
-
-  7) test form state management form state resets when switching tabs (GroceryPlannerWeb.InventoryLiveTest)
-     test/grocery_planner_web/live/inventory_live_test.exs:527
-     ** (ArgumentError) selector "button" returned 9 elements but none matched the text filter "New Item": 
-
-         <button class="lg:hidden p-2 text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition" phx-click="[[&quot;toggle&quot;,{&quot;to&quot;:&quot;#mobile-menu&quot;}],[&quot;toggle_class&quot;,{&quot;names&quot;:[&quot;hidden&quot;],&quot;to&quot;:&quot;#mobile-menu&quot;}]]" aria-label="Toggle menu"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg></button>
-         <button phx-click="change_tab" phx-value-tab="items" class="flex-1 px-6 py-4 text-sm font-medium transition text-gray-600 hover:text-gray-900 hover:bg-white/50"><svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>
-              Grocery Items
-            </button>
-         <button phx-click="change_tab" phx-value-tab="inventory" class="flex-1 px-6 py-4 text-sm font-medium transition bg-white border-b-2 border-blue-500 text-blue-600"><svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
-              Current Inventory
-            </button>
-         <button phx-click="change_tab" phx-value-tab="categories" class="flex-1 px-6 py-4 text-sm font-medium transition text-gray-600 hover:text-gray-900 hover:bg-white/50"><svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path></svg>
-              Categories
-            </button>
-         <button phx-click="change_tab" phx-value-tab="locations" class="flex-1 px-6 py-4 text-sm font-medium transition text-gray-600 hover:text-gray-900 hover:bg-white/50"><svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
-              Storage Locations
-            </button>
-         <button phx-click="change_tab" phx-value-tab="tags" class="flex-1 px-6 py-4 text-sm font-medium transition text-gray-600 hover:text-gray-900 hover:bg-white/50"><svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path></svg>
-              Tags
-            </button>
-         <button class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-medium" phx-click="new_entry"><svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
-            New Entry
-          
-        </button>
-         <button type="button" class="group self-start cursor-pointer" aria-label="close"><span class="hero-x-mark size-5 opacity-40 group-hover:opacity-70"></span></button>
-         <button type="button" class="group self-start cursor-pointer" aria-label="close"><span class="hero-x-mark size-5 opacity-40 group-hover:opacity-70"></span></button>
-
-     code: |> render_click()
-     stacktrace:
-       (phoenix_live_view 1.1.17) lib/phoenix_live_view/test/live_view_test.ex:1119: Phoenix.LiveViewTest.call/2
-       test/grocery_planner_web/live/inventory_live_test.exs:532: (test)
-
-...
-
-  8) test Grocery Items tab shows New Item button only on Grocery Items tab (GroceryPlannerWeb.InventoryLiveTest)
-     test/grocery_planner_web/live/inventory_live_test.exs:80
-     Expected truthy, got false
-     code: assert has_element?(view, "button", "New Item")
-     arguments:
-
-         # 1
-         #Phoenix.LiveViewTest.View<
-           id: "phx-GIA-r-uwbhs9TRHB",
-           module: GroceryPlannerWeb.InventoryLive,
-           pid: #PID<0.2771.0>,
-           endpoint: GroceryPlannerWeb.Endpoint,
-           ...
-         >
-
-         # 2
-         "button"
-
-         # 3
-         "New Item"
-
-     stacktrace:
-       test/grocery_planner_web/live/inventory_live_test.exs:83: (test)
-
-.
-
-  9) test Grocery Items tab shows empty state when no items exist (GroceryPlannerWeb.InventoryLiveTest)
-     test/grocery_planner_web/live/inventory_live_test.exs:104
-     Assertion with =~ failed
-     code:  assert html =~ "No grocery items yet"
-     left:  "<html lang=\"en\"><head><meta charset=\"utf-8\"/><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"/><meta name=\"csrf-token\" content=\"H1IWMEIKc0dqSzMIbywQEw5vcGJYFgskp1EJqz0w9rjLXnaym9HWjEfB\"/><title data-default=\"GroceryPlanner\" data-suffix=\" · Phoenix Framework\">GroceryPlanner · Phoenix Framework</title><link phx-track-static=\"\" rel=\"stylesheet\" href=\"/assets/css/app.css\"/><script defer=\"\" phx-track-static=\"\" type=\"text/javascript\" src=\"/assets/js/app.js\"></script><script>\n      (() => {\n        const setTheme = (theme) => {\n          if (theme === \"system\") {\n            localStorage.removeItem(\"phx:theme\");\n            document.documentElement.removeAttribute(\"data-theme\");\n          } else {\n            localStorage.setItem(\"phx:theme\", theme);\n            document.documentElement.setAttribute(\"data-theme\", theme);\n          }\n        };\n        if (!document.documentElement.hasAttribute(\"data-theme\")) {\n          setTheme(localStorage.getItem(\"phx:theme\") || \"system\");\n        }\n        window.addEventListener(\"storage\", (e) => e.key === \"phx:theme\" && setTheme(e.newValue || \"system\"));\n        \n        window.addEventListener(\"phx:set-theme\", (e) => setTheme(e.target.dataset.phxTheme));\n      })();\n    </script></head><body><div id=\"phx-GIA-sCb-cNSNKRCm\" data-phx-main=\"\" data-phx-session=\"SFMyNTY.g2gDaAJhBnQAAAAIdwJpZG0AAAAUcGh4LUdJQS1zQ2ItY05TTktSQ213B3Nlc3Npb250AAAAAHcKcGFyZW50X3BpZHcDbmlsdwZyb3V0ZXJ3H0VsaXhpci5Hcm9jZXJ5UGxhbm5lcldlYi5Sb3V0ZXJ3BHZpZXd3JkVsaXhpci5Hcm9jZXJ5UGxhbm5lcldlYi5JbnZlbnRvcnlMaXZldwhyb290X3BpZHcDbmlsdwlyb290X3ZpZXd3JkVsaXhpci5Hcm9jZXJ5UGxhbm5lcldlYi5JbnZlbnRvcnlMaXZldxFsaXZlX3Nlc3Npb25fbmFtZXcHZGVmYXVsdG4GANGczg6bAWIAAVGA.DdqgifwIYMrdLycRJnzaVk_zXWdAfoK5T-bbTDOd1bo\" data-phx-static=\"SFMyNTY.g2gDaAJhBnQAAAADdwJpZG0AAAAUcGh4LUdJQS1zQ2ItY05TTktSQ213BWZsYXNodAAAAAB3CmFzc2lnbl9uZXdsAAAAAncPY3VycmVudF9hY2NvdW50dwxjdXJyZW50X3VzZXJqbgYA0ZzODpsBYgABUYA.8vQDF7qbIK4zV0V0a0wxkJlKiGXRrEjs_RcIdCpjCVY\"><div class=\"min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50\"><header class=\"bg-white/50 backdrop-blur-sm px-4 sm:px-6 lg:px-8 border-b border-gray-200 sticky top-0 z-50\"><div class=\"max-w-7xl mx-auto\"><div class=\"flex items-center justify-between py-4\"><div class=\"flex-1\"><a href=\"/dashboard\" data-phx-link=\"redirect\" data-phx-link-state=\"push\" class=\"flex items-center gap-2\"><img src=\"/images/logo.svg\" width=\"36\" alt=\"GroceryPlanner logo\"/><span class=\"text-xl font-bold text-gray-900\">GroceryPlanner</span></a></div><!-- Desktop Navigation --><nav class=\"hidden lg:flex flex-none\"><ul class=\"flex items-center space-x-2\"><li><a href=\"/dashboard\" data-phx-link=\"redirect\" data-phx-link-state=\"push\" class=\"px-4 py-2 text-gray-700 hover:text-gray-900 font-medium transition\">\n                  Dashboard\n                </a></li><li><a href=\"/inventory\" data-phx-link=\"redirect\" data-phx-link-state=\"push\" class=\"px-4 py-2 text-gray-700 hover:text-gray-900 font-medium transition\">\n                  Inventory\n                </a></li><li><a href=\"/recipes\" data-phx-link=\"redirect\" data-phx-link-state=\"push\" class=\"px-4 py-2 text-gray-700 hover:text-gray-900 font-medium transition\">\n                  Recipes\n                </a></li><li><a href=\"/meal-planner\" data-phx-link=\"redirect\" data-phx-link-state=\"push\" class=\"px-4 py-2 text-gray-700 hover:text-gray-900 font-medium transition\">\n                  Meal Planner\n                </a></li><li><a href=\"/voting\" data-phx-link=\"redirect\" data-phx-link-state=\"push\" class=\"px-4 py-2 text-gray-700 hover:text-gray-900 font-medium transition flex items-center gap-1\">\n                  Voting\n                  \n                </a></li><li><a href=\"/shopping\" data-phx-link=\"redirect\" data-phx-link-state=\"push\" class=\"px-4 py-2 text-gray-700 hover:text-gray-900 font-medium transition\">\n                  Shopping\n                </a></li><li><a href=\"/settings\" data-phx-link=\"redirect\" data-phx-link-state=\"push\" class=\"px-4 py-2 text-gray-700 hover:text-gray-900 font-medium transition\">\n                  Settings\n                </a></li><li><a hr" <> ...
-     right: "No grocery items yet"
-     stacktrace:
-       test/grocery_planner_web/live/inventory_live_test.exs:107: (test)
-
-..
-
- 10) test Grocery Items tab opens form when New Item is clicked (GroceryPlannerWeb.InventoryLiveTest)
-     test/grocery_planner_web/live/inventory_live_test.exs:111
-     ** (ArgumentError) selector "button" returned 9 elements but none matched the text filter "New Item": 
-
-         <button class="lg:hidden p-2 text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition" phx-click="[[&quot;toggle&quot;,{&quot;to&quot;:&quot;#mobile-menu&quot;}],[&quot;toggle_class&quot;,{&quot;names&quot;:[&quot;hidden&quot;],&quot;to&quot;:&quot;#mobile-menu&quot;}]]" aria-label="Toggle menu"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg></button>
-         <button phx-click="change_tab" phx-value-tab="items" class="flex-1 px-6 py-4 text-sm font-medium transition text-gray-600 hover:text-gray-900 hover:bg-white/50"><svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>
-              Grocery Items
-            </button>
-         <button phx-click="change_tab" phx-value-tab="inventory" class="flex-1 px-6 py-4 text-sm font-medium transition bg-white border-b-2 border-blue-500 text-blue-600"><svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
-              Current Inventory
-            </button>
-         <button phx-click="change_tab" phx-value-tab="categories" class="flex-1 px-6 py-4 text-sm font-medium transition text-gray-600 hover:text-gray-900 hover:bg-white/50"><svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path></svg>
-              Categories
-            </button>
-         <button phx-click="change_tab" phx-value-tab="locations" class="flex-1 px-6 py-4 text-sm font-medium transition text-gray-600 hover:text-gray-900 hover:bg-white/50"><svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
-              Storage Locations
-            </button>
-         <button phx-click="change_tab" phx-value-tab="tags" class="flex-1 px-6 py-4 text-sm font-medium transition text-gray-600 hover:text-gray-900 hover:bg-white/50"><svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path></svg>
-              Tags
-            </button>
-         <button class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-medium" phx-click="new_entry"><svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
-            New Entry
-          
-        </button>
-         <button type="button" class="group self-start cursor-pointer" aria-label="close"><span class="hero-x-mark size-5 opacity-40 group-hover:opacity-70"></span></button>
-         <button type="button" class="group self-start cursor-pointer" aria-label="close"><span class="hero-x-mark size-5 opacity-40 group-hover:opacity-70"></span></button>
-
-     code: |> render_click()
-     stacktrace:
-       (phoenix_live_view 1.1.17) lib/phoenix_live_view/test/live_view_test.ex:1119: Phoenix.LiveViewTest.call/2
-       test/grocery_planner_web/live/inventory_live_test.exs:118: (test)
-
-.
-
- 11) test form state management canceling form resets state (GroceryPlannerWeb.InventoryLiveTest)
-     test/grocery_planner_web/live/inventory_live_test.exs:543
-     ** (ArgumentError) selector "button" returned 9 elements but none matched the text filter "New Item": 
-
-         <button class="lg:hidden p-2 text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition" phx-click="[[&quot;toggle&quot;,{&quot;to&quot;:&quot;#mobile-menu&quot;}],[&quot;toggle_class&quot;,{&quot;names&quot;:[&quot;hidden&quot;],&quot;to&quot;:&quot;#mobile-menu&quot;}]]" aria-label="Toggle menu"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg></button>
-         <button phx-click="change_tab" phx-value-tab="items" class="flex-1 px-6 py-4 text-sm font-medium transition text-gray-600 hover:text-gray-900 hover:bg-white/50"><svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>
-              Grocery Items
-            </button>
-         <button phx-click="change_tab" phx-value-tab="inventory" class="flex-1 px-6 py-4 text-sm font-medium transition bg-white border-b-2 border-blue-500 text-blue-600"><svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
-              Current Inventory
-            </button>
-         <button phx-click="change_tab" phx-value-tab="categories" class="flex-1 px-6 py-4 text-sm font-medium transition text-gray-600 hover:text-gray-900 hover:bg-white/50"><svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path></svg>
-              Categories
-            </button>
-         <button phx-click="change_tab" phx-value-tab="locations" class="flex-1 px-6 py-4 text-sm font-medium transition text-gray-600 hover:text-gray-900 hover:bg-white/50"><svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
-              Storage Locations
-            </button>
-         <button phx-click="change_tab" phx-value-tab="tags" class="flex-1 px-6 py-4 text-sm font-medium transition text-gray-600 hover:text-gray-900 hover:bg-white/50"><svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path></svg>
-              Tags
-            </button>
-         <button class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-medium" phx-click="new_entry"><svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
-            New Entry
-          
-        </button>
-         <button type="button" class="group self-start cursor-pointer" aria-label="close"><span class="hero-x-mark size-5 opacity-40 group-hover:opacity-70"></span></button>
-         <button type="button" class="group self-start cursor-pointer" aria-label="close"><span class="hero-x-mark size-5 opacity-40 group-hover:opacity-70"></span></button>
-
-     code: |> render_click()
-     stacktrace:
-       (phoenix_live_view 1.1.17) lib/phoenix_live_view/test/live_view_test.ex:1119: Phoenix.LiveViewTest.call/2
-       test/grocery_planner_web/live/inventory_live_test.exs:548: (test)
-
-..........................................................
-Finished in 76.0 seconds (6.7s async, 69.2s sync)
-198 tests, 11 failures
+Finished in 1.6 seconds (0.00s async, 1.6s sync)
+2 tests, 1 failure

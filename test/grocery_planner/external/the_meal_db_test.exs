@@ -4,11 +4,11 @@ defmodule GroceryPlanner.External.TheMealDBTest do
   alias GroceryPlanner.External.TheMealDB
   alias GroceryPlanner.TheMealDBStubs
 
-  describe "search_by_name/2" do
+  describe "search/2" do
     test "returns parsed meals when API returns results" do
       Req.Test.stub(TheMealDB, &TheMealDBStubs.search_chicken/1)
 
-      assert {:ok, meals} = TheMealDB.search_by_name("chicken", plug: {Req.Test, TheMealDB})
+      assert {:ok, meals} = TheMealDB.search("chicken", plug: {Req.Test, TheMealDB})
 
       assert length(meals) == 2
       assert [meal1, meal2] = meals
@@ -31,20 +31,20 @@ defmodule GroceryPlanner.External.TheMealDBTest do
     test "returns empty list when API returns no results" do
       Req.Test.stub(TheMealDB, &TheMealDBStubs.search_empty/1)
 
-      assert {:ok, []} = TheMealDB.search_by_name("nonexistent", plug: {Req.Test, TheMealDB})
+      assert {:ok, []} = TheMealDB.search("nonexistent", plug: {Req.Test, TheMealDB})
     end
 
     test "returns error when API returns non-200 status" do
       Req.Test.stub(TheMealDB, &TheMealDBStubs.api_error/1)
 
       assert {:error, "API returned status 500"} =
-               TheMealDB.search_by_name("error", plug: {Req.Test, TheMealDB})
+               TheMealDB.search("error", plug: {Req.Test, TheMealDB})
     end
 
     test "parses ingredients correctly" do
       Req.Test.stub(TheMealDB, &TheMealDBStubs.search_chicken/1)
 
-      assert {:ok, [meal | _]} = TheMealDB.search_by_name("chicken", plug: {Req.Test, TheMealDB})
+      assert {:ok, [meal | _]} = TheMealDB.search("chicken", plug: {Req.Test, TheMealDB})
 
       assert [ing1, ing2, ing3] = meal.ingredients
       assert ing1.name == "Chicken"
@@ -58,7 +58,7 @@ defmodule GroceryPlanner.External.TheMealDBTest do
     test "filters out empty ingredients" do
       Req.Test.stub(TheMealDB, &TheMealDBStubs.search_chicken/1)
 
-      assert {:ok, [meal | _]} = TheMealDB.search_by_name("chicken", plug: {Req.Test, TheMealDB})
+      assert {:ok, [meal | _]} = TheMealDB.search("chicken", plug: {Req.Test, TheMealDB})
 
       # Should only have 3 ingredients, empty ones filtered
       assert length(meal.ingredients) == 3
@@ -68,7 +68,7 @@ defmodule GroceryPlanner.External.TheMealDBTest do
     test "parses tags correctly when present" do
       Req.Test.stub(TheMealDB, &TheMealDBStubs.search_chicken/1)
 
-      assert {:ok, [meal | _]} = TheMealDB.search_by_name("chicken", plug: {Req.Test, TheMealDB})
+      assert {:ok, [meal | _]} = TheMealDB.search("chicken", plug: {Req.Test, TheMealDB})
 
       assert meal.tags == ["Stew"]
     end
@@ -77,17 +77,17 @@ defmodule GroceryPlanner.External.TheMealDBTest do
       Req.Test.stub(TheMealDB, &TheMealDBStubs.search_chicken/1)
 
       assert {:ok, [_meal1, meal2]} =
-               TheMealDB.search_by_name("chicken", plug: {Req.Test, TheMealDB})
+               TheMealDB.search("chicken", plug: {Req.Test, TheMealDB})
 
       assert meal2.tags == []
     end
   end
 
-  describe "get_by_id/2" do
+  describe "get/2" do
     test "returns parsed meal when found" do
       Req.Test.stub(TheMealDB, &TheMealDBStubs.get_meal_by_id/1)
 
-      assert {:ok, meal} = TheMealDB.get_by_id("52940", plug: {Req.Test, TheMealDB})
+      assert {:ok, meal} = TheMealDB.get("52940", plug: {Req.Test, TheMealDB})
 
       assert meal.external_id == "52940"
       assert meal.name == "Brown Stew Chicken"
@@ -102,22 +102,22 @@ defmodule GroceryPlanner.External.TheMealDBTest do
     test "returns not_found error when meal doesn't exist" do
       Req.Test.stub(TheMealDB, &TheMealDBStubs.get_meal_not_found/1)
 
-      assert {:error, :not_found} = TheMealDB.get_by_id("99999", plug: {Req.Test, TheMealDB})
+      assert {:error, :not_found} = TheMealDB.get("99999", plug: {Req.Test, TheMealDB})
     end
 
     test "returns error when API returns non-200 status" do
       Req.Test.stub(TheMealDB, &TheMealDBStubs.api_error/1)
 
       assert {:error, "API returned status 500"} =
-               TheMealDB.get_by_id("error", plug: {Req.Test, TheMealDB})
+               TheMealDB.get("error", plug: {Req.Test, TheMealDB})
     end
   end
 
-  describe "random_meal/1" do
+  describe "random/1" do
     test "returns a random meal" do
       Req.Test.stub(TheMealDB, &TheMealDBStubs.random_meal/1)
 
-      assert {:ok, meal} = TheMealDB.random_meal(plug: {Req.Test, TheMealDB})
+      assert {:ok, meal} = TheMealDB.random(plug: {Req.Test, TheMealDB})
 
       assert meal.external_id == "52771"
       assert meal.name == "Spicy Arrabiata Penne"
@@ -131,15 +131,15 @@ defmodule GroceryPlanner.External.TheMealDBTest do
       Req.Test.stub(TheMealDB, &TheMealDBStubs.api_error/1)
 
       assert {:error, "API returned status 500"} =
-               TheMealDB.random_meal(plug: {Req.Test, TheMealDB})
+               TheMealDB.random(plug: {Req.Test, TheMealDB})
     end
   end
 
-  describe "list_categories/1" do
+  describe "categories/1" do
     test "returns list of categories" do
       Req.Test.stub(TheMealDB, &TheMealDBStubs.list_categories/1)
 
-      assert {:ok, categories} = TheMealDB.list_categories(plug: {Req.Test, TheMealDB})
+      assert {:ok, categories} = TheMealDB.categories(plug: {Req.Test, TheMealDB})
 
       assert length(categories) == 3
       assert Enum.any?(categories, fn cat -> cat["strCategory"] == "Beef" end)
@@ -151,15 +151,15 @@ defmodule GroceryPlanner.External.TheMealDBTest do
       Req.Test.stub(TheMealDB, &TheMealDBStubs.api_error/1)
 
       assert {:error, "API returned status 500"} =
-               TheMealDB.list_categories(plug: {Req.Test, TheMealDB})
+               TheMealDB.categories(plug: {Req.Test, TheMealDB})
     end
   end
 
-  describe "filter_by_category/2" do
+  describe "filter/2" do
     test "returns meals in the category" do
       Req.Test.stub(TheMealDB, &TheMealDBStubs.filter_by_chicken/1)
 
-      assert {:ok, meals} = TheMealDB.filter_by_category("Chicken", plug: {Req.Test, TheMealDB})
+      assert {:ok, meals} = TheMealDB.filter([c: "Chicken"], plug: {Req.Test, TheMealDB})
 
       assert length(meals) == 2
       assert Enum.all?(meals, fn meal -> meal.category == "Chicken" end)
@@ -168,14 +168,14 @@ defmodule GroceryPlanner.External.TheMealDBTest do
     test "returns empty list when no meals in category" do
       Req.Test.stub(TheMealDB, &TheMealDBStubs.search_empty/1)
 
-      assert {:ok, []} = TheMealDB.filter_by_category("Unknown", plug: {Req.Test, TheMealDB})
+      assert {:ok, []} = TheMealDB.filter([c: "Unknown"], plug: {Req.Test, TheMealDB})
     end
 
     test "returns error when API fails" do
       Req.Test.stub(TheMealDB, &TheMealDBStubs.api_error/1)
 
       assert {:error, "API returned status 500"} =
-               TheMealDB.filter_by_category("Chicken", plug: {Req.Test, TheMealDB})
+               TheMealDB.filter([c: "Chicken"], plug: {Req.Test, TheMealDB})
     end
   end
 

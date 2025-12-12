@@ -9,6 +9,8 @@ defmodule GroceryPlanner.External.TheMealDB do
 
   @base_url "https://www.themealdb.com/api/json/v1/1"
 
+  @behaviour GroceryPlanner.External.TheMealDB.Behaviour
+
   @doc """
   Search for meals by name.
 
@@ -22,8 +24,11 @@ defmodule GroceryPlanner.External.TheMealDB do
       iex> TheMealDB.search_by_name("chicken", plug: {Req.Test, TheMealDB})
       {:ok, [%{id: "52940", name: "Chicken Teriyaki", ...}, ...]}
   """
-  def search_by_name(query, opts \\ []) when is_binary(query) do
-    case req(opts) |> Req.get(url: "/search.php", params: [s: query]) do
+  @doc """
+  Search for meals by name.
+  """
+  def search(query, opts \\ []) when is_binary(query) do
+    case client(opts) |> Req.get(url: "/search.php", params: [s: query]) do
       {:ok, %{status: 200, body: %{"meals" => meals}}} when is_list(meals) ->
         {:ok, Enum.map(meals, &parse_meal/1)}
 
@@ -39,10 +44,10 @@ defmodule GroceryPlanner.External.TheMealDB do
   end
 
   @doc """
-  Get a random meal from the API.
+  Get a random meal.
   """
-  def random_meal(opts \\ []) do
-    case req(opts) |> Req.get(url: "/random.php") do
+  def random(opts \\ []) do
+    case client(opts) |> Req.get(url: "/random.php") do
       {:ok, %{status: 200, body: %{"meals" => [meal]}}} ->
         {:ok, parse_meal(meal)}
 
@@ -55,10 +60,10 @@ defmodule GroceryPlanner.External.TheMealDB do
   end
 
   @doc """
-  Get full meal details by ID.
+  Get meal by ID.
   """
-  def get_by_id(id, opts \\ []) when is_binary(id) do
-    case req(opts) |> Req.get(url: "/lookup.php", params: [i: id]) do
+  def get(id, opts \\ []) when is_binary(id) do
+    case client(opts) |> Req.get(url: "/lookup.php", params: [i: id]) do
       {:ok, %{status: 200, body: %{"meals" => [meal]}}} ->
         {:ok, parse_meal(meal)}
 
@@ -74,10 +79,10 @@ defmodule GroceryPlanner.External.TheMealDB do
   end
 
   @doc """
-  List all meal categories.
+  List categories.
   """
-  def list_categories(opts \\ []) do
-    case req(opts) |> Req.get(url: "/categories.php") do
+  def categories(opts \\ []) do
+    case client(opts) |> Req.get(url: "/categories.php") do
       {:ok, %{status: 200, body: %{"categories" => categories}}} when is_list(categories) ->
         {:ok, categories}
 
@@ -90,10 +95,10 @@ defmodule GroceryPlanner.External.TheMealDB do
   end
 
   @doc """
-  Filter meals by category.
+  Filter meals.
   """
-  def filter_by_category(category, opts \\ []) when is_binary(category) do
-    case req(opts) |> Req.get(url: "/filter.php", params: [c: category]) do
+  def filter(params, opts \\ []) when is_list(params) do
+    case client(opts) |> Req.get(url: "/filter.php", params: params) do
       {:ok, %{status: 200, body: %{"meals" => meals}}} when is_list(meals) ->
         {:ok, Enum.map(meals, &parse_meal/1)}
 
@@ -106,6 +111,10 @@ defmodule GroceryPlanner.External.TheMealDB do
       {:error, reason} ->
         {:error, reason}
     end
+  end
+
+  defp client(opts) do
+    req(opts)
   end
 
   # Parse a meal from the API response into our internal format
@@ -194,6 +203,9 @@ defmodule GroceryPlanner.External.TheMealDB do
 
   # Build Req client with base URL and optional test plug
   defp req(opts) do
+    config_opts = Application.get_env(:grocery_planner, :the_meal_db_opts, [])
+    opts = Keyword.merge(config_opts, opts)
+
     base_opts = [base_url: @base_url]
 
     # Disable retries in test mode to improve test performance
