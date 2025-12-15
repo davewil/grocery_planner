@@ -1,5 +1,5 @@
 defmodule GroceryPlannerWeb.RecipeSearchLiveTest do
-  use GroceryPlannerWeb.ConnCase
+  use GroceryPlannerWeb.ConnCase, async: true
   import Phoenix.LiveViewTest
   import GroceryPlanner.InventoryTestHelpers
   alias GroceryPlanner.External.TheMealDB

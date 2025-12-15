@@ -1,5 +1,5 @@
 defmodule GroceryPlannerWeb.ErrorHTMLTest do
-  use GroceryPlannerWeb.ConnCase, async: true
+  use ExUnit.Case, async: true
 
   # Bring render_to_string/4 for testing custom views
   import Phoenix.Template, only: [render_to_string: 4]

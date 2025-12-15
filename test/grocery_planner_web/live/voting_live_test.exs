@@ -1,5 +1,5 @@
 defmodule GroceryPlannerWeb.VotingLiveTest do
-  use GroceryPlannerWeb.ConnCase
+  use GroceryPlannerWeb.ConnCase, async: true
 
   import Phoenix.LiveViewTest
 

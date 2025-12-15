@@ -1,5 +1,5 @@
 defmodule GroceryPlanner.Inventory.CategoryTest do
-  use GroceryPlanner.DataCase
+  use GroceryPlanner.DataCase, async: true
 
   describe "create/1" do
     setup do

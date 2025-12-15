@@ -1,5 +1,5 @@
 defmodule GroceryPlannerWeb.PageControllerTest do
-  use GroceryPlannerWeb.ConnCase
+  use GroceryPlannerWeb.ConnCase, async: true
 
   test "GET /", %{conn: conn} do
     conn = get(conn, ~p"/")

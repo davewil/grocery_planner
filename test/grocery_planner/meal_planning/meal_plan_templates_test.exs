@@ -1,5 +1,5 @@
 defmodule GroceryPlanner.MealPlanning.MealPlanTemplatesTest do
-  use GroceryPlanner.DataCase
+  use GroceryPlanner.DataCase, async: true
 
   alias GroceryPlanner.MealPlanning
   alias GroceryPlanner.MealPlanning.MealPlanTemplate
@@ -22,6 +22,7 @@ defmodule GroceryPlanner.MealPlanning.MealPlanTemplatesTest do
       servings: 4,
       difficulty: :medium
     }
+
     attrs = Map.merge(default_attrs, attrs)
 
     {:ok, recipe} =
@@ -31,6 +32,7 @@ defmodule GroceryPlanner.MealPlanning.MealPlanTemplatesTest do
         authorize?: false,
         tenant: account.id
       )
+
     recipe
   end
 
@@ -93,7 +95,7 @@ defmodule GroceryPlanner.MealPlanning.MealPlanTemplatesTest do
           actor: user,
           tenant: account.id
         )
-      
+
       recipe = create_recipe(account, user)
 
       %{template: template, recipe: recipe}
@@ -111,7 +113,8 @@ defmodule GroceryPlanner.MealPlanning.MealPlanTemplatesTest do
                  %{
                    template_id: template.id,
                    recipe_id: recipe.id,
-                   day_of_week: 1, # Monday
+                   # Monday
+                   day_of_week: 1,
                    meal_type: :dinner,
                    servings: 4
                  },

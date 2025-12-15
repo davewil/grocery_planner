@@ -1,5 +1,5 @@
 defmodule GroceryPlanner.Inventory.GroceryItemTest do
-  use GroceryPlanner.DataCase
+  use GroceryPlanner.DataCase, async: true
 
   alias GroceryPlanner.Inventory.GroceryItem
 

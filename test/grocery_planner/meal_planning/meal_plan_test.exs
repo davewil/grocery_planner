@@ -1,5 +1,5 @@
 defmodule GroceryPlanner.MealPlanning.MealPlanTest do
-  use GroceryPlanner.DataCase
+  use GroceryPlanner.DataCase, async: true
   alias GroceryPlanner.MealPlanning.MealPlan
 
   describe "meal plan creation" do

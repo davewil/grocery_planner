@@ -1,5 +1,5 @@
 defmodule GroceryPlannerWeb.AuthTest do
-  use GroceryPlannerWeb.ConnCase
+  use GroceryPlannerWeb.ConnCase, async: true
   import GroceryPlanner.InventoryTestHelpers
   alias GroceryPlannerWeb.Auth
 

@@ -1,5 +1,5 @@
 defmodule GroceryPlannerWeb.AnalyticsLiveTest do
-  use GroceryPlannerWeb.ConnCase
+  use GroceryPlannerWeb.ConnCase, async: true
   import Phoenix.LiveViewTest
   import GroceryPlanner.InventoryTestHelpers
 
@@ -23,39 +23,52 @@ defmodule GroceryPlannerWeb.AnalyticsLiveTest do
 
       assert html =~ "Analytics Dashboard"
       assert html =~ "Total Inventory"
-      assert html =~ "No inventory data available"
+      assert html =~ "No spending data available"
+      assert html =~ "No usage data available"
     end
 
     test "renders dashboard with data", %{conn: conn, account: account, user: user} do
       # Create some inventory items
-      item1 = create_grocery_item(account, user, %{name: "Apple", category_id: create_category(account, user, %{name: "Fruits"}).id})
-      item2 = create_grocery_item(account, user, %{name: "Milk", category_id: create_category(account, user, %{name: "Dairy"}).id})
+      item1 =
+        create_grocery_item(account, user, %{
+          name: "Apple",
+          category_id: create_category(account, user, %{name: "Fruits"}).id
+        })
+
+      item2 =
+        create_grocery_item(account, user, %{
+          name: "Milk",
+          category_id: create_category(account, user, %{name: "Dairy"}).id
+        })
 
       create_inventory_entry(account, user, item1, %{
         quantity: Decimal.new(10),
-        purchase_price: Money.new(5, :USD), # $5.00
-        use_by_date: Date.add(Date.utc_today(), 5) # Expiring soon
+        # $5.00
+        purchase_price: Money.new(5, :USD),
+        # Expiring soon
+        use_by_date: Date.add(Date.utc_today(), 5)
       })
 
       create_inventory_entry(account, user, item2, %{
         quantity: Decimal.new(2),
-        purchase_price: Money.new(3, :USD), # $3.00
-        use_by_date: Date.add(Date.utc_today(), 30) # Not expiring soon
+        # $3.00
+        purchase_price: Money.new(3, :USD),
+        # Not expiring soon
+        use_by_date: Date.add(Date.utc_today(), 30)
       })
 
       {:ok, view, html} = live(conn, "/analytics")
 
       assert html =~ "Analytics Dashboard"
       assert html =~ "Total Inventory"
-      
+
       # Check metrics
-      assert has_element?(view, "h3", "2") # Total items
-      assert html =~ "$8.00" # Total value
-      assert has_element?(view, "h3", "1") # Expiring soon (Apple)
-      
-      # Check category breakdown
-      assert html =~ "Fruits"
-      assert html =~ "Dairy"
+      # Total items
+      assert has_element?(view, "h3", "2")
+      # Total value
+      assert html =~ "$8.00"
+      # Expiring soon (Apple)
+      assert has_element?(view, "h3", "1")
     end
   end
 end

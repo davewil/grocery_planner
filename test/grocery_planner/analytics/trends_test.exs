@@ -1,5 +1,5 @@
 defmodule GroceryPlanner.Analytics.TrendsTest do
-  use GroceryPlanner.DataCase
+  use GroceryPlanner.DataCase, async: true
 
   alias GroceryPlanner.Analytics
   alias GroceryPlanner.Inventory

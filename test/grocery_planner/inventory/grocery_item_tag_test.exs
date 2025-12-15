@@ -1,5 +1,5 @@
 defmodule GroceryPlanner.Inventory.GroceryItemTagTest do
-  use GroceryPlanner.DataCase
+  use GroceryPlanner.DataCase, async: true
   alias GroceryPlanner.Inventory
 
   describe "grocery_item_tag creation" do

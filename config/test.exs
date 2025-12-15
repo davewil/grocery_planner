@@ -40,3 +40,5 @@ config :phoenix_live_view,
 
 config :grocery_planner, :the_meal_db_client, GroceryPlanner.External.TheMealDB
 config :grocery_planner, :the_meal_db_opts, plug: {Req.Test, GroceryPlanner.External.TheMealDB}
+
+config :bcrypt_elixir, log_rounds: 1

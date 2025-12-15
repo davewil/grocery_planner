@@ -1,5 +1,5 @@
 defmodule GroceryPlannerWeb.SettingsLiveTest do
-  use GroceryPlannerWeb.ConnCase
+  use GroceryPlannerWeb.ConnCase, async: true
   import Phoenix.LiveViewTest
   import GroceryPlanner.InventoryTestHelpers
 
@@ -30,10 +30,11 @@ defmodule GroceryPlannerWeb.SettingsLiveTest do
       {:ok, _view, _html} = live(conn, "/settings")
 
       # Should not have created a record yet, only on save
-      assert {:ok, []} = GroceryPlanner.Notifications.list_notification_preferences(
-        actor: user,
-        tenant: account.id
-      )
+      assert {:ok, []} =
+               GroceryPlanner.Notifications.list_notification_preferences(
+                 actor: user,
+                 tenant: account.id
+               )
     end
 
     test "saves new notification preferences", %{conn: conn, user: user, account: account} do
@@ -52,10 +53,11 @@ defmodule GroceryPlannerWeb.SettingsLiveTest do
       assert render(view) =~ "Notification preferences updated successfully"
 
       # Verify persistence
-      {:ok, [pref]} = GroceryPlanner.Notifications.list_notification_preferences(
-        actor: user,
-        tenant: account.id
-      )
+      {:ok, [pref]} =
+        GroceryPlanner.Notifications.list_notification_preferences(
+          actor: user,
+          tenant: account.id
+        )
 
       assert pref.expiration_alerts_enabled == false
       assert pref.recipe_suggestions_enabled == false
@@ -85,10 +87,11 @@ defmodule GroceryPlannerWeb.SettingsLiveTest do
       assert render(view) =~ "Notification preferences updated successfully"
 
       # Verify update
-      {:ok, [pref]} = GroceryPlanner.Notifications.list_notification_preferences(
-        actor: user,
-        tenant: account.id
-      )
+      {:ok, [pref]} =
+        GroceryPlanner.Notifications.list_notification_preferences(
+          actor: user,
+          tenant: account.id
+        )
 
       assert pref.expiration_alert_days == 3
     end

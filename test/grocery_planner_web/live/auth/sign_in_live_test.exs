@@ -1,5 +1,5 @@
 defmodule GroceryPlannerWeb.Auth.SignInLiveTest do
-  use GroceryPlannerWeb.ConnCase
+  use GroceryPlannerWeb.ConnCase, async: true
   import Phoenix.LiveViewTest
 
   test "renders sign in page", %{conn: conn} do

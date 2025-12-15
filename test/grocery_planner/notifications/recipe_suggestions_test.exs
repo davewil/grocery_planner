@@ -1,5 +1,5 @@
 defmodule GroceryPlanner.Notifications.RecipeSuggestionsTest do
-  use GroceryPlanner.DataCase
+  use GroceryPlanner.DataCase, async: true
 
   alias GroceryPlanner.Notifications.RecipeSuggestions
   alias GroceryPlanner.InventoryTestHelpers
@@ -11,17 +11,33 @@ defmodule GroceryPlanner.Notifications.RecipeSuggestionsTest do
       location = InventoryTestHelpers.create_storage_location(account, user)
 
       # Create ingredients
-      item1 = InventoryTestHelpers.create_grocery_item(account, user, %{name: "Item 1", category_id: category.id})
-      item2 = InventoryTestHelpers.create_grocery_item(account, user, %{name: "Item 2", category_id: category.id})
-      item3 = InventoryTestHelpers.create_grocery_item(account, user, %{name: "Item 3", category_id: category.id})
+      item1 =
+        InventoryTestHelpers.create_grocery_item(account, user, %{
+          name: "Item 1",
+          category_id: category.id
+        })
+
+      item2 =
+        InventoryTestHelpers.create_grocery_item(account, user, %{
+          name: "Item 2",
+          category_id: category.id
+        })
+
+      item3 =
+        InventoryTestHelpers.create_grocery_item(account, user, %{
+          name: "Item 3",
+          category_id: category.id
+        })
 
       # Create expiring inventory for Item 1 and Item 2
       today = Date.utc_today()
+
       InventoryTestHelpers.create_inventory_entry(account, user, item1, %{
         storage_location_id: location.id,
         use_by_date: today,
         quantity: Decimal.new("5")
       })
+
       InventoryTestHelpers.create_inventory_entry(account, user, item2, %{
         storage_location_id: location.id,
         use_by_date: Date.add(today, 1),
@@ -70,7 +86,14 @@ defmodule GroceryPlanner.Notifications.RecipeSuggestionsTest do
       }
     end
 
-    test "ranks recipes by expiring ingredients count", %{account: account, user: user, item1: item1, item2: item2, item3: item3, create_recipe: create_recipe} do
+    test "ranks recipes by expiring ingredients count", %{
+      account: account,
+      user: user,
+      item1: item1,
+      item2: item2,
+      item3: item3,
+      create_recipe: create_recipe
+    } do
       # Recipe A: Uses Item 1 and Item 2 (Score 2)
       create_recipe.("Recipe A", [item1, item2], false)
 
@@ -83,25 +106,30 @@ defmodule GroceryPlanner.Notifications.RecipeSuggestionsTest do
       {:ok, suggestions} = RecipeSuggestions.get_suggestions_for_expiring_items(account.id, user)
 
       assert length(suggestions) == 3
-      
+
       # Top should be Recipe A (Score 2, Can Make)
       # Then Recipe C (Score 2, Cannot Make - missing Item 3)
       # Then Recipe B (Score 1, Can Make)
-      
+
       [first, second, third] = suggestions
-      
+
       assert first.recipe.name == "Recipe A"
       assert first.score == 2
       assert first.reason =~ "Uses 2 expiring ingredients"
-      
+
       assert second.recipe.name == "Recipe C"
       assert second.score == 2
-      
+
       assert third.recipe.name == "Recipe B"
       assert third.score == 1
     end
 
-    test "prioritizes favorites when scores are equal", %{account: account, user: user, item1: item1, create_recipe: create_recipe} do
+    test "prioritizes favorites when scores are equal", %{
+      account: account,
+      user: user,
+      item1: item1,
+      create_recipe: create_recipe
+    } do
       # Recipe A: Uses Item 1, Not Favorite
       create_recipe.("Recipe A", [item1], false)
 
@@ -117,7 +145,12 @@ defmodule GroceryPlanner.Notifications.RecipeSuggestionsTest do
       assert second.recipe.name == "Recipe A"
     end
 
-    test "filters out recipes with 0 score", %{account: account, user: user, item3: item3, create_recipe: create_recipe} do
+    test "filters out recipes with 0 score", %{
+      account: account,
+      user: user,
+      item3: item3,
+      create_recipe: create_recipe
+    } do
       # Recipe using only non-expiring item
       create_recipe.("Recipe Non-Expiring", [item3], false)
 

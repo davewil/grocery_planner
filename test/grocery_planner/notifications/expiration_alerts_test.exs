@@ -1,5 +1,5 @@
 defmodule GroceryPlanner.Notifications.ExpirationAlertsTest do
-  use GroceryPlanner.DataCase
+  use GroceryPlanner.DataCase, async: true
 
   alias GroceryPlanner.Notifications.ExpirationAlerts
   alias GroceryPlanner.InventoryTestHelpers
@@ -14,7 +14,12 @@ defmodule GroceryPlanner.Notifications.ExpirationAlertsTest do
       %{account: account, user: user, item: item, location: location}
     end
 
-    test "get_expiring_items/3 categorizes items correctly", %{account: account, user: user, item: item, location: location} do
+    test "get_expiring_items/3 categorizes items correctly", %{
+      account: account,
+      user: user,
+      item: item,
+      location: location
+    } do
       today = Date.utc_today()
 
       # Expired item (yesterday)
@@ -69,7 +74,12 @@ defmodule GroceryPlanner.Notifications.ExpirationAlertsTest do
       assert alerts.total_count == 5
     end
 
-    test "get_expiring_summary/3 returns correct counts", %{account: account, user: user, item: item, location: location} do
+    test "get_expiring_summary/3 returns correct counts", %{
+      account: account,
+      user: user,
+      item: item,
+      location: location
+    } do
       today = Date.utc_today()
 
       # Create one of each category
@@ -77,6 +87,7 @@ defmodule GroceryPlanner.Notifications.ExpirationAlertsTest do
         storage_location_id: location.id,
         use_by_date: Date.add(today, -1)
       })
+
       InventoryTestHelpers.create_inventory_entry(account, user, item, %{
         storage_location_id: location.id,
         use_by_date: today
@@ -89,7 +100,12 @@ defmodule GroceryPlanner.Notifications.ExpirationAlertsTest do
       assert summary.total_count == 2
     end
 
-    test "has_critical_alerts?/2 returns true only for expired or today", %{account: account, user: user, item: item, location: location} do
+    test "has_critical_alerts?/2 returns true only for expired or today", %{
+      account: account,
+      user: user,
+      item: item,
+      location: location
+    } do
       today = Date.utc_today()
 
       # Initially false
@@ -100,6 +116,7 @@ defmodule GroceryPlanner.Notifications.ExpirationAlertsTest do
         storage_location_id: location.id,
         use_by_date: Date.add(today, 1)
       })
+
       refute ExpirationAlerts.has_critical_alerts?(account.id, user)
 
       # Add item expiring today (critical)
@@ -107,10 +124,16 @@ defmodule GroceryPlanner.Notifications.ExpirationAlertsTest do
         storage_location_id: location.id,
         use_by_date: today
       })
+
       assert ExpirationAlerts.has_critical_alerts?(account.id, user)
     end
 
-    test "respects days_threshold option", %{account: account, user: user, item: item, location: location} do
+    test "respects days_threshold option", %{
+      account: account,
+      user: user,
+      item: item,
+      location: location
+    } do
       today = Date.utc_today()
 
       # Expiring in 5 days

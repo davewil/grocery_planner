@@ -1,5 +1,5 @@
 defmodule GroceryPlannerWeb.AuthControllerTest do
-  use GroceryPlannerWeb.ConnCase
+  use GroceryPlannerWeb.ConnCase, async: true
   import GroceryPlanner.InventoryTestHelpers
 
   setup do

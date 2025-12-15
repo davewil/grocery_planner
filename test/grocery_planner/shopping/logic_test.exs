@@ -1,5 +1,5 @@
 defmodule GroceryPlanner.Shopping.LogicTest do
-  use GroceryPlanner.DataCase
+  use GroceryPlanner.DataCase, async: true
 
   alias GroceryPlanner.Shopping
   alias GroceryPlanner.Shopping.ShoppingList
@@ -63,7 +63,7 @@ defmodule GroceryPlanner.Shopping.LogicTest do
   describe "generate_from_meal_plans" do
     test "generates items from meal plans", %{account: account, user: user} do
       recipe = create_recipe_with_ingredients(account, user)
-      
+
       # Create meal plan for today
       create_meal_plan(account, user, recipe, %{
         scheduled_date: Date.utc_today(),
@@ -88,13 +88,13 @@ defmodule GroceryPlanner.Shopping.LogicTest do
       # Verify items added
       items = Shopping.list_shopping_list_items!(authorize?: false, tenant: account.id)
       assert length(items) == 2
-      
-      pasta = Enum.find(items, & &1.name == "Pasta")
+
+      pasta = Enum.find(items, &(&1.name == "Pasta"))
       assert pasta
       assert Decimal.equal?(pasta.quantity, Decimal.new("500"))
       assert pasta.unit == "g"
 
-      sauce = Enum.find(items, & &1.name == "Tomato Sauce")
+      sauce = Enum.find(items, &(&1.name == "Tomato Sauce"))
       assert sauce
       assert Decimal.equal?(sauce.quantity, Decimal.new("1"))
       assert sauce.unit == "jar"
@@ -103,11 +103,12 @@ defmodule GroceryPlanner.Shopping.LogicTest do
     test "deducts existing inventory", %{account: account, user: user} do
       recipe = create_recipe_with_ingredients(account, user)
       [ing1, ing2] = recipe.recipe_ingredients
-      
+
       # Add some pasta to inventory (200g)
       create_inventory_entry(account, user, ing1.grocery_item, %{
         quantity: Decimal.new("200"),
-        unit: "g" # Assuming unit matches for simplicity
+        # Assuming unit matches for simplicity
+        unit: "g"
       })
 
       # Create meal plan (needs 500g pasta)
@@ -128,21 +129,22 @@ defmodule GroceryPlanner.Shopping.LogicTest do
         )
 
       items = Shopping.list_shopping_list_items!(authorize?: false, tenant: account.id)
-      
+
       # Pasta should be 300g (500 - 200)
-      pasta = Enum.find(items, & &1.name == "Pasta")
+      pasta = Enum.find(items, &(&1.name == "Pasta"))
       assert pasta
       assert Decimal.equal?(pasta.quantity, Decimal.new("300"))
 
       # Sauce should be 1 jar (none in inventory)
-      sauce = Enum.find(items, & &1.name == "Tomato Sauce")
+      sauce = Enum.find(items, &(&1.name == "Tomato Sauce"))
       assert sauce
       assert Decimal.equal?(sauce.quantity, Decimal.new("1"))
     end
 
     test "scales quantities based on servings", %{account: account, user: user} do
-      recipe = create_recipe_with_ingredients(account, user) # 4 servings
-      
+      # 4 servings
+      recipe = create_recipe_with_ingredients(account, user)
+
       # Create meal plan for 8 servings (double)
       create_meal_plan(account, user, recipe, %{
         scheduled_date: Date.utc_today(),
@@ -160,9 +162,10 @@ defmodule GroceryPlanner.Shopping.LogicTest do
         )
 
       items = Shopping.list_shopping_list_items!(authorize?: false, tenant: account.id)
-      
-      pasta = Enum.find(items, & &1.name == "Pasta")
-      assert Decimal.equal?(pasta.quantity, Decimal.new("1000")) # 500 * 2
+
+      pasta = Enum.find(items, &(&1.name == "Pasta"))
+      # 500 * 2
+      assert Decimal.equal?(pasta.quantity, Decimal.new("1000"))
     end
   end
 end

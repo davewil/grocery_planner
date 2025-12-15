@@ -1,5 +1,5 @@
 defmodule GroceryPlanner.ShoppingTest do
-  use GroceryPlanner.DataCase
+  use GroceryPlanner.DataCase, async: true
 
   alias GroceryPlanner.Shopping
   alias GroceryPlanner.Shopping.ShoppingList
@@ -70,7 +70,11 @@ defmodule GroceryPlanner.ShoppingTest do
       %{list: list}
     end
 
-    test "create_shopping_list_item/2 adds item to list", %{account: account, user: user, list: list} do
+    test "create_shopping_list_item/2 adds item to list", %{
+      account: account,
+      user: user,
+      list: list
+    } do
       assert {:ok, %ShoppingListItem{} = item} =
                Shopping.create_shopping_list_item(
                  account.id,

@@ -1,5 +1,5 @@
 defmodule GroceryPlanner.Notifications.NotificationPreferenceTest do
-  use GroceryPlanner.DataCase
+  use GroceryPlanner.DataCase, async: true
 
   alias GroceryPlanner.Notifications.NotificationPreference
   alias GroceryPlanner.InventoryTestHelpers

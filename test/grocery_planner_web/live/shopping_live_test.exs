@@ -1,5 +1,5 @@
 defmodule GroceryPlannerWeb.ShoppingLiveTest do
-  use GroceryPlannerWeb.ConnCase
+  use GroceryPlannerWeb.ConnCase, async: true
   import Phoenix.LiveViewTest
   import GroceryPlanner.InventoryTestHelpers
   alias GroceryPlanner.Shopping
@@ -130,7 +130,7 @@ defmodule GroceryPlannerWeb.ShoppingLiveTest do
       |> render_click()
 
       assert render(view) =~ "Milk"
-      
+
       # Toggle item
       view
       |> element("input[phx-click='toggle_item'][phx-value-id='#{item.id}']")
