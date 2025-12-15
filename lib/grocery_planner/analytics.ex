@@ -3,14 +3,22 @@ defmodule GroceryPlanner.Analytics do
   Provides analytics and aggregated metrics for the Grocery Planner application.
   """
 
+  use Ash.Domain
+
   require Ash.Query
+
+  resources do
+    resource(GroceryPlanner.Analytics.UsageLog)
+  end
+
   alias GroceryPlanner.Inventory
   alias GroceryPlanner.Inventory.{GroceryItem, InventoryEntry}
+  alias GroceryPlanner.Analytics.UsageLog
 
   @doc """
   Returns a summary of the inventory for a given account.
   """
-  def get_inventory_summary(account_id, actor) do
+  def get_inventory_summary(account_id, currency, actor) do
     # Total unique items
     {:ok, total_items} =
       GroceryItem
@@ -39,7 +47,7 @@ defmodule GroceryPlanner.Analytics do
       )
 
     total_value =
-      Enum.reduce(entries_with_price, Money.new(0, :USD), fn entry, acc ->
+      Enum.reduce(entries_with_price, Money.new(0, currency), fn entry, acc ->
         if entry.purchase_price do
           Money.add!(acc, entry.purchase_price)
         else
@@ -120,5 +128,58 @@ defmodule GroceryPlanner.Analytics do
         count: cat.item_count || 0
       }
     end)
+  end
+
+  @doc """
+  Returns waste statistics for the account.
+  """
+  def get_waste_stats(account_id, currency, actor) do
+    # Total consumed
+    {:ok, consumed_count} =
+      UsageLog
+      |> Ash.Query.filter(reason == :consumed)
+      |> Ash.Query.for_read(:read, %{}, actor: actor, tenant: account_id)
+      |> Ash.count(domain: GroceryPlanner.Analytics)
+
+    # Total wasted (expired or wasted)
+    {:ok, wasted_count} =
+      UsageLog
+      |> Ash.Query.filter(reason in [:expired, :wasted])
+      |> Ash.Query.for_read(:read, %{}, actor: actor, tenant: account_id)
+      |> Ash.count(domain: GroceryPlanner.Analytics)
+
+    # Total cost of waste
+    {:ok, wasted_logs} =
+      UsageLog
+      |> Ash.Query.filter(reason in [:expired, :wasted])
+      |> Ash.Query.filter(not is_nil(cost))
+      |> Ash.Query.load([:cost])
+      |> Ash.Query.for_read(:read, %{}, actor: actor, tenant: account_id)
+      |> Ash.read(domain: GroceryPlanner.Analytics)
+
+    total_wasted_cost =
+      Enum.reduce(wasted_logs, Money.new(0, currency), fn log, acc ->
+        if log.cost do
+          Money.add!(acc, log.cost)
+        else
+          acc
+        end
+      end)
+
+    total_logs = consumed_count + wasted_count
+
+    waste_percentage =
+      if total_logs > 0 do
+        wasted_count / total_logs * 100
+      else
+        0.0
+      end
+
+    %{
+      consumed_count: consumed_count,
+      wasted_count: wasted_count,
+      total_wasted_cost: total_wasted_cost,
+      waste_percentage: waste_percentage
+    }
   end
 end

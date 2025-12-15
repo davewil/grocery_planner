@@ -1,13 +1,14 @@
 defmodule GroceryPlannerWeb.SettingsLive do
   use GroceryPlannerWeb, :live_view
 
-  on_mount {GroceryPlannerWeb.Auth, :require_authenticated_user}
+  on_mount({GroceryPlannerWeb.Auth, :require_authenticated_user})
 
   alias GroceryPlanner.Accounts
   alias GroceryPlanner.MealPlanning.Voting
 
   def mount(_params, _session, socket) do
-    voting_active = Voting.voting_active?(socket.assigns.current_account.id, socket.assigns.current_user)
+    voting_active =
+      Voting.voting_active?(socket.assigns.current_account.id, socket.assigns.current_user)
 
     socket = assign(socket, :current_scope, socket.assigns.current_account)
     account = Ash.load!(socket.assigns.current_account, [:memberships])
@@ -20,7 +21,8 @@ defmodule GroceryPlannerWeb.SettingsLive do
       to_form(
         %{
           "name" => account.name,
-          "timezone" => account.timezone
+          "timezone" => account.timezone,
+          "currency" => account.currency
         },
         as: :account
       )
@@ -95,7 +97,8 @@ defmodule GroceryPlannerWeb.SettingsLive do
 
   def handle_event("validate_notification", params, socket) do
     # Just update the form to reflect changes (e.g. toggles)
-    {:noreply, assign(socket, :notification_form, to_form(params["notification"], as: :notification))}
+    {:noreply,
+     assign(socket, :notification_form, to_form(params["notification"], as: :notification))}
   end
 
   def handle_event("save_notification", %{"notification" => params}, socket) do
@@ -133,15 +136,24 @@ defmodule GroceryPlannerWeb.SettingsLive do
     end
   end
 
-  def handle_event("validate_account", %{"name" => name, "timezone" => timezone}, socket) do
-    account_form = to_form(%{"name" => name, "timezone" => timezone})
+  def handle_event(
+        "validate_account",
+        %{"name" => name, "timezone" => timezone, "currency" => currency},
+        socket
+      ) do
+    account_form = to_form(%{"name" => name, "timezone" => timezone, "currency" => currency})
     {:noreply, assign(socket, :account_form, account_form)}
   end
 
-  def handle_event("update_account", %{"name" => name, "timezone" => timezone}, socket) do
+  def handle_event(
+        "update_account",
+        %{"name" => name, "timezone" => timezone, "currency" => currency},
+        socket
+      ) do
     case Accounts.Account.update(socket.assigns.current_account, %{
            name: name,
-           timezone: timezone
+           timezone: timezone,
+           currency: currency
          }) do
       {:ok, account} ->
         {:noreply,

@@ -1,7 +1,7 @@
 defmodule GroceryPlannerWeb.InventoryLive do
   use GroceryPlannerWeb, :live_view
 
-  on_mount {GroceryPlannerWeb.Auth, :require_authenticated_user}
+  on_mount({GroceryPlannerWeb.Auth, :require_authenticated_user})
 
   alias GroceryPlanner.Inventory.{GroceryItem, InventoryEntry}
 
@@ -23,12 +23,25 @@ defmodule GroceryPlannerWeb.InventoryLive do
             <%= if @expiring_filter do %>
               <div class="mt-4 flex flex-col sm:flex-row sm:items-center gap-2">
                 <span class="inline-flex items-center gap-2 px-3 py-2 sm:px-4 bg-blue-50 border border-blue-200 rounded-lg text-xs sm:text-sm font-medium text-blue-900">
-                  <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+                  <svg
+                    class="w-4 h-4 flex-shrink-0"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"
+                    />
                   </svg>
-                  <span class="truncate">Showing: <%= format_expiring_filter(@expiring_filter) %></span>
+                  <span class="truncate">Showing: {format_expiring_filter(@expiring_filter)}</span>
                 </span>
-                <.link patch="/inventory" class="text-xs sm:text-sm text-blue-600 hover:text-blue-800 underline">
+                <.link
+                  patch="/inventory"
+                  class="text-xs sm:text-sm text-blue-600 hover:text-blue-800 underline"
+                >
                   Clear filter
                 </.link>
               </div>
@@ -82,7 +95,7 @@ defmodule GroceryPlannerWeb.InventoryLive do
     """
   end
 
-  attr :active_tab, :string, required: true
+  attr(:active_tab, :string, required: true)
 
   defp tab_navigation(assigns) do
     ~H"""
@@ -204,14 +217,14 @@ defmodule GroceryPlannerWeb.InventoryLive do
     """
   end
 
-  attr :items, :list, required: true
-  attr :tags, :list, required: true
-  attr :filter_tag_ids, :list, required: true
-  attr :show_form, :atom, default: nil
-  attr :form, :any, default: nil
-  attr :editing_id, :any, default: nil
-  attr :managing_tags_for, :any, default: nil
-  attr :categories, :list, required: true
+  attr(:items, :list, required: true)
+  attr(:tags, :list, required: true)
+  attr(:filter_tag_ids, :list, required: true)
+  attr(:show_form, :atom, default: nil)
+  attr(:form, :any, default: nil)
+  attr(:editing_id, :any, default: nil)
+  attr(:managing_tags_for, :any, default: nil)
+  attr(:categories, :list, required: true)
 
   defp items_tab(assigns) do
     ~H"""
@@ -498,11 +511,11 @@ defmodule GroceryPlannerWeb.InventoryLive do
     """
   end
 
-  attr :inventory_entries, :list, required: true
-  attr :show_form, :atom, default: nil
-  attr :form, :any, default: nil
-  attr :items, :list, required: true
-  attr :storage_locations, :list, required: true
+  attr(:inventory_entries, :list, required: true)
+  attr(:show_form, :atom, default: nil)
+  attr(:form, :any, default: nil)
+  attr(:items, :list, required: true)
+  attr(:storage_locations, :list, required: true)
 
   defp inventory_tab(assigns) do
     ~H"""
@@ -548,6 +561,7 @@ defmodule GroceryPlannerWeb.InventoryLive do
               options={Enum.map(@storage_locations, fn l -> {l.name, l.id} end)}
             />
             <.input field={@form[:quantity]} type="number" label="Quantity" required step="0.01" />
+            <.input field={@form[:purchase_price]} type="number" label="Price" step="0.01" />
             <.input
               field={@form[:unit]}
               type="text"
@@ -652,6 +666,22 @@ defmodule GroceryPlannerWeb.InventoryLive do
             {entry.status}
           </span>
           <.button
+            phx-click="consume_entry"
+            phx-value-id={entry.id}
+            class="px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition text-sm font-medium"
+            title="Mark as Consumed"
+          >
+            Consume
+          </.button>
+          <.button
+            phx-click="expire_entry"
+            phx-value-id={entry.id}
+            class="px-4 py-2 bg-orange-100 text-orange-700 rounded-lg hover:bg-orange-200 transition text-sm font-medium"
+            title="Mark as Expired"
+          >
+            Expire
+          </.button>
+          <.button
             phx-click="delete_entry"
             phx-value-id={entry.id}
             class="px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition text-sm font-medium"
@@ -681,9 +711,9 @@ defmodule GroceryPlannerWeb.InventoryLive do
     """
   end
 
-  attr :categories, :list, required: true
-  attr :show_form, :atom, default: nil
-  attr :form, :any, default: nil
+  attr(:categories, :list, required: true)
+  attr(:show_form, :atom, default: nil)
+  attr(:form, :any, default: nil)
 
   defp categories_tab(assigns) do
     ~H"""
@@ -795,9 +825,9 @@ defmodule GroceryPlannerWeb.InventoryLive do
     """
   end
 
-  attr :storage_locations, :list, required: true
-  attr :show_form, :atom, default: nil
-  attr :form, :any, default: nil
+  attr(:storage_locations, :list, required: true)
+  attr(:show_form, :atom, default: nil)
+  attr(:form, :any, default: nil)
 
   defp locations_tab(assigns) do
     ~H"""
@@ -933,10 +963,10 @@ defmodule GroceryPlannerWeb.InventoryLive do
     """
   end
 
-  attr :tags, :list, required: true
-  attr :show_form, :atom, default: nil
-  attr :form, :any, default: nil
-  attr :editing_id, :any, default: nil
+  attr(:tags, :list, required: true)
+  attr(:show_form, :atom, default: nil)
+  attr(:form, :any, default: nil)
+  attr(:editing_id, :any, default: nil)
 
   defp tags_tab(assigns) do
     ~H"""
@@ -1091,11 +1121,19 @@ defmodule GroceryPlannerWeb.InventoryLive do
 
   def handle_params(params, _uri, socket) do
     expiring_filter = params["expiring"]
+    tab = params["tab"]
+
+    active_tab =
+      cond do
+        tab -> tab
+        expiring_filter -> "inventory"
+        true -> socket.assigns.active_tab
+      end
 
     socket =
       socket
       |> assign(:expiring_filter, expiring_filter)
-      |> assign(:active_tab, if(expiring_filter, do: "inventory", else: socket.assigns.active_tab))
+      |> assign(:active_tab, active_tab)
       |> load_data()
 
     {:noreply, socket}
@@ -1202,6 +1240,19 @@ defmodule GroceryPlannerWeb.InventoryLive do
     account_id = socket.assigns.current_account.id
     grocery_item_id = params["grocery_item_id"]
 
+    # Handle price with currency
+    params =
+      if params["purchase_price"] && params["purchase_price"] != "" do
+        currency = socket.assigns.current_account.currency || "USD"
+
+        Map.put(params, "purchase_price", %{
+          "amount" => params["purchase_price"],
+          "currency" => currency
+        })
+      else
+        params
+      end
+
     case GroceryPlanner.Inventory.create_inventory_entry!(
            account_id,
            grocery_item_id,
@@ -1229,10 +1280,11 @@ defmodule GroceryPlannerWeb.InventoryLive do
            tenant: socket.assigns.current_account.id
          ) do
       {:ok, item} ->
-        result = GroceryPlanner.Inventory.destroy_grocery_item(item,
-          actor: socket.assigns.current_user,
-          tenant: socket.assigns.current_account.id
-        )
+        result =
+          GroceryPlanner.Inventory.destroy_grocery_item(item,
+            actor: socket.assigns.current_user,
+            tenant: socket.assigns.current_account.id
+          )
 
         case result do
           {:ok, _} ->
@@ -1266,10 +1318,11 @@ defmodule GroceryPlannerWeb.InventoryLive do
            tenant: socket.assigns.current_account.id
          ) do
       {:ok, category} ->
-        result = GroceryPlanner.Inventory.destroy_category(category,
-          actor: socket.assigns.current_user,
-          tenant: socket.assigns.current_account.id
-        )
+        result =
+          GroceryPlanner.Inventory.destroy_category(category,
+            actor: socket.assigns.current_user,
+            tenant: socket.assigns.current_account.id
+          )
 
         case result do
           {:ok, _} ->
@@ -1303,10 +1356,11 @@ defmodule GroceryPlannerWeb.InventoryLive do
            tenant: socket.assigns.current_account.id
          ) do
       {:ok, location} ->
-        result = GroceryPlanner.Inventory.destroy_storage_location(location,
-          actor: socket.assigns.current_user,
-          tenant: socket.assigns.current_account.id
-        )
+        result =
+          GroceryPlanner.Inventory.destroy_storage_location(location,
+            actor: socket.assigns.current_user,
+            tenant: socket.assigns.current_account.id
+          )
 
         case result do
           {:ok, _} ->
@@ -1454,10 +1508,11 @@ defmodule GroceryPlannerWeb.InventoryLive do
            tenant: socket.assigns.current_account.id
          ) do
       {:ok, entry} ->
-        result = GroceryPlanner.Inventory.destroy_inventory_entry(entry,
-          actor: socket.assigns.current_user,
-          tenant: socket.assigns.current_account.id
-        )
+        result =
+          GroceryPlanner.Inventory.destroy_inventory_entry(entry,
+            actor: socket.assigns.current_user,
+            tenant: socket.assigns.current_account.id
+          )
 
         case result do
           {:ok, _} ->
@@ -1485,6 +1540,58 @@ defmodule GroceryPlannerWeb.InventoryLive do
     end
   end
 
+  def handle_event("consume_entry", %{"id" => id}, socket) do
+    handle_usage_log(socket, id, :consumed)
+  end
+
+  def handle_event("expire_entry", %{"id" => id}, socket) do
+    handle_usage_log(socket, id, :expired)
+  end
+
+  defp handle_usage_log(socket, entry_id, reason) do
+    account_id = socket.assigns.current_account.id
+    user = socket.assigns.current_user
+
+    case GroceryPlanner.Inventory.get_inventory_entry(entry_id,
+           actor: user,
+           tenant: account_id
+         ) do
+      {:ok, entry} ->
+        # Create usage log
+        GroceryPlanner.Analytics.UsageLog.create!(
+          %{
+            quantity: entry.quantity,
+            unit: entry.unit,
+            reason: reason,
+            occurred_at: DateTime.utc_now(),
+            cost: entry.purchase_price,
+            grocery_item_id: entry.grocery_item_id,
+            account_id: account_id
+          },
+          authorize?: false,
+          tenant: account_id
+        )
+
+        # Update entry status
+        GroceryPlanner.Inventory.update_inventory_entry!(
+          entry,
+          %{status: reason},
+          actor: user,
+          tenant: account_id
+        )
+
+        socket =
+          socket
+          |> load_data()
+          |> put_flash(:info, "Item marked as #{reason}")
+
+        {:noreply, socket}
+
+      {:error, _} ->
+        {:noreply, put_flash(socket, :error, "Entry not found")}
+    end
+  end
+
   def format_expiring_filter("expired"), do: "Expired Items"
   def format_expiring_filter("today"), do: "Expires Today"
   def format_expiring_filter("tomorrow"), do: "Expires Tomorrow"
@@ -1507,46 +1614,63 @@ defmodule GroceryPlannerWeb.InventoryLive do
         items_query
       end
 
-    {:ok, items} = GroceryPlanner.Inventory.list_grocery_items(actor: user, tenant: account_id, query: items_query)
+    {:ok, items} =
+      GroceryPlanner.Inventory.list_grocery_items(
+        actor: user,
+        tenant: account_id,
+        query: items_query
+      )
 
     {:ok, categories} = GroceryPlanner.Inventory.list_categories(actor: user, tenant: account_id)
-    {:ok, locations} = GroceryPlanner.Inventory.list_storage_locations(actor: user, tenant: account_id)
-    {:ok, tags} = GroceryPlanner.Inventory.list_grocery_item_tags(authorize?: false, tenant: account_id)
+
+    {:ok, locations} =
+      GroceryPlanner.Inventory.list_storage_locations(actor: user, tenant: account_id)
+
+    {:ok, tags} =
+      GroceryPlanner.Inventory.list_grocery_item_tags(authorize?: false, tenant: account_id)
 
     # Build inventory entries query with expiration filter
-    entries_query = InventoryEntry
+    entries_query =
+      InventoryEntry
       |> Ash.Query.load([:grocery_item, :storage_location, :days_until_expiry, :is_expired])
       |> filter(status == :available)
 
-    entries_query = case socket.assigns[:expiring_filter] do
-      "expired" ->
-        entries_query
-        |> filter(is_expired == true)
+    entries_query =
+      case socket.assigns[:expiring_filter] do
+        "expired" ->
+          entries_query
+          |> filter(is_expired == true)
 
-      "today" ->
-        entries_query
-        |> filter(not(is_nil(use_by_date)))
-        |> filter(fragment("DATE(?) = CURRENT_DATE", use_by_date))
+        "today" ->
+          entries_query
+          |> filter(not is_nil(use_by_date))
+          |> filter(fragment("DATE(?) = CURRENT_DATE", use_by_date))
 
-      "tomorrow" ->
-        entries_query
-        |> filter(not(is_nil(use_by_date)))
-        |> filter(fragment("DATE(?) = CURRENT_DATE + INTERVAL '1 day'", use_by_date))
+        "tomorrow" ->
+          entries_query
+          |> filter(not is_nil(use_by_date))
+          |> filter(fragment("DATE(?) = CURRENT_DATE + INTERVAL '1 day'", use_by_date))
 
-      "this_week" ->
-        entries_query
-        |> filter(not(is_nil(use_by_date)))
-        |> filter(fragment("DATE(?) BETWEEN CURRENT_DATE + INTERVAL '2 days' AND CURRENT_DATE + INTERVAL '3 days'", use_by_date))
+        "this_week" ->
+          entries_query
+          |> filter(not is_nil(use_by_date))
+          |> filter(
+            fragment(
+              "DATE(?) BETWEEN CURRENT_DATE + INTERVAL '2 days' AND CURRENT_DATE + INTERVAL '3 days'",
+              use_by_date
+            )
+          )
 
-      _ ->
-        entries_query
-    end
+        _ ->
+          entries_query
+      end
 
-    {:ok, entries} = GroceryPlanner.Inventory.list_inventory_entries(
-      actor: user,
-      tenant: account_id,
-      query: entries_query
-    )
+    {:ok, entries} =
+      GroceryPlanner.Inventory.list_inventory_entries(
+        actor: user,
+        tenant: account_id,
+        query: entries_query
+      )
 
     socket
     |> assign(:items, items)

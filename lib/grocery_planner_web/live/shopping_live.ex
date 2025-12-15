@@ -3,12 +3,13 @@ defmodule GroceryPlannerWeb.ShoppingLive do
   require Logger
   require Ash.Query
 
-  on_mount {GroceryPlannerWeb.Auth, :require_authenticated_user}
+  on_mount({GroceryPlannerWeb.Auth, :require_authenticated_user})
 
   alias GroceryPlanner.MealPlanning.Voting
 
   def mount(_params, _session, socket) do
-    voting_active = Voting.voting_active?(socket.assigns.current_account.id, socket.assigns.current_user)
+    voting_active =
+      Voting.voting_active?(socket.assigns.current_account.id, socket.assigns.current_user)
 
     socket = assign(socket, :current_scope, socket.assigns.current_account)
 
@@ -110,12 +111,13 @@ defmodule GroceryPlannerWeb.ShoppingLive do
   end
 
   def handle_event("select_list", %{"id" => id}, socket) do
-    {:ok, list} = GroceryPlanner.Shopping.get_shopping_list(
-      id,
-      tenant: socket.assigns.current_account.id,
-      actor: socket.assigns.current_user,
-      load: [:items, :total_items, :checked_items, :progress_percentage]
-    )
+    {:ok, list} =
+      GroceryPlanner.Shopping.get_shopping_list(
+        id,
+        tenant: socket.assigns.current_account.id,
+        actor: socket.assigns.current_user,
+        load: [:items, :total_items, :checked_items, :progress_percentage]
+      )
 
     {:noreply, assign(socket, :selected_list, list)}
   end
@@ -125,11 +127,12 @@ defmodule GroceryPlannerWeb.ShoppingLive do
   end
 
   def handle_event("delete_list", %{"id" => id}, socket) do
-    {:ok, list} = GroceryPlanner.Shopping.get_shopping_list(
-      id,
-      tenant: socket.assigns.current_account.id,
-      actor: socket.assigns.current_user
-    )
+    {:ok, list} =
+      GroceryPlanner.Shopping.get_shopping_list(
+        id,
+        tenant: socket.assigns.current_account.id,
+        actor: socket.assigns.current_user
+      )
 
     case GroceryPlanner.Shopping.destroy_shopping_list(list,
            tenant: socket.assigns.current_account.id,
@@ -151,11 +154,12 @@ defmodule GroceryPlannerWeb.ShoppingLive do
   end
 
   def handle_event("toggle_item", %{"id" => id}, socket) do
-    {:ok, item} = GroceryPlanner.Shopping.get_shopping_list_item(
-      id,
-      tenant: socket.assigns.current_account.id,
-      actor: socket.assigns.current_user
-    )
+    {:ok, item} =
+      GroceryPlanner.Shopping.get_shopping_list_item(
+        id,
+        tenant: socket.assigns.current_account.id,
+        actor: socket.assigns.current_user
+      )
 
     case GroceryPlanner.Shopping.toggle_shopping_list_item_check(item,
            tenant: socket.assigns.current_account.id,
@@ -164,12 +168,13 @@ defmodule GroceryPlannerWeb.ShoppingLive do
       {:ok, _item} ->
         socket =
           if socket.assigns.selected_list do
-            {:ok, list} = GroceryPlanner.Shopping.get_shopping_list(
-              socket.assigns.selected_list.id,
-              tenant: socket.assigns.current_account.id,
-              actor: socket.assigns.current_user,
-              load: [:items, :total_items, :checked_items, :progress_percentage]
-            )
+            {:ok, list} =
+              GroceryPlanner.Shopping.get_shopping_list(
+                socket.assigns.selected_list.id,
+                tenant: socket.assigns.current_account.id,
+                actor: socket.assigns.current_user,
+                load: [:items, :total_items, :checked_items, :progress_percentage]
+              )
 
             assign(socket, :selected_list, list)
           else
@@ -201,29 +206,40 @@ defmodule GroceryPlannerWeb.ShoppingLive do
 
   def handle_event(
         "add_item",
-        %{"name" => name, "quantity" => quantity_str, "unit" => unit},
+        %{"name" => name, "quantity" => quantity_str, "unit" => unit} = params,
         socket
       ) do
     quantity = Decimal.new(quantity_str)
 
+    attrs = %{
+      shopping_list_id: socket.assigns.selected_list.id,
+      name: name,
+      quantity: quantity,
+      unit: unit
+    }
+
+    attrs =
+      if params["estimated_price"] && params["estimated_price"] != "" do
+        currency = socket.assigns.current_account.currency || "USD"
+        Map.put(attrs, :estimated_price, %{amount: params["estimated_price"], currency: currency})
+      else
+        attrs
+      end
+
     case GroceryPlanner.Shopping.create_shopping_list_item(
            socket.assigns.current_account.id,
-           %{
-             shopping_list_id: socket.assigns.selected_list.id,
-             name: name,
-             quantity: quantity,
-             unit: unit
-           },
+           attrs,
            tenant: socket.assigns.current_account.id,
            actor: socket.assigns.current_user
          ) do
       {:ok, _item} ->
-        {:ok, list} = GroceryPlanner.Shopping.get_shopping_list(
-          socket.assigns.selected_list.id,
-          tenant: socket.assigns.current_account.id,
-          actor: socket.assigns.current_user,
-          load: [:items, :total_items, :checked_items, :progress_percentage]
-        )
+        {:ok, list} =
+          GroceryPlanner.Shopping.get_shopping_list(
+            socket.assigns.selected_list.id,
+            tenant: socket.assigns.current_account.id,
+            actor: socket.assigns.current_user,
+            load: [:items, :total_items, :checked_items, :progress_percentage]
+          )
 
         socket =
           socket
@@ -240,23 +256,25 @@ defmodule GroceryPlannerWeb.ShoppingLive do
   end
 
   def handle_event("delete_item", %{"id" => id}, socket) do
-    {:ok, item} = GroceryPlanner.Shopping.get_shopping_list_item(
-      id,
-      tenant: socket.assigns.current_account.id,
-      actor: socket.assigns.current_user
-    )
+    {:ok, item} =
+      GroceryPlanner.Shopping.get_shopping_list_item(
+        id,
+        tenant: socket.assigns.current_account.id,
+        actor: socket.assigns.current_user
+      )
 
     case GroceryPlanner.Shopping.destroy_shopping_list_item(item,
            tenant: socket.assigns.current_account.id,
            actor: socket.assigns.current_user
          ) do
       :ok ->
-        {:ok, list} = GroceryPlanner.Shopping.get_shopping_list(
-          socket.assigns.selected_list.id,
-          tenant: socket.assigns.current_account.id,
-          actor: socket.assigns.current_user,
-          load: [:items, :total_items, :checked_items, :progress_percentage]
-        )
+        {:ok, list} =
+          GroceryPlanner.Shopping.get_shopping_list(
+            socket.assigns.selected_list.id,
+            tenant: socket.assigns.current_account.id,
+            actor: socket.assigns.current_user,
+            load: [:items, :total_items, :checked_items, :progress_percentage]
+          )
 
         socket =
           socket
@@ -272,14 +290,16 @@ defmodule GroceryPlannerWeb.ShoppingLive do
   end
 
   defp load_shopping_lists(socket) do
-    {:ok, lists} = GroceryPlanner.Shopping.list_shopping_lists(
-      actor: socket.assigns.current_user,
-      tenant: socket.assigns.current_account.id,
-      query: GroceryPlanner.Shopping.ShoppingList
-        |> Ash.Query.filter([or: [status: :active, status: :completed]])
-        |> Ash.Query.sort(updated_at: :desc)
-        |> Ash.Query.load([:total_items, :checked_items, :progress_percentage])
-    )
+    {:ok, lists} =
+      GroceryPlanner.Shopping.list_shopping_lists(
+        actor: socket.assigns.current_user,
+        tenant: socket.assigns.current_account.id,
+        query:
+          GroceryPlanner.Shopping.ShoppingList
+          |> Ash.Query.filter(or: [status: :active, status: :completed])
+          |> Ash.Query.sort(updated_at: :desc)
+          |> Ash.Query.load([:total_items, :checked_items, :progress_percentage])
+      )
 
     assign(socket, :shopping_lists, lists)
   end

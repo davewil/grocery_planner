@@ -276,6 +276,22 @@
 
 ---
 
+## Phase 11: Waste Tracking ✅ COMPLETE
+**Status:** Fully implemented and tested
+
+### Completed Features:
+- ✅ `UsageLog` resource for tracking consumption and waste
+- ✅ "Consume" and "Expire" actions in Inventory UI
+- ✅ Waste statistics calculation (count, cost, percentage)
+- ✅ Analytics Dashboard integration with Waste KPI card
+- ✅ Comprehensive testing for waste tracking logic
+
+**Migrations:** Migration created and run successfully
+**Tests:** Unit and integration tests passing
+**UI:** Integrated into Inventory and Analytics dashboards
+
+---
+
 ## Technical Stack
 
 ### Core Technologies:

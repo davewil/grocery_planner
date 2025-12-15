@@ -40,6 +40,20 @@
         >
           <.input field={@account_form[:name]} type="text" label="Household Name" required />
           <.input field={@account_form[:timezone]} type="text" label="Timezone" required />
+          <.input
+            field={@account_form[:currency]}
+            type="select"
+            label="Currency"
+            options={[
+              {"USD - US Dollar", "USD"},
+              {"GBP - British Pound", "GBP"},
+              {"EUR - Euro", "EUR"},
+              {"CAD - Canadian Dollar", "CAD"},
+              {"AUD - Australian Dollar", "AUD"},
+              {"JPY - Japanese Yen", "JPY"}
+            ]}
+            required
+          />
 
           <div class="pt-2">
             <.button
