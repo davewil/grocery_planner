@@ -2,7 +2,21 @@ defmodule GroceryPlanner.Inventory.InventoryEntry do
   use Ash.Resource,
     domain: GroceryPlanner.Inventory,
     data_layer: AshPostgres.DataLayer,
-    authorizers: [Ash.Policy.Authorizer]
+    authorizers: [Ash.Policy.Authorizer],
+    extensions: [AshJsonApi.Resource]
+
+  json_api do
+    type("inventory_entry")
+
+    routes do
+      base("/inventory_entries")
+      get(:read)
+      index(:read)
+      post(:create)
+      patch(:update)
+      delete(:destroy)
+    end
+  end
 
   postgres do
     table("inventory_entries")

@@ -9,6 +9,16 @@ import Config
 
 config :ex_cldr, default_backend: GroceryPlanner.Cldr
 
+config :mime, :types, %{
+  "application/vnd.api+json" => ["json"]
+}
+
+config :mime, :extensions, %{
+  "json" => "application/json"
+}
+
+config :ash_json_api, :show_public_calculations_when_loaded?, true
+
 config :ash,
   allow_forbidden_field_for_relationships_by_default?: true,
   include_embedded_source_by_default?: false,

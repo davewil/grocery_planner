@@ -1,5 +1,7 @@
 import Config
-config :ash, policies: [show_policy_breakdowns?: true], disable_async?: true
+config :ash, policies: [show_policy_breakdowns?: true], disable_async?: true, debug_errors: true
+
+config :ash_json_api, :log_errors?, true
 
 # Configure your database
 #

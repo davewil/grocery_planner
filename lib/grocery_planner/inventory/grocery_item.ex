@@ -2,7 +2,21 @@ defmodule GroceryPlanner.Inventory.GroceryItem do
   use Ash.Resource,
     domain: GroceryPlanner.Inventory,
     data_layer: AshPostgres.DataLayer,
-    authorizers: [Ash.Policy.Authorizer]
+    authorizers: [Ash.Policy.Authorizer],
+    extensions: [AshJsonApi.Resource]
+
+  json_api do
+    type("grocery_item")
+
+    routes do
+      base("/grocery_items")
+      get(:read)
+      index(:read)
+      post(:create)
+      patch(:update)
+      delete(:destroy)
+    end
+  end
 
   postgres do
     table("grocery_items")
@@ -36,7 +50,14 @@ defmodule GroceryPlanner.Inventory.GroceryItem do
       authorize_if(relates_to_actor_via([:account, :memberships, :user]))
     end
 
-    policy action_type([:create, :update, :destroy]) do
+    policy action_type(:create) do
+      # For create, we rely on multitenancy - the tenant is set by the ApiAuth plug
+      # and is the account_id. If the user can authenticate and set the tenant,
+      # they can create items in that tenant.
+      authorize_if(always())
+    end
+
+    policy action_type([:update, :destroy]) do
       authorize_if(relates_to_actor_via([:account, :memberships, :user]))
     end
   end

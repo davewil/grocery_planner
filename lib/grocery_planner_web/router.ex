@@ -2,55 +2,66 @@ defmodule GroceryPlannerWeb.Router do
   use GroceryPlannerWeb, :router
 
   pipeline :browser do
-    plug :accepts, ["html"]
-    plug :fetch_session
-    plug :fetch_live_flash
-    plug :put_root_layout, html: {GroceryPlannerWeb.Layouts, :root}
-    plug :protect_from_forgery
-    plug :put_secure_browser_headers
-    plug GroceryPlannerWeb.Auth, :fetch_current_user
+    plug(:accepts, ["html"])
+    plug(:fetch_session)
+    plug(:fetch_live_flash)
+    plug(:put_root_layout, html: {GroceryPlannerWeb.Layouts, :root})
+    plug(:protect_from_forgery)
+    plug(:put_secure_browser_headers)
+    plug(GroceryPlannerWeb.Auth, :fetch_current_user)
   end
 
   pipeline :require_authenticated_user do
-    plug GroceryPlannerWeb.Auth, :require_authenticated_user
+    plug(GroceryPlannerWeb.Auth, :require_authenticated_user)
   end
 
   pipeline :api do
-    plug :accepts, ["json"]
+    plug(:accepts, ["json"])
   end
 
   scope "/", GroceryPlannerWeb do
-    pipe_through :browser
+    pipe_through(:browser)
 
-    get "/", PageController, :home
+    get("/", PageController, :home)
 
-    live "/sign-up", Auth.SignUpLive
-    live "/sign-in", Auth.SignInLive
-    post "/auth/sign-in", AuthController, :sign_in
-    delete "/auth/sign-out", AuthController, :sign_out
+    live("/sign-up", Auth.SignUpLive)
+    live("/sign-in", Auth.SignInLive)
+    post("/auth/sign-in", AuthController, :sign_in)
+    delete("/auth/sign-out", AuthController, :sign_out)
   end
 
   scope "/", GroceryPlannerWeb do
-    pipe_through [:browser, :require_authenticated_user]
+    pipe_through([:browser, :require_authenticated_user])
 
-    live "/dashboard", DashboardLive
-    live "/settings", SettingsLive
-    live "/inventory", InventoryLive
-    live "/recipes", RecipesLive
-    live "/recipes/search", RecipeSearchLive
-    live "/recipes/new", RecipeFormLive, :new
-    live "/recipes/:id/edit", RecipeFormLive, :edit
-    live "/recipes/:id", RecipeShowLive
-    live "/meal-planner", MealPlannerLive
-    live "/shopping", ShoppingLive
-    live "/voting", VotingLive
-    live "/analytics", AnalyticsLive
+    live("/dashboard", DashboardLive)
+    live("/settings", SettingsLive)
+    live("/inventory", InventoryLive)
+    live("/recipes", RecipesLive)
+    live("/recipes/search", RecipeSearchLive)
+    live("/recipes/new", RecipeFormLive, :new)
+    live("/recipes/:id/edit", RecipeFormLive, :edit)
+    live("/recipes/:id", RecipeShowLive)
+    live("/meal-planner", MealPlannerLive)
+    live("/shopping", ShoppingLive)
+    live("/voting", VotingLive)
+    live("/analytics", AnalyticsLive)
   end
 
   # Other scopes may use custom stacks.
-  # scope "/api", GroceryPlannerWeb do
-  #   pipe_through :api
-  # end
+  pipeline :api_auth do
+    plug(GroceryPlannerWeb.Plugs.ApiAuth)
+  end
+
+  scope "/api", GroceryPlannerWeb do
+    pipe_through(:api)
+
+    post("/sign-in", Api.AuthController, :sign_in)
+
+    scope "/" do
+      pipe_through(:api_auth)
+      forward("/json", JsonApiRouter)
+    end
+  end
 
   # Enable LiveDashboard and Swoosh mailbox preview in development
   if Application.compile_env(:grocery_planner, :dev_routes) do
@@ -62,10 +73,10 @@ defmodule GroceryPlannerWeb.Router do
     import Phoenix.LiveDashboard.Router
 
     scope "/dev" do
-      pipe_through :browser
+      pipe_through(:browser)
 
-      live_dashboard "/dashboard", metrics: GroceryPlannerWeb.Telemetry
-      forward "/mailbox", Plug.Swoosh.MailboxPreview
+      live_dashboard("/dashboard", metrics: GroceryPlannerWeb.Telemetry)
+      forward("/mailbox", Plug.Swoosh.MailboxPreview)
     end
   end
 end

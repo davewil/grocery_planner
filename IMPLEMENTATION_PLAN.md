@@ -823,6 +823,14 @@ lib/grocery_planner_web/
 - **Advanced Analytics:** Predictive restocking, seasonal trend analysis
 - **Gamification:** Badges for waste reduction, cooking streaks
 
+### API Design Considerations
+- **DDD Aggregate Roots:** Consider restructuring the JSON:API to follow Domain-Driven Design principles more strictly. Currently, all resources are exposed as top-level endpoints. A stricter approach would:
+  - Define `GroceryItem` as the aggregate root for inventory (with `InventoryEntry` as child)
+  - Define `ShoppingList` as the aggregate root (with `ShoppingListItem` as child)
+  - Define `Recipe` as the aggregate root (with `RecipeIngredient` as child)
+  - Expose child entities only via parent relationships (e.g., `/api/json/grocery_items/:id/inventory_entries`)
+  - This would enforce data consistency boundaries but add complexity for mobile clients
+
 ---
 
 ## Development Timeline Estimate

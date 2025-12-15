@@ -50,6 +50,8 @@ defmodule GroceryPlanner.MixProject do
       {:live_debugger, "~> 0.4", only: [:dev]},
       {:ash_postgres, "~> 2.0"},
       {:ash, "~> 3.0"},
+      {:ash_json_api, "~> 1.0"},
+      {:open_api_spex, "~> 3.0"},
       {:picosat_elixir, "~> 0.2"},
       {:bcrypt_elixir, "~> 3.0"},
       {:igniter, "~> 0.6", only: [:dev, :test]},

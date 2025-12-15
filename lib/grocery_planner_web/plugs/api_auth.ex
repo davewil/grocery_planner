@@ -1,0 +1,27 @@
+defmodule GroceryPlannerWeb.Plugs.ApiAuth do
+  import Plug.Conn
+  alias GroceryPlanner.Accounts.User
+
+  def init(opts), do: opts
+
+  def call(conn, _opts) do
+    with ["Bearer " <> token] <- get_req_header(conn, "authorization"),
+         {:ok, user_id} <-
+           Phoenix.Token.verify(GroceryPlannerWeb.Endpoint, "user auth", token, max_age: 86400),
+         {:ok, user} <- User.by_id(user_id),
+         {:ok, user} <- Ash.load(user, :accounts, authorize?: false) do
+      account = List.first(user.accounts)
+
+      conn
+      |> assign(:current_user, user)
+      |> Ash.PlugHelpers.set_actor(user)
+      |> Ash.PlugHelpers.set_tenant(account.id)
+    else
+      _ ->
+        conn
+        |> put_resp_content_type("application/json")
+        |> send_resp(:unauthorized, Jason.encode!(%{errors: [%{detail: "Unauthorized"}]}))
+        |> halt()
+    end
+  end
+end
