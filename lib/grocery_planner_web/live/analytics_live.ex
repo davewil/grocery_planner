@@ -23,12 +23,35 @@ defmodule GroceryPlannerWeb.AnalyticsLive do
     expiration_summary = Analytics.get_expiration_summary(account_id, user)
     category_breakdown = Analytics.get_category_breakdown(account_id, user)
     waste_stats = Analytics.get_waste_stats(account_id, currency, user)
+    spending_trends = Analytics.get_spending_trends(account_id, currency, user)
+    usage_trends = Analytics.get_usage_trends(account_id, user)
+    most_wasted_items = Analytics.get_most_wasted_items(account_id, currency, user)
+
+    max_spending =
+      if Enum.empty?(spending_trends),
+        do: 1,
+        else:
+          Enum.max_by(spending_trends, fn %{amount: amount} -> Money.to_decimal(amount) end).amount
+          |> Money.to_decimal()
+          |> Decimal.to_float()
+
+    max_usage =
+      if Enum.empty?(usage_trends),
+        do: 1,
+        else:
+          Enum.max_by(usage_trends, fn %{consumed: c, wasted: w} -> c + w end)
+          |> then(fn %{consumed: c, wasted: w} -> c + w end)
 
     socket
     |> assign(:inventory_summary, inventory_summary)
     |> assign(:expiration_summary, expiration_summary)
     |> assign(:category_breakdown, category_breakdown)
     |> assign(:waste_stats, waste_stats)
+    |> assign(:spending_trends, spending_trends)
+    |> assign(:usage_trends, usage_trends)
+    |> assign(:most_wasted_items, most_wasted_items)
+    |> assign(:max_spending, max_spending)
+    |> assign(:max_usage, max_usage)
   end
 
   def render(assigns) do
@@ -150,35 +173,122 @@ defmodule GroceryPlannerWeb.AnalyticsLive do
           </div>
         </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <!-- Category Breakdown -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+          <!-- Spending Trends -->
           <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-            <h3 class="text-lg font-semibold text-gray-900 mb-6">Inventory by Category</h3>
-            <div class="space-y-4">
-              <%= for category <- @category_breakdown do %>
-                <div class="flex items-center gap-4">
-                  <div class="w-32 text-sm font-medium text-gray-600 truncate" title={category.name}>
-                    {category.name}
-                  </div>
-                  <div class="flex-1 h-4 bg-gray-100 rounded-full overflow-hidden">
+            <h3 class="text-lg font-semibold text-gray-900 mb-6">Spending Trends (Last 30 Days)</h3>
+            <div class="h-64 flex items-end gap-2">
+              <%= if Enum.empty?(@spending_trends) do %>
+                <div class="w-full h-full flex items-center justify-center text-gray-500">
+                  No spending data available
+                </div>
+              <% else %>
+                <%= for point <- @spending_trends do %>
+                  <div class="flex-1 flex flex-col items-center group relative">
                     <div
-                      class="h-full bg-blue-500 rounded-full"
-                      style={"width: #{if @inventory_summary.total_items > 0, do: (category.count / @inventory_summary.total_items) * 100, else: 0}%"}
+                      class="w-full bg-blue-500 rounded-t-sm hover:bg-blue-600 transition-all"
+                      style={"height: #{max((Money.to_decimal(point.amount) |> Decimal.to_float()) / @max_spending * 100, 1)}%"}
                     >
                     </div>
+                    <!-- Tooltip -->
+                    <div class="absolute bottom-full mb-2 hidden group-hover:block z-10 bg-gray-900 text-white text-xs rounded py-1 px-2 whitespace-nowrap">
+                      {Calendar.strftime(point.date, "%b %d")}: {Money.to_string!(point.amount)}
+                    </div>
                   </div>
-                  <div class="w-12 text-right text-sm font-bold text-gray-900">
-                    {category.count}
-                  </div>
-                </div>
+                <% end %>
               <% end %>
-              <%= if Enum.empty?(@category_breakdown) do %>
-                <p class="text-center text-gray-500 py-8">No inventory data available</p>
-              <% end %>
+            </div>
+            <div class="flex justify-between mt-2 text-xs text-gray-500">
+              <span>30 days ago</span>
+              <span>Today</span>
             </div>
           </div>
 
-    <!-- Expiration Timeline (Simple Visual) -->
+          <!-- Usage Trends -->
+          <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+            <h3 class="text-lg font-semibold text-gray-900 mb-6">Usage Trends (Last 30 Days)</h3>
+            <div class="h-64 flex items-end gap-2">
+              <%= if Enum.empty?(@usage_trends) do %>
+                <div class="w-full h-full flex items-center justify-center text-gray-500">
+                  No usage data available
+                </div>
+              <% else %>
+                <%= for point <- @usage_trends do %>
+                  <div class="flex-1 flex flex-col justify-end group relative gap-px">
+                    <!-- Wasted Bar -->
+                    <div
+                      class="w-full bg-red-400 hover:bg-red-500 transition-all"
+                      style={"height: #{if @max_usage > 0, do: (point.wasted / @max_usage) * 100, else: 0}%"}
+                    ></div>
+                    <!-- Consumed Bar -->
+                    <div
+                      class="w-full bg-green-500 hover:bg-green-600 transition-all"
+                      style={"height: #{if @max_usage > 0, do: (point.consumed / @max_usage) * 100, else: 0}%"}
+                    ></div>
+
+                    <!-- Tooltip -->
+                    <div class="absolute bottom-full mb-2 hidden group-hover:block z-10 bg-gray-900 text-white text-xs rounded py-1 px-2 whitespace-nowrap">
+                      <div class="font-bold">{point.date}</div>
+                      <div class="text-green-300">Consumed: {point.consumed}</div>
+                      <div class="text-red-300">Wasted: {point.wasted}</div>
+                    </div>
+                  </div>
+                <% end %>
+              <% end %>
+            </div>
+            <div class="flex items-center justify-center gap-4 mt-4 text-sm">
+              <div class="flex items-center gap-2">
+                <div class="w-3 h-3 bg-green-500 rounded-sm"></div>
+                <span class="text-gray-600">Consumed</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <div class="w-3 h-3 bg-red-400 rounded-sm"></div>
+                <span class="text-gray-600">Wasted</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <!-- Most Wasted Items -->
+          <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+            <h3 class="text-lg font-semibold text-gray-900 mb-6">Most Wasted Items</h3>
+            <div class="overflow-hidden">
+              <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                  <tr>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Item</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Times Wasted</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Cost</th>
+                  </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                  <%= for item <- @most_wasted_items do %>
+                    <tr>
+                      <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                        {item.name}
+                      </td>
+                      <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {item.count}
+                      </td>
+                      <td class="px-6 py-4 whitespace-nowrap text-sm text-red-600 font-medium">
+                        {Money.to_string!(item.total_cost)}
+                      </td>
+                    </tr>
+                  <% end %>
+                  <%= if Enum.empty?(@most_wasted_items) do %>
+                    <tr>
+                      <td colspan="3" class="px-6 py-8 text-center text-gray-500">
+                        No waste recorded yet. Good job!
+                      </td>
+                    </tr>
+                  <% end %>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Expiration Timeline (Simple Visual) -->
           <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
             <h3 class="text-lg font-semibold text-gray-900 mb-6">Expiration Timeline</h3>
             <div class="space-y-6">

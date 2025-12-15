@@ -536,6 +536,102 @@ GroceryPlanner is a multi-tenant application for managing grocery inventory and 
 
 ---
 
+## Phase 9: API Layer for Mobile Apps
+
+### Objective
+Implement a robust JSON API using `AshJsonApi` to support external mobile applications (iOS/Android). This API will expose core functionalities like authentication, inventory management, shopping lists, and recipes, allowing separate native apps to interact with the Grocery Planner backend.
+
+### Technology Stack
+- **Framework:** AshJsonApi
+- **Format:** JSON:API (standardized response format)
+- **Authentication:** Token-based (Bearer tokens) via AshAuthentication
+- **Documentation:** OpenApi (Swagger) for easy mobile dev consumption
+
+### Implementation Strategy
+
+1.  **Dependency Setup:**
+    -   Add `ash_json_api` to `mix.exs`.
+    -   Configure `AshJsonApi` in the application.
+
+2.  **Domain Configuration:**
+    -   Update `Accounts`, `Inventory`, `Recipes`, and `Analytics` domains to include `json_api` extensions.
+    -   Define API resources and routes (e.g., `/api/inventory`, `/api/shopping_list`).
+
+3.  **Resource Exposure:**
+    -   **Accounts:** Login, Registration, User Profile.
+    -   **Inventory:** List items, add/edit/delete entries, scan barcode (future).
+    -   **Shopping:** View lists, toggle items, add items.
+    -   **Recipes:** Search recipes, view details.
+
+4.  **Authentication & Security:**
+    -   Implement API authentication using existing user accounts.
+    -   Ensure all API endpoints are protected by policies.
+
+### Implementation Tasks
+1.  Add `ash_json_api` dependency and run `mix deps.get`.
+2.  Create `GroceryPlannerWeb.JsonApiRouter` and mount it in `router.ex`.
+3.  Configure `Accounts` domain for JSON API (Login/Register).
+4.  Configure `Inventory` domain for JSON API (Items, Categories).
+5.  Configure `Shopping` domain for JSON API (Lists, Items).
+6.  Generate OpenAPI schema and test endpoints with curl/Postman.
+
+---
+
+## Phase 10: Measurement Units & Conversions
+
+### Objective
+Allow users to view recipes and ingredients in their preferred measurement system (Imperial vs. Metric). The system should store data in a standardized format (e.g., metric) but display it according to user preference, performing necessary conversions on the fly.
+
+### Standard Conversion Chart (Reference)
+
+**Dry Ingredients (Volume to Weight)**
+*   **All-Purpose Flour:** 1 cup ≈ 125g
+*   **Granulated Sugar:** 1 cup ≈ 200g
+*   **Powdered Sugar:** 1 cup ≈ 120g
+*   **Brown Sugar (Packed):** 1 cup ≈ 180g
+*   **Rolled Oats:** 1 cup ≈ 90g
+*   **Rice (Uncooked):** 1 cup ≈ 185g
+
+**Fats & Liquids**
+*   **Butter:** 1 cup (2 sticks) ≈ 227g
+*   **Water/Milk/Juice:** 1 cup ≈ 240ml (approx. 240g)
+*   **Oil:** 1 cup ≈ 224g
+*   **Honey/Syrup:** 1 cup ≈ 340g
+
+**Common Small Measures**
+*   **1 Tablespoon (tbsp):** ≈ 15ml
+*   **1 Teaspoon (tsp):** ≈ 5ml
+*   **1 Fluid Ounce (fl oz):** ≈ 29.57ml
+
+### Implementation Strategy
+
+1.  **User Preference:**
+    *   Add `measurement_system` preference to `Account` or `User` settings (enum: `metric`, `imperial`).
+    *   Default to `imperial` for US locales, `metric` for others.
+
+2.  **Data Storage:**
+    *   Store all quantities in a base unit (e.g., grams for weight, milliliters for volume, count for items).
+    *   Alternatively, store the original input unit and quantity, and convert for display only.
+
+3.  **Conversion Logic:**
+    *   Implement a `MeasurementConverter` module.
+    *   Handle simple conversions (oz <-> g, lb <-> kg, fl oz <-> ml).
+    *   Handle density-based conversions (cups <-> grams) using a lookup table for common ingredients (flour, sugar, etc.).
+    *   Fallback to simple volume conversion (1 cup = 236ml) if ingredient density is unknown.
+
+4.  **UI Updates:**
+    *   Add toggle in Recipe Detail view.
+    *   Update Shopping List to aggregate items in the user's preferred unit.
+
+### Implementation Tasks
+1.  Add `measurement_preference` to `Account` resource.
+2.  Create `MeasurementConverter` utility module with density tables.
+3.  Update `RecipeIngredient` to support unit awareness.
+4.  Implement unit toggling in `RecipesLive`.
+5.  Update `ShoppingLive` to normalize and aggregate units.
+
+---
+
 ## Technical Architecture
 
 ### Directory Structure

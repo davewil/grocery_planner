@@ -21,7 +21,7 @@ defmodule GroceryPlanner.Accounts.Account do
     defaults([:read, :destroy])
 
     create :create do
-      accept([:name, :timezone])
+      accept([:name, :timezone, :currency])
     end
 
     update :update do

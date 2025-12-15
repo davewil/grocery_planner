@@ -182,4 +182,99 @@ defmodule GroceryPlanner.Analytics do
       waste_percentage: waste_percentage
     }
   end
+
+  @doc """
+  Returns spending trends over the last n days.
+  """
+  def get_spending_trends(account_id, currency, actor, days \\ 30) do
+    cutoff_date = Date.add(Date.utc_today(), -days)
+
+    {:ok, entries} =
+      InventoryEntry
+      |> Ash.Query.filter(purchase_date >= ^cutoff_date)
+      |> Ash.Query.filter(not is_nil(purchase_price))
+      |> Ash.Query.load([:purchase_price])
+      |> Ash.Query.sort(purchase_date: :asc)
+      |> Ash.Query.for_read(:read, %{}, actor: actor, tenant: account_id)
+      |> Ash.read(domain: Inventory)
+
+    # Group by date and sum
+    entries
+    |> Enum.group_by(& &1.purchase_date)
+    |> Enum.map(fn {date, daily_entries} ->
+      total =
+        Enum.reduce(daily_entries, Money.new(0, currency), fn entry, acc ->
+          if entry.purchase_price do
+            Money.add!(acc, entry.purchase_price)
+          else
+            acc
+          end
+        end)
+
+      %{date: date, amount: total}
+    end)
+    |> Enum.sort_by(& &1.date, Date)
+  end
+
+  @doc """
+  Returns usage trends (consumed vs wasted) over the last n days.
+  """
+  def get_usage_trends(account_id, actor, days \\ 30) do
+    cutoff_date = Date.add(Date.utc_today(), -days)
+
+    {:ok, logs} =
+      UsageLog
+      |> Ash.Query.filter(occurred_at >= ^cutoff_date)
+      |> Ash.Query.sort(occurred_at: :asc)
+      |> Ash.Query.for_read(:read, %{}, actor: actor, tenant: account_id)
+      |> Ash.read(domain: GroceryPlanner.Analytics)
+
+    # Group by date and reason
+    logs
+    |> Enum.group_by(&Date.to_iso8601(&1.occurred_at))
+    |> Enum.map(fn {date_str, daily_logs} ->
+      consumed = Enum.count(daily_logs, &(&1.reason == :consumed))
+      wasted = Enum.count(daily_logs, &(&1.reason in [:expired, :wasted]))
+      %{date: date_str, consumed: consumed, wasted: wasted}
+    end)
+    |> Enum.sort_by(& &1.date)
+  end
+
+  @doc """
+  Returns the most wasted items.
+  """
+  def get_most_wasted_items(account_id, currency, actor, limit \\ 5) do
+    {:ok, wasted_logs} =
+      UsageLog
+      |> Ash.Query.filter(reason in [:expired, :wasted])
+      |> Ash.Query.load([:grocery_item, :cost])
+      |> Ash.Query.for_read(:read, %{}, actor: actor, tenant: account_id)
+      |> Ash.read(domain: GroceryPlanner.Analytics)
+
+    wasted_logs
+    |> Enum.group_by(& &1.grocery_item_id)
+    |> Enum.map(fn {item_id, logs} ->
+      first_log = List.first(logs)
+      item_name = if first_log.grocery_item, do: first_log.grocery_item.name, else: "Unknown Item"
+      count = length(logs)
+
+      total_cost =
+        Enum.reduce(logs, Money.new(0, currency), fn log, acc ->
+          if log.cost do
+            Money.add!(acc, log.cost)
+          else
+            acc
+          end
+        end)
+
+      %{
+        id: item_id,
+        name: item_name,
+        count: count,
+        total_cost: total_cost
+      }
+    end)
+    |> Enum.sort_by(& &1.count, :desc)
+    |> Enum.take(limit)
+  end
 end
