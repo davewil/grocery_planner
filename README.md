@@ -50,6 +50,7 @@ curl -H "Authorization: Bearer YOUR_TOKEN" \
 | Method | Path | Description |
 |--------|------|-------------|
 | POST | `/api/sign-in` | Authenticate and get token |
+| **Inventory** | | |
 | GET | `/api/json/grocery_items` | List grocery items |
 | GET | `/api/json/grocery_items/:id` | Get a grocery item |
 | POST | `/api/json/grocery_items` | Create a grocery item |
@@ -58,6 +59,34 @@ curl -H "Authorization: Bearer YOUR_TOKEN" \
 | GET | `/api/json/categories` | List categories |
 | GET | `/api/json/storage_locations` | List storage locations |
 | GET | `/api/json/inventory_entries` | List inventory entries |
+| **Recipes** | | |
+| GET | `/api/json/recipes` | List recipes |
+| GET | `/api/json/recipes/:id` | Get a recipe |
+| POST | `/api/json/recipes` | Create a recipe |
+| PATCH | `/api/json/recipes/:id` | Update a recipe |
+| DELETE | `/api/json/recipes/:id` | Delete a recipe |
+| **Shopping** | | |
+| GET | `/api/json/shopping_lists` | List shopping lists |
+| GET | `/api/json/shopping_lists/:id` | Get a shopping list |
+| POST | `/api/json/shopping_lists` | Create a shopping list |
+| PATCH | `/api/json/shopping_lists/:id` | Update a shopping list |
+| DELETE | `/api/json/shopping_lists/:id` | Delete a shopping list |
+| **Meal Planning** | | |
+| GET | `/api/json/meal_plans` | List meal plans |
+| GET | `/api/json/meal_plans/:id` | Get a meal plan |
+| POST | `/api/json/meal_plans` | Create a meal plan |
+| PATCH | `/api/json/meal_plans/:id` | Update a meal plan |
+| DELETE | `/api/json/meal_plans/:id` | Delete a meal plan |
+| **Notifications** | | |
+| GET | `/api/json/notification_preferences` | List notification preferences |
+| GET | `/api/json/notification_preferences/:id` | Get notification preference |
+| POST | `/api/json/notification_preferences` | Create notification preference |
+| PATCH | `/api/json/notification_preferences/:id` | Update notification preference |
+| DELETE | `/api/json/notification_preferences/:id` | Delete notification preference |
+| **Analytics** | | |
+| GET | `/api/json/usage_logs` | List usage logs (consumption/waste) |
+| GET | `/api/json/usage_logs/:id` | Get a usage log |
+| **OpenAPI** | | |
 | GET | `/api/json/open_api` | OpenAPI specification |
 
 ### Example: Create a Grocery Item

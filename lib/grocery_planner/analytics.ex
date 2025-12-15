@@ -3,7 +3,12 @@ defmodule GroceryPlanner.Analytics do
   Provides analytics and aggregated metrics for the Grocery Planner application.
   """
 
-  use Ash.Domain
+  use Ash.Domain,
+    extensions: [AshJsonApi.Domain]
+
+  json_api do
+    prefix("/api/json")
+  end
 
   require Ash.Query
 
