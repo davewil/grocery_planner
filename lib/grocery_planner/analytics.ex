@@ -7,13 +7,15 @@ defmodule GroceryPlanner.Analytics do
     extensions: [AshJsonApi.Domain]
 
   json_api do
-    prefix "/api/json"
+    prefix("/api/json")
   end
 
   require Ash.Query
 
   resources do
-    resource GroceryPlanner.Analytics.UsageLog
+    resource GroceryPlanner.Analytics.UsageLog do
+      define(:list_usage_logs, action: :read)
+    end
   end
 
   alias GroceryPlanner.Inventory
@@ -155,12 +157,15 @@ defmodule GroceryPlanner.Analytics do
 
     # Total cost of waste
     {:ok, wasted_logs} =
-      UsageLog
-      |> Ash.Query.filter(reason in [:expired, :wasted])
-      |> Ash.Query.filter(not is_nil(cost))
-      |> Ash.Query.load([:cost])
-      |> Ash.Query.for_read(:read, %{}, actor: actor, tenant: account_id)
-      |> Ash.read(domain: GroceryPlanner.Analytics)
+      __MODULE__.list_usage_logs(
+        query:
+          UsageLog
+          |> Ash.Query.filter(reason in [:expired, :wasted])
+          |> Ash.Query.filter(not is_nil(cost))
+          |> Ash.Query.load([:cost]),
+        actor: actor,
+        tenant: account_id
+      )
 
     total_wasted_cost =
       Enum.reduce(wasted_logs, Money.new(0, currency), fn log, acc ->
@@ -195,13 +200,16 @@ defmodule GroceryPlanner.Analytics do
     cutoff_date = Date.add(Date.utc_today(), -days)
 
     {:ok, entries} =
-      InventoryEntry
-      |> Ash.Query.filter(purchase_date >= ^cutoff_date)
-      |> Ash.Query.filter(not is_nil(purchase_price))
-      |> Ash.Query.load([:purchase_price])
-      |> Ash.Query.sort(purchase_date: :asc)
-      |> Ash.Query.for_read(:read, %{}, actor: actor, tenant: account_id)
-      |> Ash.read(domain: Inventory)
+      Inventory.list_inventory_entries(
+        query:
+          InventoryEntry
+          |> Ash.Query.filter(purchase_date >= ^cutoff_date)
+          |> Ash.Query.filter(not is_nil(purchase_price))
+          |> Ash.Query.load([:purchase_price])
+          |> Ash.Query.sort(purchase_date: :asc),
+        actor: actor,
+        tenant: account_id
+      )
 
     # Group by date and sum
     entries
@@ -228,11 +236,14 @@ defmodule GroceryPlanner.Analytics do
     cutoff_date = Date.add(Date.utc_today(), -days)
 
     {:ok, logs} =
-      UsageLog
-      |> Ash.Query.filter(occurred_at >= ^cutoff_date)
-      |> Ash.Query.sort(occurred_at: :asc)
-      |> Ash.Query.for_read(:read, %{}, actor: actor, tenant: account_id)
-      |> Ash.read(domain: GroceryPlanner.Analytics)
+      __MODULE__.list_usage_logs(
+        query:
+          UsageLog
+          |> Ash.Query.filter(occurred_at >= ^cutoff_date)
+          |> Ash.Query.sort(occurred_at: :asc),
+        actor: actor,
+        tenant: account_id
+      )
 
     # Group by date and reason
     logs
@@ -250,11 +261,14 @@ defmodule GroceryPlanner.Analytics do
   """
   def get_most_wasted_items(account_id, currency, actor, limit \\ 5) do
     {:ok, wasted_logs} =
-      UsageLog
-      |> Ash.Query.filter(reason in [:expired, :wasted])
-      |> Ash.Query.load([:grocery_item, :cost])
-      |> Ash.Query.for_read(:read, %{}, actor: actor, tenant: account_id)
-      |> Ash.read(domain: GroceryPlanner.Analytics)
+      __MODULE__.list_usage_logs(
+        query:
+          UsageLog
+          |> Ash.Query.filter(reason in [:expired, :wasted])
+          |> Ash.Query.load([:grocery_item, :cost]),
+        actor: actor,
+        tenant: account_id
+      )
 
     wasted_logs
     |> Enum.group_by(& &1.grocery_item_id)
