@@ -136,25 +136,21 @@ defmodule GroceryPlannerWeb.SettingsLive do
     end
   end
 
-  def handle_event(
-        "validate_account",
-        %{"name" => name, "timezone" => timezone, "currency" => currency},
-        socket
-      ) do
-    account_form = to_form(%{"name" => name, "timezone" => timezone, "currency" => currency})
+  def handle_event("validate_account", %{"account" => params}, socket) do
+    account_form = to_form(params, as: :account)
     {:noreply, assign(socket, :account_form, account_form)}
   end
 
-  def handle_event(
-        "update_account",
-        %{"name" => name, "timezone" => timezone, "currency" => currency},
-        socket
-      ) do
-    case Accounts.Account.update(socket.assigns.current_account, %{
-           name: name,
-           timezone: timezone,
-           currency: currency
-         }) do
+  def handle_event("update_account", %{"account" => params}, socket) do
+    case Accounts.Account.update(
+           socket.assigns.current_account,
+           %{
+             name: params["name"],
+             timezone: params["timezone"],
+             currency: params["currency"]
+           },
+           actor: socket.assigns.current_user
+         ) do
       {:ok, account} ->
         {:noreply,
          socket
@@ -166,13 +162,16 @@ defmodule GroceryPlannerWeb.SettingsLive do
     end
   end
 
-  def handle_event("validate_user", %{"name" => name, "email" => email}, socket) do
-    user_form = to_form(%{"name" => name, "email" => email})
+  def handle_event("validate_user", %{"user" => params}, socket) do
+    user_form = to_form(params, as: :user)
     {:noreply, assign(socket, :user_form, user_form)}
   end
 
-  def handle_event("update_user", %{"name" => name, "email" => email}, socket) do
-    case Accounts.User.update(socket.assigns.current_user, %{name: name, email: email}) do
+  def handle_event("update_user", %{"user" => params}, socket) do
+    case Accounts.User.update(socket.assigns.current_user, %{
+           name: params["name"],
+           email: params["email"]
+         }) do
       {:ok, user} ->
         {:noreply,
          socket
