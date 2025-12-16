@@ -21,13 +21,15 @@ defmodule GroceryPlanner.Shopping.Changes.GenerateFromMealPlans do
 
   defp generate_items(shopping_list, start_date, end_date, account_id, context) do
     # Get all meal plans in the date range
-    {:ok, all_meal_plans} = GroceryPlanner.MealPlanning.list_meal_plans(
-      actor: context.actor,
-      tenant: account_id,
-      query: GroceryPlanner.MealPlanning.MealPlan
-        |> Ash.Query.filter(scheduled_date >= ^start_date and scheduled_date <= ^end_date)
-        |> Ash.Query.load(recipe: [recipe_ingredients: :grocery_item])
-    )
+    {:ok, all_meal_plans} =
+      GroceryPlanner.MealPlanning.list_meal_plans(
+        actor: context.actor,
+        tenant: account_id,
+        query:
+          GroceryPlanner.MealPlanning.MealPlan
+          |> Ash.Query.filter(scheduled_date >= ^start_date and scheduled_date <= ^end_date)
+          |> Ash.Query.load(recipe: [recipe_ingredients: :grocery_item])
+      )
 
     meal_plans = Enum.filter(all_meal_plans, fn mp -> mp.status == :planned end)
 
@@ -35,11 +37,12 @@ defmodule GroceryPlanner.Shopping.Changes.GenerateFromMealPlans do
     ingredient_map = aggregate_ingredients(meal_plans, account_id)
 
     # Get current inventory
-    {:ok, all_inventory} = GroceryPlanner.Inventory.list_inventory_entries(
-      actor: context.actor,
-      tenant: account_id,
-      query: GroceryPlanner.Inventory.InventoryEntry |> Ash.Query.load(:grocery_item)
-    )
+    {:ok, all_inventory} =
+      GroceryPlanner.Inventory.list_inventory_entries(
+        actor: context.actor,
+        tenant: account_id,
+        query: GroceryPlanner.Inventory.InventoryEntry |> Ash.Query.load(:grocery_item)
+      )
 
     inventory =
       all_inventory

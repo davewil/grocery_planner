@@ -40,9 +40,13 @@
       <div class="p-6 bg-white border border-gray-200 rounded-xl shadow-sm">
         <h2 class="text-xl font-semibold text-gray-800 mb-2">Status</h2>
         <p class="text-gray-600">
-          {if remaining_seconds(@session, @now) > 0, do: "Voting in progress", else: "Voting ended"}
+          {if remaining_seconds(@session, @now) > 0,
+            do: "Voting in progress",
+            else: "Voting ended"}
         </p>
-        <p class="text-sm text-gray-500 mt-1">Ends at {Calendar.strftime(@session.ends_at, "%Y-%m-%d %H:%M:%S UTC")}</p>
+        <p class="text-sm text-gray-500 mt-1">
+          Ends at {Calendar.strftime(@session.ends_at, "%Y-%m-%d %H:%M:%S UTC")}
+        </p>
       </div>
       <div class="p-6 bg-white border border-gray-200 rounded-xl shadow-sm">
         <h2 class="text-xl font-semibold text-gray-800 mb-2">Time Remaining</h2>
@@ -69,7 +73,10 @@
         <div :if={recipe.image_url} class="h-40 bg-gray-100">
           <img src={recipe.image_url} alt={recipe.name} class="w-full h-full object-cover" />
         </div>
-        <div :if={!recipe.image_url} class="h-40 bg-gradient-to-br from-purple-100 to-pink-100 flex items-center justify-center">
+        <div
+          :if={!recipe.image_url}
+          class="h-40 bg-gradient-to-br from-purple-100 to-pink-100 flex items-center justify-center"
+        >
           <span class="text-purple-400 font-semibold">No Image</span>
         </div>
         <div class="p-5">
@@ -81,15 +88,19 @@
               phx-value-id={recipe.id}
               class={[
                 "ml-2 px-3 py-1 rounded-full text-sm font-medium transition",
-                MapSet.member?(@user_votes, recipe.id) && "bg-yellow-100 text-yellow-700 border border-yellow-300 hover:bg-yellow-200",
-                !MapSet.member?(@user_votes, recipe.id) && "bg-gray-100 text-gray-600 border border-gray-300 hover:bg-gray-200"
+                MapSet.member?(@user_votes, recipe.id) &&
+                  "bg-yellow-100 text-yellow-700 border border-yellow-300 hover:bg-yellow-200",
+                !MapSet.member?(@user_votes, recipe.id) &&
+                  "bg-gray-100 text-gray-600 border border-gray-300 hover:bg-gray-200"
               ]}
               type="button"
             >
               {if MapSet.member?(@user_votes, recipe.id), do: "Voted", else: "Vote"}
             </button>
           </div>
-          <p :if={recipe.description} class="text-sm text-gray-600 mb-3 line-clamp-2">{recipe.description}</p>
+          <p :if={recipe.description} class="text-sm text-gray-600 mb-3 line-clamp-2">
+            {recipe.description}
+          </p>
           <div class="flex items-center justify-between text-sm text-gray-500">
             <span>{recipe.servings} servings</span>
             <span class={[
@@ -100,7 +111,9 @@
                 :hard -> "bg-red-100 text-red-800"
                 _ -> "bg-gray-100 text-gray-800"
               end
-            ]}>{recipe.difficulty}</span>
+            ]}>
+              {recipe.difficulty}
+            </span>
             <span class="text-gray-700 font-semibold">Votes: {@tally[recipe.id]}</span>
           </div>
         </div>

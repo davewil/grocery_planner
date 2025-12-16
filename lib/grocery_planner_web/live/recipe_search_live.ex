@@ -8,7 +8,8 @@ defmodule GroceryPlannerWeb.RecipeSearchLive do
   alias GroceryPlanner.MealPlanning.Voting
 
   def mount(_params, _session, socket) do
-    voting_active = Voting.voting_active?(socket.assigns.current_account.id, socket.assigns.current_user)
+    voting_active =
+      Voting.voting_active?(socket.assigns.current_account.id, socket.assigns.current_user)
 
     socket =
       socket

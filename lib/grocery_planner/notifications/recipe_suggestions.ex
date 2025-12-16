@@ -19,13 +19,14 @@ defmodule GroceryPlanner.Notifications.RecipeSuggestions do
     limit = Keyword.get(opts, :limit, 10)
 
     # Get all expiring items
-    with {:ok, expiring_alerts} <- ExpirationAlerts.get_expiring_items(account_id, actor, days_threshold: days_threshold) do
+    with {:ok, expiring_alerts} <-
+           ExpirationAlerts.get_expiring_items(account_id, actor, days_threshold: days_threshold) do
       # Extract grocery_item_ids from expiring items
       expiring_item_ids =
         (expiring_alerts.expired ++
-        expiring_alerts.today ++
-        expiring_alerts.tomorrow ++
-        expiring_alerts.this_week)
+           expiring_alerts.today ++
+           expiring_alerts.tomorrow ++
+           expiring_alerts.this_week)
         |> Enum.map(& &1.grocery_item_id)
         |> Enum.uniq()
 
@@ -33,17 +34,19 @@ defmodule GroceryPlanner.Notifications.RecipeSuggestions do
         {:ok, []}
       else
         # Get all recipes and calculate relevance scores
-        {:ok, all_recipes} = Recipes.list_recipes(
-          actor: actor,
-          tenant: account_id,
-          query: GroceryPlanner.Recipes.Recipe
-            |> Ash.Query.load([
-              :recipe_ingredients,
-              :can_make,
-              :missing_ingredients,
-              :ingredient_availability
-            ])
-        )
+        {:ok, all_recipes} =
+          Recipes.list_recipes(
+            actor: actor,
+            tenant: account_id,
+            query:
+              GroceryPlanner.Recipes.Recipe
+              |> Ash.Query.load([
+                :recipe_ingredients,
+                :can_make,
+                :missing_ingredients,
+                :ingredient_availability
+              ])
+          )
 
         # Score and rank recipes
         scored_recipes =
@@ -79,7 +82,8 @@ defmodule GroceryPlanner.Notifications.RecipeSuggestions do
       {:ok, suggestions} ->
         {:ok, Enum.map(suggestions, & &1.recipe)}
 
-      error -> error
+      error ->
+        error
     end
   end
 

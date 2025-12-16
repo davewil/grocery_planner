@@ -18,8 +18,13 @@ defmodule GroceryPlanner.Repo.Migrations.AddMealPlanVoting do
           ),
           null: false
 
-      add :created_at, :utc_datetime_usec, null: false, default: fragment("(now() AT TIME ZONE 'utc')")
-      add :updated_at, :utc_datetime_usec, null: false, default: fragment("(now() AT TIME ZONE 'utc')")
+      add :created_at, :utc_datetime_usec,
+        null: false,
+        default: fragment("(now() AT TIME ZONE 'utc')")
+
+      add :updated_at, :utc_datetime_usec,
+        null: false,
+        default: fragment("(now() AT TIME ZONE 'utc')")
     end
 
     create index(:meal_plan_vote_sessions, [:account_id])
@@ -31,9 +36,14 @@ defmodule GroceryPlanner.Repo.Migrations.AddMealPlanVoting do
       add :vote_session_id, :uuid, null: false
       add :recipe_id, :uuid, null: false
       add :user_id, :uuid, null: false
-      add :created_at, :utc_datetime_usec, null: false, default: fragment("(now() AT TIME ZONE 'utc')")
 
-      add :updated_at, :utc_datetime_usec, null: false, default: fragment("(now() AT TIME ZONE 'utc')")
+      add :created_at, :utc_datetime_usec,
+        null: false,
+        default: fragment("(now() AT TIME ZONE 'utc')")
+
+      add :updated_at, :utc_datetime_usec,
+        null: false,
+        default: fragment("(now() AT TIME ZONE 'utc')")
     end
 
     create index(:meal_plan_vote_entries, [:account_id])
@@ -41,6 +51,10 @@ defmodule GroceryPlanner.Repo.Migrations.AddMealPlanVoting do
     create index(:meal_plan_vote_entries, [:recipe_id])
     create index(:meal_plan_vote_entries, [:user_id])
 
-    create unique_index(:meal_plan_vote_entries, [:account_id, :vote_session_id, :recipe_id, :user_id], name: :unique_vote_per_user_session_recipe)
+    create unique_index(
+             :meal_plan_vote_entries,
+             [:account_id, :vote_session_id, :recipe_id, :user_id],
+             name: :unique_vote_per_user_session_recipe
+           )
   end
 end

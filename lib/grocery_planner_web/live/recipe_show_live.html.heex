@@ -58,8 +58,10 @@
                 phx-click="toggle_favorite"
                 class={[
                   "p-2 rounded-full transition flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-offset-2",
-                  @recipe.is_favorite && "bg-yellow-100 text-yellow-600 hover:bg-yellow-200 focus:ring-yellow-400",
-                  !@recipe.is_favorite && "bg-gray-100 text-gray-400 hover:bg-gray-200 focus:ring-gray-300"
+                  @recipe.is_favorite &&
+                    "bg-yellow-100 text-yellow-600 hover:bg-yellow-200 focus:ring-yellow-400",
+                  !@recipe.is_favorite &&
+                    "bg-gray-100 text-gray-400 hover:bg-gray-200 focus:ring-gray-300"
                 ]}
                 type="button"
                 aria-pressed={@recipe.is_favorite}

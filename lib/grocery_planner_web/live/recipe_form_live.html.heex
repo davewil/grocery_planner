@@ -127,8 +127,10 @@
                 phx-click="toggle_favorite"
                 class={[
                   "flex items-center gap-2 px-4 py-2 rounded-full border text-sm font-semibold transition",
-                  @form[:is_favorite].value && "bg-yellow-100 border-yellow-300 text-yellow-700 hover:bg-yellow-200",
-                  !@form[:is_favorite].value && "bg-gray-50 border-gray-300 text-gray-600 hover:bg-gray-100"
+                  @form[:is_favorite].value &&
+                    "bg-yellow-100 border-yellow-300 text-yellow-700 hover:bg-yellow-200",
+                  !@form[:is_favorite].value &&
+                    "bg-gray-50 border-gray-300 text-gray-600 hover:bg-gray-100"
                 ]}
               >
                 <svg

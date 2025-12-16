@@ -9,6 +9,56 @@ defmodule GroceryPlanner.MealPlanning.MealPlanVoteSession do
     repo GroceryPlanner.Repo
   end
 
+  actions do
+    defaults [:read]
+
+    create :start do
+      accept []
+
+      argument :account_id, :uuid, allow_nil?: false
+
+      change manage_relationship(:account_id, :account, type: :append)
+      change {GroceryPlanner.MealPlanning.MealPlanVoteSession.SetEndsAt, []}
+      change {GroceryPlanner.MealPlanning.MealPlanVoteSession.EnsureNoOpenSession, []}
+    end
+
+    update :update do
+      accept [:ends_at, :status]
+    end
+
+    update :close do
+      accept []
+
+      change set_attribute(:status, :closed)
+    end
+
+    update :mark_processed do
+      accept [:winning_recipe_ids]
+
+      change set_attribute(:status, :processed)
+      change set_attribute(:processed_at, &DateTime.utc_now/0)
+    end
+  end
+
+  policies do
+    policy action_type(:read) do
+      authorize_if relates_to_actor_via([:account, :memberships, :user])
+    end
+
+    policy action(:start) do
+      authorize_if actor_present()
+    end
+
+    policy action_type([:update]) do
+      authorize_if relates_to_actor_via([:account, :memberships, :user])
+    end
+  end
+
+  multitenancy do
+    strategy :attribute
+    attribute :account_id
+  end
+
   attributes do
     uuid_primary_key :id
 
@@ -54,56 +104,6 @@ defmodule GroceryPlanner.MealPlanning.MealPlanVoteSession do
 
     has_many :vote_entries, GroceryPlanner.MealPlanning.MealPlanVoteEntry do
       destination_attribute :vote_session_id
-    end
-  end
-
-  multitenancy do
-    strategy :attribute
-    attribute :account_id
-  end
-
-  actions do
-    defaults [:read]
-
-    create :start do
-      accept []
-
-      argument :account_id, :uuid, allow_nil?: false
-
-      change manage_relationship(:account_id, :account, type: :append)
-      change {GroceryPlanner.MealPlanning.MealPlanVoteSession.SetEndsAt, []}
-      change {GroceryPlanner.MealPlanning.MealPlanVoteSession.EnsureNoOpenSession, []}
-    end
-
-    update :update do
-      accept [:ends_at, :status]
-    end
-
-    update :close do
-      accept []
-
-      change set_attribute(:status, :closed)
-    end
-
-    update :mark_processed do
-      accept [:winning_recipe_ids]
-
-      change set_attribute(:status, :processed)
-      change set_attribute(:processed_at, &DateTime.utc_now/0)
-    end
-  end
-
-  policies do
-    policy action_type(:read) do
-      authorize_if relates_to_actor_via([:account, :memberships, :user])
-    end
-
-    policy action(:start) do
-      authorize_if actor_present()
-    end
-
-    policy action_type([:update]) do
-      authorize_if relates_to_actor_via([:account, :memberships, :user])
     end
   end
 

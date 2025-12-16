@@ -69,7 +69,7 @@ defmodule GroceryPlannerWeb.AnalyticsLive do
             Insights into your inventory, spending, and waste
           </p>
         </div>
-
+        
     <!-- KPI Cards -->
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
@@ -203,8 +203,8 @@ defmodule GroceryPlannerWeb.AnalyticsLive do
               <span>Today</span>
             </div>
           </div>
-
-          <!-- Usage Trends -->
+          
+    <!-- Usage Trends -->
           <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
             <h3 class="text-lg font-semibold text-gray-900 mb-6">Usage Trends (Last 30 Days)</h3>
             <div class="h-64 flex items-end gap-2">
@@ -219,14 +219,16 @@ defmodule GroceryPlannerWeb.AnalyticsLive do
                     <div
                       class="w-full bg-red-400 hover:bg-red-500 transition-all"
                       style={"height: #{if @max_usage > 0, do: (point.wasted / @max_usage) * 100, else: 0}%"}
-                    ></div>
+                    >
+                    </div>
                     <!-- Consumed Bar -->
                     <div
                       class="w-full bg-green-500 hover:bg-green-600 transition-all"
                       style={"height: #{if @max_usage > 0, do: (point.consumed / @max_usage) * 100, else: 0}%"}
-                    ></div>
-
-                    <!-- Tooltip -->
+                    >
+                    </div>
+                    
+    <!-- Tooltip -->
                     <div class="absolute bottom-full mb-2 hidden group-hover:block z-10 bg-gray-900 text-white text-xs rounded py-1 px-2 whitespace-nowrap">
                       <div class="font-bold">{point.date}</div>
                       <div class="text-green-300">Consumed: {point.consumed}</div>
@@ -257,9 +259,24 @@ defmodule GroceryPlannerWeb.AnalyticsLive do
               <table class="min-w-full divide-y divide-gray-200">
                 <thead class="bg-gray-50">
                   <tr>
-                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Item</th>
-                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Times Wasted</th>
-                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Cost</th>
+                    <th
+                      scope="col"
+                      class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                    >
+                      Item
+                    </th>
+                    <th
+                      scope="col"
+                      class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                    >
+                      Times Wasted
+                    </th>
+                    <th
+                      scope="col"
+                      class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                    >
+                      Total Cost
+                    </th>
                   </tr>
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-200">
@@ -287,8 +304,8 @@ defmodule GroceryPlannerWeb.AnalyticsLive do
               </table>
             </div>
           </div>
-
-          <!-- Expiration Timeline (Simple Visual) -->
+          
+    <!-- Expiration Timeline (Simple Visual) -->
           <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
             <h3 class="text-lg font-semibold text-gray-900 mb-6">Expiration Timeline</h3>
             <div class="space-y-6">

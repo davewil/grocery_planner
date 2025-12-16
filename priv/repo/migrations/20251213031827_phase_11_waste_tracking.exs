@@ -26,7 +26,8 @@ defmodule GroceryPlanner.Repo.Migrations.Phase11WasteTracking do
             name: "usage_logs_account_id_fkey",
             type: :uuid,
             prefix: "public"
-          ), null: false
+          ),
+          null: false
 
       add :grocery_item_id,
           references(:grocery_items,
@@ -34,7 +35,8 @@ defmodule GroceryPlanner.Repo.Migrations.Phase11WasteTracking do
             name: "usage_logs_grocery_item_id_fkey",
             type: :uuid,
             prefix: "public"
-          ), null: false
+          ),
+          null: false
 
       add :created_at, :utc_datetime_usec,
         null: false,

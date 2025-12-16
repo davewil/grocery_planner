@@ -48,8 +48,8 @@ defmodule GroceryPlannerWeb.Layouts do
                 <span class="text-xl font-bold text-gray-900">GroceryPlanner</span>
               </.link>
             </div>
-
-            <!-- Desktop Navigation -->
+            
+    <!-- Desktop Navigation -->
             <nav class="hidden lg:flex flex-none">
               <ul class="flex items-center space-x-2">
                 <%= if assigns[:current_user] do %>
@@ -96,7 +96,8 @@ defmodule GroceryPlannerWeb.Layouts do
                         class="relative flex h-2 w-2"
                         title="Voting in progress"
                       >
-                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-purple-400 opacity-75"></span>
+                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-purple-400 opacity-75">
+                        </span>
                         <span class="relative inline-flex rounded-full h-2 w-2 bg-purple-500"></span>
                       </span>
                     </.link>
@@ -155,20 +156,27 @@ defmodule GroceryPlannerWeb.Layouts do
                 <% end %>
               </ul>
             </nav>
-
-            <!-- Mobile Menu Button -->
+            
+    <!-- Mobile Menu Button -->
             <button
               class="lg:hidden p-2 text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition"
-              phx-click={JS.toggle(to: "#mobile-menu") |> JS.toggle_class("hidden", to: "#mobile-menu")}
+              phx-click={
+                JS.toggle(to: "#mobile-menu") |> JS.toggle_class("hidden", to: "#mobile-menu")
+              }
               aria-label="Toggle menu"
             >
               <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M4 6h16M4 12h16M4 18h16"
+                />
               </svg>
             </button>
           </div>
-
-          <!-- Mobile Navigation Menu -->
+          
+    <!-- Mobile Navigation Menu -->
           <div id="mobile-menu" class="hidden lg:hidden pb-4">
             <nav class="flex flex-col space-y-2">
               <%= if assigns[:current_user] do %>
@@ -211,7 +219,8 @@ defmodule GroceryPlannerWeb.Layouts do
                     class="relative flex h-2 w-2"
                     title="Voting in progress"
                   >
-                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-purple-400 opacity-75"></span>
+                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-purple-400 opacity-75">
+                    </span>
                     <span class="relative inline-flex rounded-full h-2 w-2 bg-purple-500"></span>
                   </span>
                 </.link>

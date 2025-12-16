@@ -9,6 +9,45 @@ defmodule GroceryPlanner.MealPlanning.MealPlanVoteEntry do
     repo GroceryPlanner.Repo
   end
 
+  actions do
+    defaults [:read, :destroy]
+
+    create :vote do
+      accept []
+
+      argument :account_id, :uuid, allow_nil?: false
+      argument :vote_session_id, :uuid, allow_nil?: false
+      argument :recipe_id, :uuid, allow_nil?: false
+      argument :user_id, :uuid, allow_nil?: false
+
+      change manage_relationship(:account_id, :account, type: :append)
+      change manage_relationship(:vote_session_id, :vote_session, type: :append)
+      change manage_relationship(:recipe_id, :recipe, type: :append)
+      change manage_relationship(:user_id, :user, type: :append)
+      change {GroceryPlanner.MealPlanning.MealPlanVoteEntry.EnsureSessionOpen, []}
+      change {GroceryPlanner.MealPlanning.MealPlanVoteEntry.EnsureUniqueVote, []}
+    end
+  end
+
+  policies do
+    policy action_type(:read) do
+      authorize_if relates_to_actor_via([:account, :memberships, :user])
+    end
+
+    policy action(:vote) do
+      authorize_if actor_present()
+    end
+
+    policy action_type([:destroy]) do
+      authorize_if relates_to_actor_via([:account, :memberships, :user])
+    end
+  end
+
+  multitenancy do
+    strategy :attribute
+    attribute :account_id
+  end
+
   attributes do
     uuid_primary_key :id
 
@@ -57,45 +96,6 @@ defmodule GroceryPlanner.MealPlanning.MealPlanVoteEntry do
     end
   end
 
-  multitenancy do
-    strategy :attribute
-    attribute :account_id
-  end
-
-  actions do
-    defaults [:read, :destroy]
-
-    create :vote do
-      accept []
-
-      argument :account_id, :uuid, allow_nil?: false
-      argument :vote_session_id, :uuid, allow_nil?: false
-      argument :recipe_id, :uuid, allow_nil?: false
-      argument :user_id, :uuid, allow_nil?: false
-
-      change manage_relationship(:account_id, :account, type: :append)
-      change manage_relationship(:vote_session_id, :vote_session, type: :append)
-      change manage_relationship(:recipe_id, :recipe, type: :append)
-      change manage_relationship(:user_id, :user, type: :append)
-      change {GroceryPlanner.MealPlanning.MealPlanVoteEntry.EnsureSessionOpen, []}
-      change {GroceryPlanner.MealPlanning.MealPlanVoteEntry.EnsureUniqueVote, []}
-    end
-  end
-
-  policies do
-    policy action_type(:read) do
-      authorize_if relates_to_actor_via([:account, :memberships, :user])
-    end
-
-    policy action(:vote) do
-      authorize_if actor_present()
-    end
-
-    policy action_type([:destroy]) do
-      authorize_if relates_to_actor_via([:account, :memberships, :user])
-    end
-  end
-
   defmodule EnsureSessionOpen do
     use Ash.Resource.Change
 
@@ -109,7 +109,8 @@ defmodule GroceryPlanner.MealPlanning.MealPlanVoteEntry do
 
       case session do
         {:ok, session} ->
-          if session.status != :open or DateTime.compare(DateTime.utc_now(), session.ends_at) == :gt do
+          if session.status != :open or
+               DateTime.compare(DateTime.utc_now(), session.ends_at) == :gt do
             Ash.Changeset.add_error(changeset,
               field: :vote_session_id,
               message: "Voting session is closed"
@@ -139,7 +140,8 @@ defmodule GroceryPlanner.MealPlanning.MealPlanVoteEntry do
       existing =
         GroceryPlanner.MealPlanning.MealPlanVoteEntry
         |> Ash.Query.filter(
-          account_id == ^account_id and vote_session_id == ^vote_session_id and recipe_id == ^recipe_id and
+          account_id == ^account_id and vote_session_id == ^vote_session_id and
+            recipe_id == ^recipe_id and
             user_id == ^user_id
         )
         |> Ash.exists?(tenant: account_id, actor: context.actor)

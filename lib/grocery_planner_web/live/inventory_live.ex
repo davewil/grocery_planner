@@ -5,6 +5,8 @@ defmodule GroceryPlannerWeb.InventoryLive do
 
   alias GroceryPlanner.Inventory.{GroceryItem, InventoryEntry}
 
+  require Ash.Query
+
   def render(assigns) do
     ~H"""
     <Layouts.app
@@ -64,6 +66,7 @@ defmodule GroceryPlannerWeb.InventoryLive do
                   editing_id={@editing_id}
                   managing_tags_for={@managing_tags_for}
                   categories={@categories}
+                  selected_tag_ids={@selected_tag_ids}
                 />
               <% "inventory" -> %>
                 <.inventory_tab
@@ -225,6 +228,7 @@ defmodule GroceryPlannerWeb.InventoryLive do
   attr(:editing_id, :any, default: nil)
   attr(:managing_tags_for, :any, default: nil)
   attr(:categories, :list, required: true)
+  attr(:selected_tag_ids, :list, default: [])
 
   defp items_tab(assigns) do
     ~H"""
@@ -315,6 +319,47 @@ defmodule GroceryPlannerWeb.InventoryLive do
               options={[{"None", nil}] ++ Enum.map(@categories, fn c -> {c.name, c.id} end)}
             />
 
+            <%= if length(@tags) > 0 do %>
+              <div class="space-y-2">
+                <label class="block text-sm font-medium text-gray-700">Tags</label>
+                <div class="flex flex-wrap gap-2">
+                  <%= for tag <- @tags do %>
+                    <label
+                      class={"cursor-pointer px-3 py-2 rounded-lg transition text-sm font-medium inline-flex items-center gap-2 #{if tag.id in @selected_tag_ids, do: "ring-2 ring-offset-1", else: "opacity-60 hover:opacity-100"}"}
+                      style={
+                        if(tag.id in @selected_tag_ids,
+                          do:
+                            "background-color: #{tag.color}; color: white; ring-color: #{tag.color}",
+                          else: "background-color: #{tag.color}20; color: #{tag.color}"
+                        )
+                      }
+                    >
+                      <input
+                        type="checkbox"
+                        name="item[tag_ids][]"
+                        value={tag.id}
+                        checked={tag.id in @selected_tag_ids}
+                        phx-click="toggle_form_tag"
+                        phx-value-tag-id={tag.id}
+                        class="sr-only"
+                      />
+                      {tag.name}
+                      <%= if tag.id in @selected_tag_ids do %>
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                            d="M5 13l4 4L19 7"
+                          />
+                        </svg>
+                      <% end %>
+                    </label>
+                  <% end %>
+                </div>
+              </div>
+            <% end %>
+
             <div class="flex gap-2 justify-end">
               <.button
                 type="button"
@@ -336,8 +381,8 @@ defmodule GroceryPlannerWeb.InventoryLive do
     <% end %>
 
     <%= if @managing_tags_for do %>
-      <% item = Enum.find(@items, &(&1.id == @managing_tags_for)) %>
-      <% item_tag_ids = Enum.map(item.tags, & &1.id) %>
+      <% item = @managing_tags_for %>
+      <% item_tag_ids = Enum.map(item.tags || [], & &1.id) %>
 
       <div class="mb-6 bg-pink-50 border border-pink-200 rounded-xl p-6">
         <h3 class="text-lg font-semibold text-gray-900 mb-4">
@@ -1114,6 +1159,7 @@ defmodule GroceryPlannerWeb.InventoryLive do
       |> assign(:managing_tags_for, nil)
       |> assign(:show_tag_modal, false)
       |> assign(:filter_tag_ids, [])
+      |> assign(:selected_tag_ids, [])
       |> assign(:expiring_filter, nil)
 
     {:ok, socket}
@@ -1144,7 +1190,13 @@ defmodule GroceryPlannerWeb.InventoryLive do
   end
 
   def handle_event("new_item", _, socket) do
-    {:noreply, assign(socket, show_form: :item, form: to_form(%{}, as: :item), editing_id: nil)}
+    {:noreply,
+     assign(socket,
+       show_form: :item,
+       form: to_form(%{}, as: :item),
+       editing_id: nil,
+       selected_tag_ids: []
+     )}
   end
 
   def handle_event("new_location", _, socket) do
@@ -1165,6 +1217,33 @@ defmodule GroceryPlannerWeb.InventoryLive do
 
   def handle_event("cancel_form", _, socket) do
     {:noreply, assign(socket, show_form: nil, form: nil, editing_id: nil)}
+  end
+
+  def handle_event("toggle_tag_filter", %{"tag-id" => tag_id}, socket) do
+    current_filters = socket.assigns.filter_tag_ids
+
+    new_filters =
+      if tag_id in current_filters do
+        List.delete(current_filters, tag_id)
+      else
+        [tag_id | current_filters]
+      end
+
+    socket =
+      socket
+      |> assign(:filter_tag_ids, new_filters)
+      |> load_data()
+
+    {:noreply, socket}
+  end
+
+  def handle_event("clear_tag_filters", _, socket) do
+    socket =
+      socket
+      |> assign(:filter_tag_ids, [])
+      |> load_data()
+
+    {:noreply, socket}
   end
 
   def handle_event("save_location", %{"location" => params}, socket) do
@@ -1213,26 +1292,144 @@ defmodule GroceryPlannerWeb.InventoryLive do
     end
   end
 
+  def handle_event("edit_item", %{"id" => id}, socket) do
+    case GroceryPlanner.Inventory.get_grocery_item(id,
+           actor: socket.assigns.current_user,
+           tenant: socket.assigns.current_account.id,
+           load: [:tags]
+         ) do
+      {:ok, item} ->
+        form =
+          to_form(
+            %{
+              "name" => item.name,
+              "description" => item.description,
+              "category_id" => item.category_id,
+              "default_unit" => item.default_unit,
+              "barcode" => item.barcode
+            },
+            as: :item
+          )
+
+        selected_tag_ids = Enum.map(item.tags || [], fn tag -> to_string(tag.id) end)
+
+        {:noreply,
+         assign(socket,
+           show_form: :item,
+           form: form,
+           editing_id: id,
+           selected_tag_ids: selected_tag_ids
+         )}
+
+      {:error, _} ->
+        {:noreply, put_flash(socket, :error, "Item not found")}
+    end
+  end
+
+  def handle_event("toggle_form_tag", %{"tag-id" => tag_id}, socket) do
+    current = socket.assigns.selected_tag_ids
+
+    new_selected =
+      if tag_id in current do
+        List.delete(current, tag_id)
+      else
+        [tag_id | current]
+      end
+
+    {:noreply, assign(socket, :selected_tag_ids, new_selected)}
+  end
+
   def handle_event("save_item", %{"item" => params}, socket) do
     account_id = socket.assigns.current_account.id
+    # Filter out tag_ids from params - tags are synced separately via selected_tag_ids
+    item_params = Map.drop(params, ["tag_ids"])
 
-    case GroceryPlanner.Inventory.create_grocery_item!(
-           account_id,
-           params,
-           authorize?: false,
-           tenant: account_id
-         ) do
-      item when is_struct(item) ->
+    result =
+      if socket.assigns.editing_id do
+        # Update existing item
+        case GroceryPlanner.Inventory.get_grocery_item(
+               socket.assigns.editing_id,
+               actor: socket.assigns.current_user,
+               tenant: account_id
+             ) do
+          {:ok, item} ->
+            GroceryPlanner.Inventory.update_grocery_item(
+              item,
+              item_params,
+              actor: socket.assigns.current_user,
+              tenant: account_id
+            )
+
+          error ->
+            error
+        end
+      else
+        # Create new item
+        case GroceryPlanner.Inventory.create_grocery_item!(
+               account_id,
+               item_params,
+               authorize?: false,
+               tenant: account_id
+             ) do
+          item when is_struct(item) -> {:ok, item}
+          error -> error
+        end
+      end
+
+    case result do
+      {:ok, item} ->
+        # Sync tag associations
+        sync_item_tags(item.id, socket.assigns.selected_tag_ids, socket)
+
+        action = if socket.assigns.editing_id, do: "updated", else: "created"
+
         socket =
           socket
           |> load_data()
-          |> assign(show_form: nil, form: nil, editing_id: nil)
-          |> put_flash(:info, "Grocery item created successfully")
+          |> assign(show_form: nil, form: nil, editing_id: nil, selected_tag_ids: [])
+          |> put_flash(:info, "Grocery item #{action} successfully")
 
         {:noreply, socket}
 
       {:error, _} ->
-        {:noreply, put_flash(socket, :error, "Failed to create grocery item")}
+        action = if socket.assigns.editing_id, do: "update", else: "create"
+        {:noreply, put_flash(socket, :error, "Failed to #{action} grocery item")}
+    end
+  end
+
+  defp sync_item_tags(item_id, selected_tag_ids, socket) do
+    # Get current tags for this item
+    {:ok, current_taggings} =
+      GroceryPlanner.Inventory.list_grocery_item_taggings(
+        actor: socket.assigns.current_user,
+        query:
+          GroceryPlanner.Inventory.GroceryItemTagging
+          |> Ash.Query.filter(grocery_item_id == ^item_id)
+      )
+
+    current_tag_ids = Enum.map(current_taggings, fn t -> to_string(t.tag_id) end)
+
+    # Tags to add
+    tags_to_add = selected_tag_ids -- current_tag_ids
+
+    # Tags to remove
+    tags_to_remove = current_tag_ids -- selected_tag_ids
+
+    # Add new tags
+    for tag_id <- tags_to_add do
+      GroceryPlanner.Inventory.create_grocery_item_tagging(
+        %{grocery_item_id: item_id, tag_id: tag_id},
+        authorize?: false
+      )
+    end
+
+    # Remove old tags
+    for tag_id <- tags_to_remove do
+      tagging = Enum.find(current_taggings, &(&1.tag_id == tag_id))
+
+      if tagging do
+        GroceryPlanner.Inventory.destroy_grocery_item_tagging(tagging, authorize?: false)
+      end
     end
   end
 
@@ -1500,6 +1697,100 @@ defmodule GroceryPlannerWeb.InventoryLive do
       {:error, _} ->
         {:noreply, put_flash(socket, :error, "Tag not found")}
     end
+  end
+
+  def handle_event("manage_tags", %{"id" => id}, socket) do
+    case GroceryPlanner.Inventory.get_grocery_item(id,
+           actor: socket.assigns.current_user,
+           tenant: socket.assigns.current_account.id,
+           load: [:tags]
+         ) do
+      {:ok, item} ->
+        {:noreply, assign(socket, managing_tags_for: item)}
+
+      {:error, _} ->
+        {:noreply, put_flash(socket, :error, "Item not found")}
+    end
+  end
+
+  def handle_event("add_tag_to_item", %{"item-id" => item_id, "tag-id" => tag_id}, socket) do
+    case GroceryPlanner.Inventory.create_grocery_item_tagging(
+           %{grocery_item_id: item_id, tag_id: tag_id},
+           authorize?: false
+         ) do
+      {:ok, _} ->
+        # Reload the item with tags
+        {:ok, updated_item} =
+          GroceryPlanner.Inventory.get_grocery_item(item_id,
+            actor: socket.assigns.current_user,
+            tenant: socket.assigns.current_account.id,
+            load: [:tags]
+          )
+
+        socket =
+          socket
+          |> assign(managing_tags_for: updated_item)
+          |> load_data()
+
+        {:noreply, socket}
+
+      {:error, _} ->
+        {:noreply, put_flash(socket, :error, "Failed to add tag")}
+    end
+  end
+
+  def handle_event("remove_tag_from_item", %{"item-id" => item_id, "tag-id" => tag_id}, socket) do
+    # Find the tagging and destroy it
+    case GroceryPlanner.Inventory.list_grocery_item_taggings(
+           actor: socket.assigns.current_user,
+           query:
+             GroceryPlanner.Inventory.GroceryItemTagging
+             |> Ash.Query.filter(grocery_item_id == ^item_id and tag_id == ^tag_id)
+         ) do
+      {:ok, [tagging | _]} ->
+        case GroceryPlanner.Inventory.destroy_grocery_item_tagging(tagging, authorize?: false) do
+          :ok ->
+            # Reload the item with tags
+            {:ok, updated_item} =
+              GroceryPlanner.Inventory.get_grocery_item(item_id,
+                actor: socket.assigns.current_user,
+                tenant: socket.assigns.current_account.id,
+                load: [:tags]
+              )
+
+            socket =
+              socket
+              |> assign(managing_tags_for: updated_item)
+              |> load_data()
+
+            {:noreply, socket}
+
+          {:ok, _} ->
+            {:ok, updated_item} =
+              GroceryPlanner.Inventory.get_grocery_item(item_id,
+                actor: socket.assigns.current_user,
+                tenant: socket.assigns.current_account.id,
+                load: [:tags]
+              )
+
+            socket =
+              socket
+              |> assign(managing_tags_for: updated_item)
+              |> load_data()
+
+            {:noreply, socket}
+
+          {:error, _} ->
+            {:noreply, put_flash(socket, :error, "Failed to remove tag")}
+        end
+
+      _ ->
+        {:noreply, put_flash(socket, :error, "Tag association not found")}
+    end
+  end
+
+  def handle_event("cancel_tag_management", _, socket) do
+    {:noreply, assign(socket, managing_tags_for: nil)}
   end
 
   def handle_event("delete_entry", %{"id" => id}, socket) do

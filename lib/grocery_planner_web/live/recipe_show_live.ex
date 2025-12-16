@@ -32,7 +32,9 @@ defmodule GroceryPlannerWeb.RecipeShowLive do
            tenant: socket.assigns.current_account.id
          ) do
       {:ok, updated_recipe} ->
-        Logger.info("Successfully updated recipe, new favorite status: #{updated_recipe.is_favorite}")
+        Logger.info(
+          "Successfully updated recipe, new favorite status: #{updated_recipe.is_favorite}"
+        )
 
         case load_recipe(socket, socket.assigns.recipe.id) do
           {:ok, updated_socket} ->
@@ -54,11 +56,12 @@ defmodule GroceryPlannerWeb.RecipeShowLive do
   end
 
   def handle_event("delete_recipe", _, socket) do
-    result = GroceryPlanner.Recipes.destroy_recipe(
-      socket.assigns.recipe,
-      actor: socket.assigns.current_user,
-      tenant: socket.assigns.current_account.id
-    )
+    result =
+      GroceryPlanner.Recipes.destroy_recipe(
+        socket.assigns.recipe,
+        actor: socket.assigns.current_user,
+        tenant: socket.assigns.current_account.id
+      )
 
     case result do
       {:ok, _} ->

@@ -560,4 +560,257 @@ defmodule GroceryPlannerWeb.InventoryLiveTest do
       assert has_element?(view, "form#item-form")
     end
   end
+
+  describe "tag filtering" do
+    test "toggle_tag_filter filters grocery items by tag", %{conn: conn, account: account} do
+      # Create a tag
+      {:ok, tag} =
+        GroceryPlanner.Inventory.create_grocery_item_tag(
+          account.id,
+          %{name: "Protein", color: "#EF4444"},
+          authorize?: false,
+          tenant: account.id
+        )
+
+      # Create two items, one with the tag
+      {:ok, item_with_tag} =
+        GroceryPlanner.Inventory.create_grocery_item(
+          account.id,
+          %{name: "Chicken Breast"},
+          authorize?: false,
+          tenant: account.id
+        )
+
+      {:ok, _item_without_tag} =
+        GroceryPlanner.Inventory.create_grocery_item(
+          account.id,
+          %{name: "Milk"},
+          authorize?: false,
+          tenant: account.id
+        )
+
+      # Associate tag with item
+      GroceryPlanner.Inventory.create_grocery_item_tagging(
+        %{grocery_item_id: item_with_tag.id, tag_id: tag.id},
+        authorize?: false
+      )
+
+      {:ok, view, _html} = live(conn, "/inventory")
+
+      # Both items should be visible initially
+      assert has_element?(view, "div", "Chicken Breast")
+      assert has_element?(view, "div", "Milk")
+
+      # Click the tag filter
+      view
+      |> element("button[phx-click='toggle_tag_filter'][phx-value-tag-id='#{tag.id}']")
+      |> render_click()
+
+      # Only tagged item should be visible
+      assert has_element?(view, "div", "Chicken Breast")
+      refute has_element?(view, "div", "Milk")
+    end
+
+    test "clear_tag_filters clears all tag filters", %{conn: conn, account: account} do
+      {:ok, tag} =
+        GroceryPlanner.Inventory.create_grocery_item_tag(
+          account.id,
+          %{name: "Vegetable", color: "#10B981"},
+          authorize?: false,
+          tenant: account.id
+        )
+
+      {:ok, _item} =
+        GroceryPlanner.Inventory.create_grocery_item(
+          account.id,
+          %{name: "Test Item"},
+          authorize?: false,
+          tenant: account.id
+        )
+
+      {:ok, view, _html} = live(conn, "/inventory")
+
+      # Apply tag filter
+      view
+      |> element("button[phx-click='toggle_tag_filter'][phx-value-tag-id='#{tag.id}']")
+      |> render_click()
+
+      # Clear filters
+      view
+      |> element("button[phx-click='clear_tag_filters']")
+      |> render_click()
+
+      # Item should be visible again
+      assert has_element?(view, "div", "Test Item")
+    end
+  end
+
+  describe "editing grocery items" do
+    test "edit_item opens form with item data", %{conn: conn, account: account} do
+      {:ok, item} =
+        GroceryPlanner.Inventory.create_grocery_item(
+          account.id,
+          %{name: "Original Name", description: "Original desc"},
+          authorize?: false,
+          tenant: account.id
+        )
+
+      {:ok, view, _html} = live(conn, "/inventory")
+
+      # Click edit button
+      view
+      |> element("button[phx-click='edit_item'][phx-value-id='#{item.id}']")
+      |> render_click()
+
+      # Form should be shown with existing values
+      assert has_element?(view, "form#item-form")
+
+      # The form should have the item's current values
+      html = render(view)
+      assert html =~ "Original Name"
+    end
+
+    test "edit_item updates existing item", %{conn: conn, account: account} do
+      {:ok, item} =
+        GroceryPlanner.Inventory.create_grocery_item(
+          account.id,
+          %{name: "Original Name"},
+          authorize?: false,
+          tenant: account.id
+        )
+
+      {:ok, view, _html} = live(conn, "/inventory")
+
+      # Click edit button
+      view
+      |> element("button[phx-click='edit_item'][phx-value-id='#{item.id}']")
+      |> render_click()
+
+      # Submit the form with new name
+      view
+      |> form("#item-form", item: %{name: "Updated Name"})
+      |> render_submit()
+
+      # Updated name should appear
+      assert has_element?(view, "div", "Updated Name")
+    end
+  end
+
+  describe "tag management" do
+    test "manage_tags opens tag modal for an item", %{conn: conn, account: account} do
+      {:ok, item} =
+        GroceryPlanner.Inventory.create_grocery_item(
+          account.id,
+          %{name: "Test Item"},
+          authorize?: false,
+          tenant: account.id
+        )
+
+      {:ok, _tag} =
+        GroceryPlanner.Inventory.create_grocery_item_tag(
+          account.id,
+          %{name: "Test Tag", color: "#FF0000"},
+          authorize?: false,
+          tenant: account.id
+        )
+
+      {:ok, view, _html} = live(conn, "/inventory")
+
+      # Click manage tags button
+      view
+      |> element("button[phx-click='manage_tags'][phx-value-id='#{item.id}']")
+      |> render_click()
+
+      # Tag management modal should be shown
+      assert has_element?(view, "div", "Manage Tags for")
+      assert has_element?(view, "div", "Test Tag")
+    end
+
+    test "add_tag_to_item associates tag with item", %{conn: conn, account: account} do
+      {:ok, item} =
+        GroceryPlanner.Inventory.create_grocery_item(
+          account.id,
+          %{name: "Test Item"},
+          authorize?: false,
+          tenant: account.id
+        )
+
+      {:ok, tag} =
+        GroceryPlanner.Inventory.create_grocery_item_tag(
+          account.id,
+          %{name: "Add Me", color: "#00FF00"},
+          authorize?: false,
+          tenant: account.id
+        )
+
+      {:ok, view, _html} = live(conn, "/inventory")
+
+      # Open tag management
+      view
+      |> element("button[phx-click='manage_tags'][phx-value-id='#{item.id}']")
+      |> render_click()
+
+      # Add tag to item
+      view
+      |> element("button[phx-click='add_tag_to_item'][phx-value-tag-id='#{tag.id}']")
+      |> render_click()
+
+      # Tag should now show Remove button instead of Add
+      assert has_element?(
+               view,
+               "button[phx-click='remove_tag_from_item'][phx-value-tag-id='#{tag.id}']"
+             )
+    end
+  end
+
+  describe "tag selection in edit form" do
+    test "can select and save tags when editing an item", %{conn: conn, account: account} do
+      {:ok, item} =
+        GroceryPlanner.Inventory.create_grocery_item(
+          account.id,
+          %{name: "Test Item"},
+          authorize?: false,
+          tenant: account.id
+        )
+
+      {:ok, tag} =
+        GroceryPlanner.Inventory.create_grocery_item_tag(
+          account.id,
+          %{name: "TestTag", color: "#FF5500"},
+          authorize?: false,
+          tenant: account.id
+        )
+
+      {:ok, view, _html} = live(conn, "/inventory")
+
+      # Click edit button
+      view
+      |> element("button[phx-click='edit_item'][phx-value-id='#{item.id}']")
+      |> render_click()
+
+      # Tag selection should be visible
+      assert has_element?(view, "label", "TestTag")
+
+      # Toggle the tag
+      view
+      |> element("input[phx-click='toggle_form_tag'][phx-value-tag-id='#{tag.id}']")
+      |> render_click()
+
+      # Save the item
+      view
+      |> form("#item-form", item: %{name: "Test Item"})
+      |> render_submit()
+
+      # Verify the tag was saved - reload item and check
+      {:ok, updated_item} =
+        GroceryPlanner.Inventory.get_grocery_item(item.id,
+          authorize?: false,
+          tenant: account.id,
+          load: [:tags]
+        )
+
+      assert length(updated_item.tags) == 1
+      assert hd(updated_item.tags).name == "TestTag"
+    end
+  end
 end

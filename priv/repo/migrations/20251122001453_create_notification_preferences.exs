@@ -17,7 +17,8 @@ defmodule GroceryPlanner.Repo.Migrations.CreateNotificationPreferences do
             name: "notification_preferences_user_id_fkey",
             type: :uuid,
             prefix: "public"
-          ), null: false
+          ),
+          null: false
 
       add :account_id,
           references(:accounts,
@@ -25,7 +26,8 @@ defmodule GroceryPlanner.Repo.Migrations.CreateNotificationPreferences do
             name: "notification_preferences_account_id_fkey",
             type: :uuid,
             prefix: "public"
-          ), null: false
+          ),
+          null: false
 
       add :expiration_alerts_enabled, :boolean, default: true
       add :expiration_alert_days, :bigint, default: 7

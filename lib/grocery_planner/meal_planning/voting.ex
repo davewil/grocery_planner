@@ -10,11 +10,15 @@ defmodule GroceryPlanner.MealPlanning.Voting do
   def open_session(account_id, actor) do
     case MealPlanning.list_vote_sessions(actor: actor, tenant: account_id) do
       {:ok, sessions} ->
-        session = Enum.find(sessions, fn s ->
-          s.account_id == account_id && s.status == :open
-        end)
+        session =
+          Enum.find(sessions, fn s ->
+            s.account_id == account_id && s.status == :open
+          end)
+
         {:ok, session}
-      {:error, _} = error -> error
+
+      {:error, _} = error ->
+        error
     end
   end
 
@@ -39,24 +43,31 @@ defmodule GroceryPlanner.MealPlanning.Voting do
 
   def remove_vote(session_id, recipe_id, account_id, actor) do
     case MealPlanning.list_vote_entries(
-      actor: actor,
-      tenant: account_id,
-      query: MealPlanVoteEntry
-        |> Ash.Query.filter(vote_session_id == ^session_id and recipe_id == ^recipe_id and user_id == ^actor.id)
-    ) do
+           actor: actor,
+           tenant: account_id,
+           query:
+             MealPlanVoteEntry
+             |> Ash.Query.filter(
+               vote_session_id == ^session_id and recipe_id == ^recipe_id and user_id == ^actor.id
+             )
+         ) do
       {:ok, [entry]} ->
         MealPlanning.destroy_vote_entry(entry, actor: actor, tenant: account_id)
+
       {:ok, []} ->
         {:ok, nil}
+
       {:ok, _} ->
         {:error, :multiple_entries}
+
       {:error, _} = error ->
         error
     end
   end
 
   def finalize_session(session_id, account_id, actor) do
-    with {:ok, session} <- MealPlanning.get_vote_session(session_id, tenant: account_id, actor: actor),
+    with {:ok, session} <-
+           MealPlanning.get_vote_session(session_id, tenant: account_id, actor: actor),
          true <- session.status in [:open, :closed],
          true <- DateTime.compare(DateTime.utc_now(), session.ends_at) != :lt,
          {:ok, entries} <- list_entries(session_id, account_id, actor) do
@@ -75,7 +86,8 @@ defmodule GroceryPlanner.MealPlanning.Voting do
     MealPlanning.list_vote_entries(
       actor: actor,
       tenant: account_id,
-      query: MealPlanVoteEntry
+      query:
+        MealPlanVoteEntry
         |> Ash.Query.filter(account_id == ^account_id and vote_session_id == ^session_id)
     )
   end
@@ -104,6 +116,7 @@ defmodule GroceryPlanner.MealPlanning.Voting do
     dates = Enum.map(0..6, fn i -> Date.add(week_start, i) end)
     dinner_slot_count = length(dates)
     chosen = Enum.take(winning_recipe_ids, dinner_slot_count)
+
     created =
       Enum.reduce(Enum.zip(dates, chosen), [], fn {date, recipe_id}, acc ->
         case create_meal_plan(date, recipe_id, account_id, actor) do
@@ -111,6 +124,7 @@ defmodule GroceryPlanner.MealPlanning.Voting do
           {:error, _} -> acc
         end
       end)
+
     {:ok, Enum.reverse(created)}
   end
 
