@@ -3,6 +3,7 @@ defmodule GroceryPlanner.Notifications.RecipeSuggestionsTest do
 
   alias GroceryPlanner.Notifications.RecipeSuggestions
   alias GroceryPlanner.InventoryTestHelpers
+  require Ash.Query
 
   describe "recipe suggestions" do
     setup do
@@ -82,7 +83,8 @@ defmodule GroceryPlanner.Notifications.RecipeSuggestionsTest do
         item1: item1,
         item2: item2,
         item3: item3,
-        create_recipe: create_recipe
+        create_recipe: create_recipe,
+        location: location
       }
     end
 
@@ -157,6 +159,56 @@ defmodule GroceryPlanner.Notifications.RecipeSuggestionsTest do
       {:ok, suggestions} = RecipeSuggestions.get_suggestions_for_expiring_items(account.id, user)
 
       assert length(suggestions) == 0
+    end
+
+    test "correctly reflects can_make status based on inventory", %{
+      account: account,
+      user: user,
+      item1: item1,
+      item2: item2,
+      create_recipe: create_recipe,
+      location: location
+    } do
+      # Recipe D: Uses Item 1 and Item 2
+      recipe_d = create_recipe.("Recipe D", [item1, item2], false)
+
+      # Initial state: item1 is expiring (from setup), item2 is expiring (from setup)
+      # Wait, setup creates expiring inventory for BOTH item1 and item2.
+      # So Recipe D is already makeable.
+      # I need to REMOVE item2 inventory to test the 'missing' state.
+      
+      # Find and destroy the inventory entry for item2 created in setup
+      item2_id = item2.id
+      entry = 
+        GroceryPlanner.Inventory.InventoryEntry
+        |> Ash.Query.filter(grocery_item_id == ^item2_id)
+        |> Ash.read!(actor: user, tenant: account.id)
+        |> List.first()
+        
+      Ash.destroy!(entry, actor: user, tenant: account.id)
+
+      {:ok, suggestions_initial} = RecipeSuggestions.get_suggestions_for_expiring_items(account.id, user)
+      recipe_d_suggestion_initial = Enum.find(suggestions_initial, fn s -> s.recipe.id == recipe_d.id end)
+
+      refute recipe_d_suggestion_initial.recipe.can_make
+      # Reason format: "Uses X expiring ingredients" (does not explicitly state missing count in reason string apparently)
+      assert recipe_d_suggestion_initial.reason =~ "Uses 1 expiring ingredient"
+
+      # Add item2 back to inventory (not necessarily expiring soon, just present)
+      InventoryTestHelpers.create_inventory_entry(account, user, item2, %{
+        storage_location_id: location.id,
+        use_by_date: Date.add(Date.utc_today(), 100), # Not expiring soon
+        quantity: Decimal.new("5")
+      })
+
+      {:ok, suggestions_final} = RecipeSuggestions.get_suggestions_for_expiring_items(account.id, user)
+      recipe_d_suggestion_final = Enum.find(suggestions_final, fn s -> s.recipe.id == recipe_d.id end)
+
+      assert recipe_d_suggestion_final.recipe.can_make
+      # Reason format: "Uses X expiring ingredients - ready to cook!"
+      # Wait, if item2 is NOT expiring (date + 100), then only item1 is expiring.
+      # So "Uses 1 expiring ingredient".
+      assert recipe_d_suggestion_final.reason =~ "Uses 1 expiring ingredient - ready to cook!"
     end
   end
 end
