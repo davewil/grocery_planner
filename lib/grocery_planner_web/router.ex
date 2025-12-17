@@ -52,6 +52,17 @@ defmodule GroceryPlannerWeb.Router do
     plug(GroceryPlannerWeb.Plugs.ApiAuth)
   end
 
+  # Swagger UI for interactive API documentation (outside module scope)
+  scope "/api" do
+    pipe_through(:api)
+
+    get("/swaggerui", OpenApiSpex.Plug.SwaggerUI,
+      path: "/api/json/open_api",
+      default_model_expand_depth: 3,
+      display_operation_id: true
+    )
+  end
+
   scope "/api", GroceryPlannerWeb do
     pipe_through(:api)
 

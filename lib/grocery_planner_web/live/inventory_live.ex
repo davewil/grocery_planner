@@ -296,166 +296,172 @@ defmodule GroceryPlannerWeb.InventoryLive do
       </.button>
     </div>
 
-    <%= if @show_form == :item do %>
-      <div class="mb-6 bg-blue-50 border border-blue-200 rounded-xl p-6">
-        <h3 class="text-lg font-semibold text-gray-900 mb-4">
-          {if @editing_id, do: "Edit Grocery Item", else: "Add New Grocery Item"}
-        </h3>
-        <.form for={@form} id="item-form" phx-submit="save_item">
-          <div class="space-y-4">
-            <.input field={@form[:name]} type="text" label="Name" required />
-            <.input field={@form[:description]} type="text" label="Description" />
-            <.input
-              field={@form[:default_unit]}
-              type="text"
-              label="Default Unit"
-              placeholder="e.g., lbs, oz, liters"
-            />
-            <.input field={@form[:barcode]} type="text" label="Barcode (optional)" />
-            <.input
-              field={@form[:category_id]}
-              type="select"
-              label="Category"
-              options={[{"None", nil}] ++ Enum.map(@categories, fn c -> {c.name, c.id} end)}
-            />
+    <.modal
+      :if={@show_form == :item}
+      id="item-modal"
+      show={true}
+      on_cancel={JS.push("cancel_form")}
+    >
+      <h3 class="text-lg font-semibold text-gray-900 mb-4">
+        {if @editing_id, do: "Edit Grocery Item", else: "Add New Grocery Item"}
+      </h3>
+      <.form for={@form} id="item-form" phx-submit="save_item">
+        <div class="space-y-4">
+          <.input field={@form[:name]} type="text" label="Name" required />
+          <.input field={@form[:description]} type="text" label="Description" />
+          <.input
+            field={@form[:default_unit]}
+            type="text"
+            label="Default Unit"
+            placeholder="e.g., lbs, oz, liters"
+          />
+          <.input field={@form[:barcode]} type="text" label="Barcode (optional)" />
+          <.input
+            field={@form[:category_id]}
+            type="select"
+            label="Category"
+            options={[{"None", nil}] ++ Enum.map(@categories, fn c -> {c.name, c.id} end)}
+          />
 
-            <%= if length(@tags) > 0 do %>
-              <div class="space-y-2">
-                <label class="block text-sm font-medium text-gray-700">Tags</label>
-                <div class="flex flex-wrap gap-2">
-                  <%= for tag <- @tags do %>
-                    <label
-                      class={"cursor-pointer px-3 py-2 rounded-lg transition text-sm font-medium inline-flex items-center gap-2 #{if tag.id in @selected_tag_ids, do: "ring-2 ring-offset-1", else: "opacity-60 hover:opacity-100"}"}
-                      style={
-                        if(tag.id in @selected_tag_ids,
-                          do:
-                            "background-color: #{tag.color}; color: white; ring-color: #{tag.color}",
-                          else: "background-color: #{tag.color}20; color: #{tag.color}"
-                        )
-                      }
-                    >
-                      <input
-                        type="checkbox"
-                        name="item[tag_ids][]"
-                        value={tag.id}
-                        checked={tag.id in @selected_tag_ids}
-                        phx-click="toggle_form_tag"
-                        phx-value-tag-id={tag.id}
-                        class="sr-only"
-                      />
-                      {tag.name}
-                      <%= if tag.id in @selected_tag_ids do %>
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                            stroke-width="2"
-                            d="M5 13l4 4L19 7"
-                          />
-                        </svg>
-                      <% end %>
-                    </label>
-                  <% end %>
-                </div>
+          <%= if length(@tags) > 0 do %>
+            <div class="space-y-2">
+              <label class="block text-sm font-medium text-gray-700">Tags</label>
+              <div class="flex flex-wrap gap-2">
+                <%= for tag <- @tags do %>
+                  <label
+                    class={"cursor-pointer px-3 py-2 rounded-lg transition text-sm font-medium inline-flex items-center gap-2 #{if tag.id in @selected_tag_ids, do: "ring-2 ring-offset-1", else: "opacity-60 hover:opacity-100"}"}
+                    style={
+                      if(tag.id in @selected_tag_ids,
+                        do:
+                          "background-color: #{tag.color}; color: white; ring-color: #{tag.color}",
+                        else: "background-color: #{tag.color}20; color: #{tag.color}"
+                      )
+                    }
+                  >
+                    <input
+                      type="checkbox"
+                      name="item[tag_ids][]"
+                      value={tag.id}
+                      checked={tag.id in @selected_tag_ids}
+                      phx-click="toggle_form_tag"
+                      phx-value-tag-id={tag.id}
+                      class="sr-only"
+                    />
+                    {tag.name}
+                    <%= if tag.id in @selected_tag_ids do %>
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M5 13l4 4L19 7"
+                        />
+                      </svg>
+                    <% end %>
+                  </label>
+                <% end %>
               </div>
-            <% end %>
-
-            <div class="flex gap-2 justify-end">
-              <.button
-                type="button"
-                phx-click="cancel_form"
-                class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition"
-              >
-                Cancel
-              </.button>
-              <.button
-                type="submit"
-                class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
-              >
-                Save Item
-              </.button>
             </div>
-          </div>
-        </.form>
-      </div>
-    <% end %>
+          <% end %>
 
-    <%= if @managing_tags_for do %>
+          <div class="flex gap-2 justify-end">
+            <.button
+              type="button"
+              phx-click="cancel_form"
+              class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition"
+            >
+              Cancel
+            </.button>
+            <.button
+              type="submit"
+              class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+            >
+              Save Item
+            </.button>
+          </div>
+        </div>
+      </.form>
+    </.modal>
+
+    <.modal
+      :if={@managing_tags_for}
+      id="manage-tags-modal"
+      show={true}
+      on_cancel={JS.push("cancel_tag_management")}
+    >
       <% item = @managing_tags_for %>
       <% item_tag_ids = Enum.map(item.tags || [], & &1.id) %>
 
-      <div class="mb-6 bg-pink-50 border border-pink-200 rounded-xl p-6">
-        <h3 class="text-lg font-semibold text-gray-900 mb-4">
-          Manage Tags for {item.name}
-        </h3>
+      <h3 class="text-lg font-semibold text-gray-900 mb-4">
+        Manage Tags for {item.name}
+      </h3>
 
-        <div class="space-y-3">
-          <div
-            :for={tag <- @tags}
-            class="flex items-center justify-between p-3 bg-white rounded-lg border border-gray-200"
-          >
-            <div class="flex items-center gap-3">
-              <div
-                class="w-8 h-8 rounded flex items-center justify-center"
-                style={"background-color: #{tag.color}20"}
+      <div class="space-y-3">
+        <div
+          :for={tag <- @tags}
+          class="flex items-center justify-between p-3 bg-white rounded-lg border border-gray-200"
+        >
+          <div class="flex items-center gap-3">
+            <div
+              class="w-8 h-8 rounded flex items-center justify-center"
+              style={"background-color: #{tag.color}20"}
+            >
+              <svg
+                class="w-4 h-4"
+                style={"color: #{tag.color}"}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
               >
-                <svg
-                  class="w-4 h-4"
-                  style={"color: #{tag.color}"}
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"
-                  />
-                </svg>
-              </div>
-              <div>
-                <div class="font-medium text-gray-900">{tag.name}</div>
-                <div :if={tag.description} class="text-xs text-gray-500">{tag.description}</div>
-              </div>
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"
+                />
+              </svg>
             </div>
-
-            <%= if tag.id in item_tag_ids do %>
-              <.button
-                phx-click="remove_tag_from_item"
-                phx-value-item-id={item.id}
-                phx-value-tag-id={tag.id}
-                class="px-3 py-1 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition text-sm font-medium"
-              >
-                Remove
-              </.button>
-            <% else %>
-              <.button
-                phx-click="add_tag_to_item"
-                phx-value-item-id={item.id}
-                phx-value-tag-id={tag.id}
-                class="px-3 py-1 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition text-sm font-medium"
-              >
-                Add
-              </.button>
-            <% end %>
+            <div>
+              <div class="font-medium text-gray-900">{tag.name}</div>
+              <div :if={tag.description} class="text-xs text-gray-500">{tag.description}</div>
+            </div>
           </div>
 
-          <div :if={@tags == []} class="text-center py-8 text-gray-500">
-            No tags available. Create tags in the Tags tab first.
-          </div>
+          <%= if tag.id in item_tag_ids do %>
+            <.button
+              phx-click="remove_tag_from_item"
+              phx-value-item-id={item.id}
+              phx-value-tag-id={tag.id}
+              class="px-3 py-1 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition text-sm font-medium"
+            >
+              Remove
+            </.button>
+          <% else %>
+            <.button
+              phx-click="add_tag_to_item"
+              phx-value-item-id={item.id}
+              phx-value-tag-id={tag.id}
+              class="px-3 py-1 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition text-sm font-medium"
+            >
+              Add
+            </.button>
+          <% end %>
         </div>
 
-        <div class="flex justify-end mt-4">
-          <.button
-            phx-click="cancel_tag_management"
-            class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition"
-          >
-            Done
-          </.button>
+        <div :if={@tags == []} class="text-center py-8 text-gray-500">
+          No tags available. Create tags in the Tags tab first.
         </div>
       </div>
-    <% end %>
+
+      <div class="flex justify-end mt-4">
+        <.button
+          phx-click="cancel_tag_management"
+          class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition"
+        >
+          Done
+        </.button>
+      </div>
+    </.modal>
 
     <div class="space-y-3">
       <div
@@ -1397,41 +1403,7 @@ defmodule GroceryPlannerWeb.InventoryLive do
     end
   end
 
-  defp sync_item_tags(item_id, selected_tag_ids, socket) do
-    # Get current tags for this item
-    {:ok, current_taggings} =
-      GroceryPlanner.Inventory.list_grocery_item_taggings(
-        actor: socket.assigns.current_user,
-        query:
-          GroceryPlanner.Inventory.GroceryItemTagging
-          |> Ash.Query.filter(grocery_item_id == ^item_id)
-      )
 
-    current_tag_ids = Enum.map(current_taggings, fn t -> to_string(t.tag_id) end)
-
-    # Tags to add
-    tags_to_add = selected_tag_ids -- current_tag_ids
-
-    # Tags to remove
-    tags_to_remove = current_tag_ids -- selected_tag_ids
-
-    # Add new tags
-    for tag_id <- tags_to_add do
-      GroceryPlanner.Inventory.create_grocery_item_tagging(
-        %{grocery_item_id: item_id, tag_id: tag_id},
-        authorize?: false
-      )
-    end
-
-    # Remove old tags
-    for tag_id <- tags_to_remove do
-      tagging = Enum.find(current_taggings, &(&1.tag_id == tag_id))
-
-      if tagging do
-        GroceryPlanner.Inventory.destroy_grocery_item_tagging(tagging, authorize?: false)
-      end
-    end
-  end
 
   def handle_event("save_entry", %{"entry" => params}, socket) do
     account_id = socket.assigns.current_account.id
@@ -1880,6 +1852,42 @@ defmodule GroceryPlannerWeb.InventoryLive do
 
       {:error, _} ->
         {:noreply, put_flash(socket, :error, "Entry not found")}
+    end
+  end
+
+  defp sync_item_tags(item_id, selected_tag_ids, socket) do
+    # Get current tags for this item
+    {:ok, current_taggings} =
+      GroceryPlanner.Inventory.list_grocery_item_taggings(
+        actor: socket.assigns.current_user,
+        query:
+          GroceryPlanner.Inventory.GroceryItemTagging
+          |> Ash.Query.filter(grocery_item_id == ^item_id)
+      )
+
+    current_tag_ids = Enum.map(current_taggings, fn t -> to_string(t.tag_id) end)
+
+    # Tags to add
+    tags_to_add = selected_tag_ids -- current_tag_ids
+
+    # Tags to remove
+    tags_to_remove = current_tag_ids -- selected_tag_ids
+
+    # Add new tags
+    for tag_id <- tags_to_add do
+      GroceryPlanner.Inventory.create_grocery_item_tagging(
+        %{grocery_item_id: item_id, tag_id: tag_id},
+        authorize?: false
+      )
+    end
+
+    # Remove old tags
+    for tag_id <- tags_to_remove do
+      tagging = Enum.find(current_taggings, &(&1.tag_id == tag_id))
+
+      if tagging do
+        GroceryPlanner.Inventory.destroy_grocery_item_tagging(tagging, authorize?: false)
+      end
     end
   end
 

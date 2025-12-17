@@ -419,6 +419,67 @@ defmodule GroceryPlannerWeb.CoreComponents do
     """
   end
 
+  @doc """
+  Renders a modal.
+
+  ## Examples
+
+      <.modal id="confirm-modal">
+        This is a modal.
+      </.modal>
+
+  JS commands may be used to show and hide the modal.
+
+      <.button phx-click={show_modal("confirm-modal")}>
+        Show Modal
+      </.button>
+
+  """
+  attr :id, :string, required: true
+  attr :show, :boolean, default: false
+  attr :on_cancel, :any, default: %JS{}
+  slot :inner_block, required: true
+
+  def modal(assigns) do
+    ~H"""
+    <div
+      id={@id}
+      phx-mounted={@show && show_modal(@id)}
+      phx-remove={hide_modal(@id)}
+      data-cancel={JS.exec(@on_cancel, "phx-remove")}
+      class="relative z-50 hidden"
+    >
+      <div id={"#{@id}-bg"} class="fixed inset-0 bg-gray-900/50 transition-opacity" aria-hidden="true" />
+      <div
+        class="fixed inset-0 overflow-y-auto"
+        aria-labelledby={"#{@id}-title"}
+        aria-describedby={"#{@id}-description"}
+        role="dialog"
+        aria-modal="true"
+        tabindex="0"
+      >
+        <div class="flex min-h-full items-center justify-center p-4 text-center">
+          <div class="w-full max-w-3xl transform overflow-hidden rounded-2xl bg-white p-6 text-left align-middle shadow-xl transition-all">
+            <div class="absolute top-4 right-4">
+              <button
+                phx-click={JS.exec("data-cancel", to: "##{@id}")}
+                type="button"
+                class="-m-3 flex-none p-3 opacity-20 hover:opacity-40"
+                aria-label={gettext("close")}
+              >
+                <.icon name="hero-x-mark" class="size-5" />
+              </button>
+            </div>
+            <div id={"#{@id}-content"}>
+              {render_slot(@inner_block)}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    """
+  end
+
   ## JS Commands
 
   def show(js \\ %JS{}, selector) do
@@ -440,6 +501,30 @@ defmodule GroceryPlannerWeb.CoreComponents do
         {"transition-all ease-in duration-200", "opacity-100 translate-y-0 sm:scale-100",
          "opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"}
     )
+  end
+
+  def show_modal(js \\ %JS{}, id) when is_binary(id) do
+    js
+    |> JS.show(to: "##{id}")
+    |> JS.show(
+      to: "##{id}-bg",
+      transition: {"transition-all transform ease-out duration-300", "opacity-0", "opacity-100"}
+    )
+    |> show("##{id}-content")
+    |> JS.add_class("overflow-hidden", to: "body")
+    |> JS.focus_first(to: "##{id}-content")
+  end
+
+  def hide_modal(js \\ %JS{}, id) do
+    js
+    |> JS.hide(
+      to: "##{id}-bg",
+      transition: {"transition-all transform ease-in duration-200", "opacity-100", "opacity-0"}
+    )
+    |> hide("##{id}-content")
+    |> JS.hide(to: "##{id}", transition: {"block", "block", "hidden"})
+    |> JS.remove_class("overflow-hidden", to: "body")
+    |> JS.pop_focus()
   end
 
   @doc """

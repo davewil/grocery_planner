@@ -8,5 +8,7 @@ defmodule GroceryPlannerWeb.JsonApiRouter do
       GroceryPlanner.Notifications,
       GroceryPlanner.Analytics
     ],
-    open_api: "/open_api"
+    open_api: "/open_api",
+    open_api_title: "GroceryPlanner API",
+    phoenix_endpoint: GroceryPlannerWeb.Endpoint
 end
