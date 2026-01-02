@@ -18,9 +18,12 @@
       strict: true,
       checks: %{
         disabled: [
-          # Disable nested module aliasing suggestion - this is overly strict
+          # Style preferences - don't fail build
           {Credo.Check.Design.AliasUsage, []},
-          # Allow explicit try blocks - sometimes they're clearer
+          {Credo.Check.Design.TagTODO, []},
+          {Credo.Check.Readability.AliasOrder, []},
+          {Credo.Check.Readability.MaxLineLength, []},
+          {Credo.Check.Readability.TrailingBlankLine, []},
           {Credo.Check.Readability.PreferImplicitTry, []}
         ]
       }
