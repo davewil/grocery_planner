@@ -121,9 +121,6 @@ config :logger, :default_formatter,
 # Use Jason for JSON parsing in Phoenix
 config :phoenix, :json_library, Jason
 
-# Configure Nx to use BinaryBackend by default for stability in this dev environment
-config :nx, :default_backend, Nx.BinaryBackend
-
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.
 import_config "#{config_env()}.exs"
