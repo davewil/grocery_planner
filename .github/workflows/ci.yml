@@ -1,0 +1,109 @@
+name: CI
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+permissions:
+  contents: read
+
+jobs:
+  test-elixir:
+    name: Elixir Test & Lint
+    runs-on: ubuntu-latest
+    env:
+      MIX_ENV: test
+
+    services:
+      db:
+        image: postgres:15
+        ports: ["5432:5432"]
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Elixir
+        uses: erlef/setup-beam@v1
+        with:
+          otp-version: "26.0"
+          elixir-version: "1.15.7"
+
+      - name: Restore dependencies cache
+        uses: actions/cache@v3
+        with:
+          path: deps
+          key: ${{ runner.os }}-mix-${{ hashFiles('**/mix.lock') }}
+          restore-keys: ${{ runner.os }}-mix-
+
+      - name: Restore build cache
+        uses: actions/cache@v3
+        with:
+          path: _build
+          key: ${{ runner.os }}-build-${{ hashFiles('**/mix.lock') }}
+          restore-keys: ${{ runner.os }}-build-
+
+      - name: Install dependencies
+        run: mix deps.get
+
+      - name: Check Formatting
+        run: mix format --check-formatted
+
+      - name: Compiling to check for warnings
+        run: mix compile --warnings-as-errors
+
+      - name: Run Tests
+        run: mix test
+
+  test-python:
+    name: Python AI Service Test
+    runs-on: ubuntu-latest
+    # specific path for python service
+    defaults:
+      run:
+        working-directory: ./python_service 
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Check for Python Service existence
+        id: check_files
+        run: |
+          if [ -d "." ]; then
+            echo "Python service directory exists."
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "Python service directory does not exist yet. Skipping."
+            echo "exists=false" >> $GITHUB_OUTPUT
+          fi
+        working-directory: .
+
+      # Only run these if the directory actually has content/requirements
+      - name: Install Dependencies
+        if: steps.check_files.outputs.exists == 'true' && hashFiles('python_service/requirements.txt') != ''
+        run: |
+          pip install -r requirements.txt
+          pip install pytest ruff
+
+      - name: Lint with Ruff
+        if: steps.check_files.outputs.exists == 'true' && hashFiles('python_service/requirements.txt') != ''
+        run: ruff check .
+
+      - name: Run Tests
+        if: steps.check_files.outputs.exists == 'true' && hashFiles('python_service/requirements.txt') != ''
+        run: pytest

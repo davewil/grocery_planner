@@ -23,6 +23,7 @@ defmodule GroceryPlannerWeb.Router do
     pipe_through(:browser)
 
     get("/", PageController, :home)
+    get("/health_check", HealthController, :check)
 
     live("/sign-up", Auth.SignUpLive)
     live("/sign-in", Auth.SignInLive)
@@ -45,6 +46,7 @@ defmodule GroceryPlannerWeb.Router do
     live("/shopping", ShoppingLive)
     live("/voting", VotingLive)
     live("/analytics", AnalyticsLive)
+    live("/ai-test", AITestLive)
   end
 
   # Other scopes may use custom stacks.
