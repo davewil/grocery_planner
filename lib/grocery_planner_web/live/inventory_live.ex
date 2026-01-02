@@ -332,8 +332,7 @@ defmodule GroceryPlannerWeb.InventoryLive do
                     class={"cursor-pointer px-3 py-2 rounded-lg transition text-sm font-medium inline-flex items-center gap-2 #{if tag.id in @selected_tag_ids, do: "ring-2 ring-offset-1", else: "opacity-60 hover:opacity-100"}"}
                     style={
                       if(tag.id in @selected_tag_ids,
-                        do:
-                          "background-color: #{tag.color}; color: white; ring-color: #{tag.color}",
+                        do: "background-color: #{tag.color}; color: white; ring-color: #{tag.color}",
                         else: "background-color: #{tag.color}20; color: #{tag.color}"
                       )
                     }
@@ -1402,8 +1401,6 @@ defmodule GroceryPlannerWeb.InventoryLive do
         {:noreply, put_flash(socket, :error, "Failed to #{action} grocery item")}
     end
   end
-
-
 
   def handle_event("save_entry", %{"entry" => params}, socket) do
     account_id = socket.assigns.current_account.id

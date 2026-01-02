@@ -176,33 +176,42 @@ defmodule GroceryPlanner.Notifications.RecipeSuggestionsTest do
       # Wait, setup creates expiring inventory for BOTH item1 and item2.
       # So Recipe D is already makeable.
       # I need to REMOVE item2 inventory to test the 'missing' state.
-      
+
       # Find and destroy the inventory entry for item2 created in setup
       item2_id = item2.id
-      entry = 
+
+      entry =
         GroceryPlanner.Inventory.InventoryEntry
         |> Ash.Query.filter(grocery_item_id == ^item2_id)
         |> Ash.read!(actor: user, tenant: account.id)
         |> List.first()
-        
+
       Ash.destroy!(entry, actor: user, tenant: account.id)
 
-      {:ok, suggestions_initial} = RecipeSuggestions.get_suggestions_for_expiring_items(account.id, user)
-      recipe_d_suggestion_initial = Enum.find(suggestions_initial, fn s -> s.recipe.id == recipe_d.id end)
+      {:ok, suggestions_initial} =
+        RecipeSuggestions.get_suggestions_for_expiring_items(account.id, user)
+
+      recipe_d_suggestion_initial =
+        Enum.find(suggestions_initial, fn s -> s.recipe.id == recipe_d.id end)
 
       refute recipe_d_suggestion_initial.recipe.can_make
+
       # Reason format: "Uses X expiring ingredients" (does not explicitly state missing count in reason string apparently)
       assert recipe_d_suggestion_initial.reason =~ "Uses 1 expiring ingredient"
 
       # Add item2 back to inventory (not necessarily expiring soon, just present)
       InventoryTestHelpers.create_inventory_entry(account, user, item2, %{
         storage_location_id: location.id,
-        use_by_date: Date.add(Date.utc_today(), 100), # Not expiring soon
+        # Not expiring soon
+        use_by_date: Date.add(Date.utc_today(), 100),
         quantity: Decimal.new("5")
       })
 
-      {:ok, suggestions_final} = RecipeSuggestions.get_suggestions_for_expiring_items(account.id, user)
-      recipe_d_suggestion_final = Enum.find(suggestions_final, fn s -> s.recipe.id == recipe_d.id end)
+      {:ok, suggestions_final} =
+        RecipeSuggestions.get_suggestions_for_expiring_items(account.id, user)
+
+      recipe_d_suggestion_final =
+        Enum.find(suggestions_final, fn s -> s.recipe.id == recipe_d.id end)
 
       assert recipe_d_suggestion_final.recipe.can_make
       # Reason format: "Uses X expiring ingredients - ready to cook!"

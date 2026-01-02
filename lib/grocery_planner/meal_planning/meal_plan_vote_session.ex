@@ -5,105 +5,105 @@ defmodule GroceryPlanner.MealPlanning.MealPlanVoteSession do
     authorizers: [Ash.Policy.Authorizer]
 
   postgres do
-    table("meal_plan_vote_sessions")
-    repo(GroceryPlanner.Repo)
+    table "meal_plan_vote_sessions"
+    repo GroceryPlanner.Repo
   end
 
   actions do
-    defaults([:read])
+    defaults [:read]
 
     create :start do
-      accept([])
+      accept []
 
-      argument(:account_id, :uuid, allow_nil?: false)
+      argument :account_id, :uuid, allow_nil?: false
 
-      change(manage_relationship(:account_id, :account, type: :append))
-      change({GroceryPlanner.MealPlanning.MealPlanVoteSession.SetEndsAt, []})
-      change({GroceryPlanner.MealPlanning.MealPlanVoteSession.EnsureNoOpenSession, []})
+      change manage_relationship(:account_id, :account, type: :append)
+      change {GroceryPlanner.MealPlanning.MealPlanVoteSession.SetEndsAt, []}
+      change {GroceryPlanner.MealPlanning.MealPlanVoteSession.EnsureNoOpenSession, []}
     end
 
     update :update do
-      accept([:ends_at, :status])
+      accept [:ends_at, :status]
     end
 
     update :close do
-      accept([])
+      accept []
 
-      change(set_attribute(:status, :closed))
+      change set_attribute(:status, :closed)
     end
 
     update :mark_processed do
-      accept([:winning_recipe_ids])
+      accept [:winning_recipe_ids]
 
-      change(set_attribute(:status, :processed))
-      change(set_attribute(:processed_at, &DateTime.utc_now/0))
+      change set_attribute(:status, :processed)
+      change set_attribute(:processed_at, &DateTime.utc_now/0)
     end
   end
 
   policies do
     policy action_type(:read) do
-      authorize_if(relates_to_actor_via([:account, :memberships, :user]))
+      authorize_if relates_to_actor_via([:account, :memberships, :user])
     end
 
     policy action(:start) do
-      authorize_if(actor_present())
+      authorize_if actor_present()
     end
 
     policy action_type([:update]) do
-      authorize_if(relates_to_actor_via([:account, :memberships, :user]))
+      authorize_if relates_to_actor_via([:account, :memberships, :user])
     end
   end
 
   multitenancy do
-    strategy(:attribute)
-    attribute(:account_id)
+    strategy :attribute
+    attribute :account_id
   end
 
   attributes do
-    uuid_primary_key(:id)
+    uuid_primary_key :id
 
     attribute :starts_at, :utc_datetime do
-      allow_nil?(false)
-      default(&DateTime.utc_now/0)
-      public?(true)
+      allow_nil? false
+      default &DateTime.utc_now/0
+      public? true
     end
 
     attribute :ends_at, :utc_datetime do
-      allow_nil?(false)
-      public?(true)
+      allow_nil? false
+      public? true
     end
 
     attribute :status, :atom do
-      constraints(one_of: [:open, :closed, :processed])
-      default(:open)
-      public?(true)
+      constraints one_of: [:open, :closed, :processed]
+      default :open
+      public? true
     end
 
     attribute :processed_at, :utc_datetime do
-      public?(true)
+      public? true
     end
 
     attribute :winning_recipe_ids, {:array, :uuid} do
-      public?(true)
+      public? true
     end
 
     attribute :account_id, :uuid do
-      allow_nil?(false)
-      public?(true)
+      allow_nil? false
+      public? true
     end
 
-    create_timestamp(:created_at)
-    update_timestamp(:updated_at)
+    create_timestamp :created_at
+    update_timestamp :updated_at
   end
 
   relationships do
     belongs_to :account, GroceryPlanner.Accounts.Account do
-      allow_nil?(false)
-      attribute_writable?(true)
+      allow_nil? false
+      attribute_writable? true
     end
 
     has_many :vote_entries, GroceryPlanner.MealPlanning.MealPlanVoteEntry do
-      destination_attribute(:vote_session_id)
+      destination_attribute :vote_session_id
     end
   end
 

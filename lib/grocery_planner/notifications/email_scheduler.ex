@@ -10,8 +10,10 @@ defmodule GroceryPlanner.Notifications.EmailScheduler do
   require Ash.Query
   require Logger
 
-  @email_time_hour 7 # 7 AM UTC
-  @email_time_minute 0 # 0 minutes
+  # 7 AM UTC
+  @email_time_hour 7
+  # 0 minutes
+  @email_time_minute 0
 
   # Client
 
@@ -48,7 +50,9 @@ defmodule GroceryPlanner.Notifications.EmailScheduler do
       if user && account do
         send_notification_email_for_user(preference, user, account)
       else
-        Logger.warning("Skipping email for preference #{preference.id}: User or Account not found.")
+        Logger.warning(
+          "Skipping email for preference #{preference.id}: User or Account not found."
+        )
       end
     end)
   end
@@ -56,7 +60,9 @@ defmodule GroceryPlanner.Notifications.EmailScheduler do
   defp send_notification_email_for_user(preference, user, account) do
     # Get expiration alerts summary
     {:ok, expiration_summary} =
-      ExpirationAlerts.get_expiring_summary(account.id, user, days_threshold: preference.expiration_alert_days)
+      ExpirationAlerts.get_expiring_summary(account.id, user,
+        days_threshold: preference.expiration_alert_days
+      )
 
     # Get recipe suggestions
     {:ok, recipe_suggestions} =
@@ -111,9 +117,7 @@ defmodule GroceryPlanner.Notifications.EmailScheduler do
     <h2>Recipe Suggestions</h2>
     <p>Here are some recipes that can help you use up expiring ingredients:</p>
     <ul>
-    #{Enum.map_join(recipe_suggestions, "\n", fn s ->
-      "<li>#{s.recipe.name} (Score: #{s.score}, #{s.reason})</li>"
-    end)}
+    #{Enum.map_join(recipe_suggestions, "\n", fn s -> "<li>#{s.recipe.name} (Score: #{s.score}, #{s.reason})</li>" end)}
     </ul>
 
     <p>Log in to your Grocery Planner account for more details.</p>
@@ -121,14 +125,21 @@ defmodule GroceryPlanner.Notifications.EmailScheduler do
     <p>Best regards,</p>
     <p>The Grocery Planner Team</p>
     """
+
     {:ok, body}
   end
-
 
   defp schedule_email_send do
     # Calculate time until next 7 AM UTC
     now = NaiveDateTime.utc_now()
-    target_time_today = %NaiveDateTime{now | hour: @email_time_hour, minute: @email_time_minute, second: 0, microsecond: {0,0}}
+
+    target_time_today = %NaiveDateTime{
+      now
+      | hour: @email_time_hour,
+        minute: @email_time_minute,
+        second: 0,
+        microsecond: {0, 0}
+    }
 
     target_time =
       if NaiveDateTime.compare(now, target_time_today) == :lt do
@@ -145,7 +156,10 @@ defmodule GroceryPlanner.Notifications.EmailScheduler do
     # Ensure delay is not negative (shouldn't happen with above logic, but as a safeguard)
     delay_seconds = max(0, delay_seconds)
 
-    Logger.info("Next daily email send scheduled in #{delay_seconds} seconds (at #{target_time} UTC).")
+    Logger.info(
+      "Next daily email send scheduled in #{delay_seconds} seconds (at #{target_time} UTC)."
+    )
+
     Process.send_after(self(), :send_daily_emails, delay_seconds * 1000)
   end
 end

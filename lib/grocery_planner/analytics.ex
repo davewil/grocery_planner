@@ -7,14 +7,14 @@ defmodule GroceryPlanner.Analytics do
     extensions: [AshJsonApi.Domain]
 
   json_api do
-    prefix("/api/json")
+    prefix "/api/json"
   end
 
   require Ash.Query
 
   resources do
     resource GroceryPlanner.Analytics.UsageLog do
-      define(:list_usage_logs, action: :read)
+      define :list_usage_logs, action: :read
     end
   end
 

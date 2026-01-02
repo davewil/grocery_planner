@@ -449,7 +449,11 @@ defmodule GroceryPlannerWeb.CoreComponents do
       data-cancel={JS.exec(@on_cancel, "phx-remove")}
       class="relative z-50 hidden"
     >
-      <div id={"#{@id}-bg"} class="fixed inset-0 bg-gray-900/50 transition-opacity" aria-hidden="true" />
+      <div
+        id={"#{@id}-bg"}
+        class="fixed inset-0 bg-gray-900/50 transition-opacity"
+        aria-hidden="true"
+      />
       <div
         class="fixed inset-0 overflow-y-auto"
         aria-labelledby={"#{@id}-title"}
