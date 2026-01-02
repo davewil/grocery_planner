@@ -24,9 +24,6 @@ defmodule GroceryPlanner.External.TheMealDB do
       iex> TheMealDB.search_by_name("chicken", plug: {Req.Test, TheMealDB})
       {:ok, [%{id: "52940", name: "Chicken Teriyaki", ...}, ...]}
   """
-  @doc """
-  Search for meals by name.
-  """
   def search(query, opts \\ []) when is_binary(query) do
     case client(opts) |> Req.get(url: "/search.php", params: [s: query]) do
       {:ok, %{status: 200, body: %{"meals" => meals}}} when is_list(meals) ->
