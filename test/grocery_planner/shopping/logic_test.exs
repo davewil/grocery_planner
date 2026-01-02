@@ -2,8 +2,6 @@ defmodule GroceryPlanner.Shopping.LogicTest do
   use GroceryPlanner.DataCase, async: true
 
   alias GroceryPlanner.Shopping
-  alias GroceryPlanner.Shopping.ShoppingList
-  alias GroceryPlanner.Shopping.ShoppingListItem
   import GroceryPlanner.InventoryTestHelpers
   import GroceryPlanner.MealPlanningTestHelpers, only: [create_meal_plan: 4]
 
@@ -102,7 +100,7 @@ defmodule GroceryPlanner.Shopping.LogicTest do
 
     test "deducts existing inventory", %{account: account, user: user} do
       recipe = create_recipe_with_ingredients(account, user)
-      [ing1, ing2] = recipe.recipe_ingredients
+      [ing1, _ing2] = recipe.recipe_ingredients
 
       # Add some pasta to inventory (200g)
       create_inventory_entry(account, user, ing1.grocery_item, %{
@@ -118,7 +116,7 @@ defmodule GroceryPlanner.Shopping.LogicTest do
       })
 
       # Generate shopping list
-      {:ok, list} =
+      {:ok, _list} =
         Shopping.generate_shopping_list_from_meal_plans(
           account.id,
           Date.utc_today(),
@@ -151,7 +149,7 @@ defmodule GroceryPlanner.Shopping.LogicTest do
         servings: 8
       })
 
-      {:ok, list} =
+      {:ok, _list} =
         Shopping.generate_shopping_list_from_meal_plans(
           account.id,
           Date.utc_today(),

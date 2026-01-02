@@ -18,7 +18,7 @@ defmodule GroceryPlannerWeb.DashboardLiveTest do
     %{conn: conn, account: account, user: user}
   end
 
-  defp create_recipe(account, _user, attrs \\ %{}) do
+  defp create_recipe(account, _user, attrs) do
     default_attrs = %{
       name: "Test Recipe #{System.unique_integer()}",
       description: "A delicious test recipe",
@@ -43,7 +43,7 @@ defmodule GroceryPlannerWeb.DashboardLiveTest do
   end
 
   test "renders dashboard", %{conn: conn, user: user} do
-    {:ok, view, html} = live(conn, "/dashboard")
+    {:ok, _view, html} = live(conn, "/dashboard")
 
     assert html =~ "Welcome, #{user.name}!"
     assert html =~ "Quick Access"
@@ -58,7 +58,7 @@ defmodule GroceryPlannerWeb.DashboardLiveTest do
       use_by_date: Date.utc_today() |> Date.add(2)
     })
 
-    {:ok, view, html} = live(conn, "/dashboard")
+    {:ok, _view, html} = live(conn, "/dashboard")
 
     assert html =~ "Expiration Alerts"
 
@@ -98,7 +98,7 @@ defmodule GroceryPlannerWeb.DashboardLiveTest do
         tenant: account.id
       )
 
-    {:ok, view, html} = live(conn, "/dashboard")
+    {:ok, _view, html} = live(conn, "/dashboard")
 
     assert html =~ "Suggested Recipes"
     assert html =~ "Chicken Curry"

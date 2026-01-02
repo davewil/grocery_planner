@@ -19,7 +19,7 @@ defmodule GroceryPlannerWeb.RecipeSearchLiveTest do
   end
 
   test "renders search page", %{conn: conn} do
-    {:ok, view, html} = live(conn, "/recipes/search")
+    {:ok, _view, html} = live(conn, "/recipes/search")
 
     assert html =~ "Search TheMealDB"
     assert html =~ "Search for recipes"

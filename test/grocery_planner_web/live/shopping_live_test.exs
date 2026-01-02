@@ -20,13 +20,13 @@ defmodule GroceryPlannerWeb.ShoppingLiveTest do
 
   describe "Shopping Lists" do
     test "renders shopping lists page", %{conn: conn} do
-      {:ok, view, html} = live(conn, "/shopping")
+      {:ok, _view, html} = live(conn, "/shopping")
 
       assert html =~ "Shopping Lists"
       assert html =~ "Create List"
     end
 
-    test "creates a new shopping list", %{conn: conn, account: account, user: user} do
+    test "creates a new shopping list", %{conn: conn} do
       {:ok, view, _html} = live(conn, "/shopping")
 
       view

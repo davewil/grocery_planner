@@ -19,7 +19,7 @@ defmodule GroceryPlannerWeb.AnalyticsLiveTest do
 
   describe "Analytics Dashboard" do
     test "renders dashboard with empty state", %{conn: conn} do
-      {:ok, view, html} = live(conn, "/analytics")
+      {:ok, _view, html} = live(conn, "/analytics")
 
       assert html =~ "Analytics Dashboard"
       assert html =~ "Total Inventory"
