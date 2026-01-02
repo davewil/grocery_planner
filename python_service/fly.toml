@@ -25,10 +25,11 @@ primary_region = "ewr" # Should match the main app's region
   cpu_kind = "shared"
   cpus = 2
 
-[[checks.health]]
-  grace_period = "30s"
-  interval = "15s"
-  method = "get"
-  path = "/health"
-  protocol = "http"
-  timeout = "2s"
+[checks]
+  [checks.health]
+    grace_period = "30s"
+    interval = "15s"
+    method = "get"
+    path = "/health"
+    protocol = "http"
+    timeout = "2s"
