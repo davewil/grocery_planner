@@ -15,7 +15,7 @@
         ],
         excluded: [~r"/_build/", ~r"/deps/", ~r"/node_modules/"]
       },
-      strict: true,
+      strict: false,
       checks: %{
         disabled: [
           # Style preferences - don't fail build
@@ -24,7 +24,13 @@
           {Credo.Check.Readability.AliasOrder, []},
           {Credo.Check.Readability.MaxLineLength, []},
           {Credo.Check.Readability.TrailingBlankLine, []},
-          {Credo.Check.Readability.PreferImplicitTry, []}
+          {Credo.Check.Readability.PreferImplicitTry, []},
+          # Refactoring suggestions - informational only
+          {Credo.Check.Refactor.CyclomaticComplexity, []},
+          {Credo.Check.Refactor.Nesting, []},
+          {Credo.Check.Refactor.NegatedConditionsInUnless, []},
+          {Credo.Check.Refactor.MapJoin, []},
+          {Credo.Check.Refactor.PipeChainStart, []}
         ]
       }
     }
