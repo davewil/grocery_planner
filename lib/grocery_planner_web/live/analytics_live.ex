@@ -173,6 +173,27 @@ defmodule GroceryPlannerWeb.AnalyticsLive do
           </div>
         </div>
 
+        <div class="mb-8">
+          <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+            <h3 class="text-lg font-semibold text-gray-900 mb-6">Category Breakdown</h3>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <%= for category <- @category_breakdown do %>
+                <div class="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
+                  <span class="font-medium text-gray-700">{category.name}</span>
+                  <span class="bg-blue-100 text-blue-800 text-xs font-semibold px-2.5 py-0.5 rounded">
+                    {category.count} items
+                  </span>
+                </div>
+              <% end %>
+              <%= if Enum.empty?(@category_breakdown) do %>
+                <div class="col-span-full text-center text-gray-500 py-4">
+                  No categories found.
+                </div>
+              <% end %>
+            </div>
+          </div>
+        </div>
+
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
           <!-- Spending Trends -->
           <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
