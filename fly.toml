@@ -33,3 +33,6 @@ primary_region = "ewr" # Change to your preferred region
   path = "/health_check" # Ensure this route exists in your Phoenix router
   protocol = "http"
   timeout = "2s"
+
+[deploy]
+  release_command = "/app/bin/grocery_planner eval GroceryPlanner.Release.migrate"

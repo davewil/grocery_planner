@@ -35,6 +35,10 @@ Each service will have its own `fly.toml`:
 *   `fly.toml` (Root): For the Elixir app.
 *   `python_service/fly.toml`: For the Python AI service.
 
+### Artifact Management
+*   **Container Images**: Built using Fly.io's remote builder. Images are stored in Fly's internal registry.
+*   **Versioning**: Implicitly managed by Fly.io releases. To rollback, use `fly deploy --image registry.fly.io/grocery-planner:<tag>`.
+
 ## CI/CD Pipeline (GitHub Actions)
 
 We will use **GitHub Actions** for automation.
@@ -61,8 +65,8 @@ Triggers on: `push` to `main` (after CI passes).
 **Jobs:**
 *   **Deploy Elixir**:
     *   Uses `flyctl deploy --remote-only`.
-    *   Builds Docker image.
-    *   Runs `mix ecto.migrate`.
+    *   Builds Docker image (remote builder).
+    *   Runs migrations via `release_command`.
 *   **Deploy Python**:
     *   Uses `flyctl deploy --config python_service/fly.toml`.
 
@@ -72,8 +76,8 @@ Triggers on: `push` to `main` (after CI passes).
 *   **Rollback**:
     *   Manual: `fly deploy --image <previous-image-tag>` or via UI.
     *   Database: `fly pg create-snapshot` before major migrations.
-*   **Health Checks**:
-    *   Elixir: Endpoint `/health` checking DB connection.
+*   Health Checks:
+    *   Elixir: Endpoint `/health_check` checking DB connection.
     *   Python: Endpoint `/health` checking model loading status.
 
 ## Monitoring & Observability
@@ -86,8 +90,6 @@ Triggers on: `push` to `main` (after CI passes).
     *   **Sentry**: Integrated into both Elixir (`sentry` package) and Python (`sentry-sdk`).
 
 ## Action Plan
-1.  **Dockerize**:
-    *   Review/Update Elixir `Dockerfile`.
-    *   Create `python_service/Dockerfile`.
-2.  **CI Setup**: Create `.github/workflows/ci.yml`.
+1.  **Dockerize**: Completed.
+2.  **CI Setup**: Completed (`.github/workflows/ci.yml`, `.github/workflows/deploy.yml`).
 3.  **Infrastructure Provisioning**: Run initial `fly launch` commands (locally or via script).
