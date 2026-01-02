@@ -1,9 +1,10 @@
 defmodule GroceryPlanner.Analytics.TrendsTest do
   use GroceryPlanner.DataCase, async: true
 
-  alias GroceryPlanner.Inventory
-  alias GroceryPlanner.Analytics.UsageLog
   alias GroceryPlanner.Accounts
+  alias GroceryPlanner.Analytics
+  alias GroceryPlanner.Analytics.UsageLog
+  alias GroceryPlanner.Inventory
 
   setup do
     account = Accounts.Account.create!(%{name: "Test Account", currency: "USD"})
