@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI
 from contextlib import asynccontextmanager
 from schemas import (
     BaseRequest, BaseResponse,
@@ -33,16 +33,16 @@ async def categorize_item(request: BaseRequest):
     """
     try:
         # Validate payload structure
-        payload_data = CategorizationRequestPayload(**request.payload)
-        
+        payload = CategorizationRequestPayload(**request.payload)
+
         # MOCK IMPLEMENTATION
-        # In real impl, we would use self.classifier(payload_data.item_name, payload_data.candidate_labels)
-        
+        # In real impl, we would use self.classifier(payload.item_name, payload.candidate_labels)
+
         predicted_category = "Produce" # Default mock
         confidence = 0.95
 
         # Simple deterministic mock logic for testing
-        item_lower = payload_data.item_name.lower()
+        item_lower = payload.item_name.lower()
         if "milk" in item_lower:
             predicted_category = "Dairy"
         elif "bread" in item_lower:
@@ -75,8 +75,9 @@ async def extract_receipt(request: BaseRequest):
     Extracts items from a receipt image.
     """
     try:
-        payload_data = ExtractionRequestPayload(**request.payload)
-        
+        # Validate payload structure
+        _ = ExtractionRequestPayload(**request.payload)
+
         # MOCK IMPLEMENTATION
         mock_items = [
             ExtractedItem(name="Bananas", quantity=1.0, unit="bunch", price=1.99, confidence=0.98),
@@ -110,8 +111,9 @@ async def generate_embedding(request: BaseRequest):
     Generates a vector embedding for the given text.
     """
     try:
-        payload_data = EmbeddingRequestPayload(**request.payload)
-        
+        # Validate payload structure
+        _ = EmbeddingRequestPayload(**request.payload)
+
         # MOCK IMPLEMENTATION (384 dimensions for MiniLM)
         mock_vector = [0.1] * 384 
         
