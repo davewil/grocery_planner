@@ -1,4 +1,5 @@
 defmodule GroceryPlanner.MealPlanning.MealPlanTemplate do
+  @moduledoc false
   use Ash.Resource,
     domain: GroceryPlanner.MealPlanning,
     data_layer: AshPostgres.DataLayer,

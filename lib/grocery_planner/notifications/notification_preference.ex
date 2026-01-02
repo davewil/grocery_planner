@@ -1,4 +1,5 @@
 defmodule GroceryPlanner.Notifications.NotificationPreference do
+  @moduledoc false
   use Ash.Resource,
     domain: GroceryPlanner.Notifications,
     data_layer: AshPostgres.DataLayer,

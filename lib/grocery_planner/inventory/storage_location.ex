@@ -1,4 +1,5 @@
 defmodule GroceryPlanner.Inventory.StorageLocation do
+  @moduledoc false
   use Ash.Resource,
     domain: GroceryPlanner.Inventory,
     data_layer: AshPostgres.DataLayer,

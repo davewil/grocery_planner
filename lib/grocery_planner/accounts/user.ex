@@ -1,4 +1,5 @@
 defmodule GroceryPlanner.Accounts.User do
+  @moduledoc false
   use Ash.Resource,
     domain: GroceryPlanner.Accounts,
     data_layer: AshPostgres.DataLayer,

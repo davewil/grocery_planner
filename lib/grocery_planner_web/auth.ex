@@ -1,4 +1,5 @@
 defmodule GroceryPlannerWeb.Auth do
+  @moduledoc false
   import Plug.Conn
   import Phoenix.Controller
 

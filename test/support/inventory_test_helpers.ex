@@ -1,4 +1,5 @@
 defmodule GroceryPlanner.InventoryTestHelpers do
+  @moduledoc false
   def create_account do
     {:ok, account} =
       GroceryPlanner.Accounts.Account

@@ -18,9 +18,9 @@ defmodule GroceryPlanner.Analytics do
     end
   end
 
+  alias GroceryPlanner.Analytics.UsageLog
   alias GroceryPlanner.Inventory
   alias GroceryPlanner.Inventory.{GroceryItem, InventoryEntry}
-  alias GroceryPlanner.Analytics.UsageLog
 
   @doc """
   Returns a summary of the inventory for a given account.

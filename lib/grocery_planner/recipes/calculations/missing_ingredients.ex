@@ -1,4 +1,5 @@
 defmodule GroceryPlanner.Recipes.Calculations.MissingIngredients do
+  @moduledoc false
   use Ash.Resource.Calculation
 
   @impl true

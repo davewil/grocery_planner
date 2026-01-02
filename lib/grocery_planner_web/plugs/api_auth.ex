@@ -1,4 +1,7 @@
 defmodule GroceryPlannerWeb.Plugs.ApiAuth do
+  @moduledoc """
+  Plug for authenticating API requests using bearer tokens.
+  """
   import Plug.Conn
   alias GroceryPlanner.Accounts.User
 
@@ -10,7 +13,7 @@ defmodule GroceryPlannerWeb.Plugs.ApiAuth do
     else
       with ["Bearer " <> token] <- get_req_header(conn, "authorization"),
            {:ok, user_id} <-
-             Phoenix.Token.verify(GroceryPlannerWeb.Endpoint, "user auth", token, max_age: 86400),
+             Phoenix.Token.verify(GroceryPlannerWeb.Endpoint, "user auth", token, max_age: 86_400),
            {:ok, user} <- User.by_id(user_id),
            {:ok, user} <- Ash.load(user, :accounts, authorize?: false) do
         account = List.first(user.accounts)

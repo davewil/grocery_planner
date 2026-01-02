@@ -1,4 +1,5 @@
 defmodule GroceryPlanner.Recipes.RecipeIngredient do
+  @moduledoc false
   use Ash.Resource,
     domain: GroceryPlanner.Recipes,
     data_layer: AshPostgres.DataLayer,

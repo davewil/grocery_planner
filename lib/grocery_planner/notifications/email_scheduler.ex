@@ -1,10 +1,11 @@
 defmodule GroceryPlanner.Notifications.EmailScheduler do
+  @moduledoc false
   use GenServer
 
-  alias GroceryPlanner.Notifications.NotificationPreference
-  alias GroceryPlanner.Notifications.ExpirationAlerts
-  alias GroceryPlanner.Notifications.RecipeSuggestions
   alias GroceryPlanner.Mailer
+  alias GroceryPlanner.Notifications.ExpirationAlerts
+  alias GroceryPlanner.Notifications.NotificationPreference
+  alias GroceryPlanner.Notifications.RecipeSuggestions
   alias Swoosh.Email
 
   require Ash.Query

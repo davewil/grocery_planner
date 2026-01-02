@@ -1,4 +1,5 @@
 defmodule GroceryPlanner.Shopping.Changes.GenerateFromMealPlans do
+  @moduledoc false
   use Ash.Resource.Change
   require Ash.Query
 

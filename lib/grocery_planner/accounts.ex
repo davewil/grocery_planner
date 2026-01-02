@@ -1,4 +1,5 @@
 defmodule GroceryPlanner.Accounts do
+  @moduledoc false
   use Ash.Domain
 
   resources do

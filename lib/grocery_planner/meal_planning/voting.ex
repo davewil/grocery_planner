@@ -1,4 +1,5 @@
 defmodule GroceryPlanner.MealPlanning.Voting do
+  @moduledoc false
   require Ash.Query
   alias GroceryPlanner.MealPlanning
   alias GroceryPlanner.MealPlanning.MealPlanVoteEntry

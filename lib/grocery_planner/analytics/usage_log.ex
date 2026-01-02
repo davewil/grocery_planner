@@ -1,4 +1,5 @@
 defmodule GroceryPlanner.Analytics.UsageLog do
+  @moduledoc false
   use Ash.Resource,
     domain: GroceryPlanner.Analytics,
     data_layer: AshPostgres.DataLayer,

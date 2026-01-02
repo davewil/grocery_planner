@@ -1,4 +1,5 @@
 defmodule GroceryPlanner.MealPlanning.MealPlanVoteSession do
+  @moduledoc false
   use Ash.Resource,
     domain: GroceryPlanner.MealPlanning,
     data_layer: AshPostgres.DataLayer,
@@ -109,6 +110,7 @@ defmodule GroceryPlanner.MealPlanning.MealPlanVoteSession do
 
   # Custom changes
   defmodule SetEndsAt do
+    @moduledoc false
     use Ash.Resource.Change
 
     def change(changeset, _opts, _ctx) do
@@ -119,6 +121,7 @@ defmodule GroceryPlanner.MealPlanning.MealPlanVoteSession do
   end
 
   defmodule EnsureNoOpenSession do
+    @moduledoc false
     use Ash.Resource.Change
 
     def change(changeset, _opts, context) do

@@ -1,4 +1,5 @@
 defmodule GroceryPlanner.Checks.ActorMemberOfAccount do
+  @moduledoc false
   use Ash.Policy.Check
   require Ash.Query
 

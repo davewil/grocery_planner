@@ -1,4 +1,5 @@
 defmodule GroceryPlanner.Recipes.Calculations.CanMake do
+  @moduledoc false
   use Ash.Resource.Calculation
 
   @impl true

@@ -1,4 +1,5 @@
 defmodule GroceryPlanner.MealPlanning do
+  @moduledoc false
   use Ash.Domain,
     extensions: [AshJsonApi.Domain]
 

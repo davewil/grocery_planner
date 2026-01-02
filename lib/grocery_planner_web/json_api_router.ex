@@ -1,4 +1,5 @@
 defmodule GroceryPlannerWeb.JsonApiRouter do
+  @moduledoc false
   use AshJsonApi.Router,
     domains: [
       GroceryPlanner.Inventory,
