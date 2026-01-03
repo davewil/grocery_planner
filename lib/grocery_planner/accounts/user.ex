@@ -67,6 +67,23 @@ defmodule GroceryPlanner.Accounts.User do
     end
   end
 
+  validations do
+    validate one_of(:theme, [
+               "light",
+               "dark",
+               "cupcake",
+               "bumblebee",
+               "synthwave",
+               "retro",
+               "cyberpunk",
+               "dracula",
+               "nord",
+               "sunset",
+               "business",
+               "luxury"
+             ])
+  end
+
   attributes do
     uuid_primary_key :id
 
@@ -98,13 +115,6 @@ defmodule GroceryPlanner.Accounts.User do
 
     create_timestamp :created_at
     update_timestamp :updated_at
-  end
-
-  validations do
-    validate one_of(:theme, [
-      "light", "dark", "cupcake", "bumblebee", "synthwave", "retro",
-      "cyberpunk", "dracula", "nord", "sunset", "business", "luxury"
-    ])
   end
 
   relationships do

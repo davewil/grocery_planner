@@ -330,5 +330,4 @@ defmodule GroceryPlannerWeb.Layouts do
     </div>
     """
   end
-
 end

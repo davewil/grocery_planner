@@ -87,7 +87,9 @@ defmodule GroceryPlannerWeb.AnalyticsLive do
               <div>
                 <p class="text-sm font-medium text-base-content/60">Total Inventory</p>
                 <div class="flex items-baseline gap-2">
-                  <h3 class="text-2xl font-bold text-base-content">{@inventory_summary.total_items}</h3>
+                  <h3 class="text-2xl font-bold text-base-content">
+                    {@inventory_summary.total_items}
+                  </h3>
                   <span class="text-sm text-base-content/60">items</span>
                 </div>
                 <p class="text-xs text-base-content/50 mt-1">
@@ -197,7 +199,9 @@ defmodule GroceryPlannerWeb.AnalyticsLive do
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
           <!-- Spending Trends -->
           <div class="bg-base-100 p-6 rounded-2xl shadow-sm border border-base-200">
-            <h3 class="text-lg font-semibold text-base-content mb-6">Spending Trends (Last 30 Days)</h3>
+            <h3 class="text-lg font-semibold text-base-content mb-6">
+              Spending Trends (Last 30 Days)
+            </h3>
             <div class="h-64 flex items-end gap-2">
               <%= if Enum.empty?(@spending_trends) do %>
                 <div class="w-full h-full flex items-center justify-center text-base-content/60">
@@ -224,7 +228,7 @@ defmodule GroceryPlannerWeb.AnalyticsLive do
               <span>Today</span>
             </div>
           </div>
-
+          
     <!-- Usage Trends -->
           <div class="bg-base-100 p-6 rounded-2xl shadow-sm border border-base-200">
             <h3 class="text-lg font-semibold text-base-content mb-6">Usage Trends (Last 30 Days)</h3>
@@ -248,7 +252,7 @@ defmodule GroceryPlannerWeb.AnalyticsLive do
                       style={"height: #{if @max_usage > 0, do: (point.consumed / @max_usage) * 100, else: 0}%"}
                     >
                     </div>
-
+                    
     <!-- Tooltip -->
                     <div class="absolute bottom-full mb-2 hidden group-hover:block z-10 bg-neutral text-neutral-content text-xs rounded py-1 px-2 whitespace-nowrap">
                       <div class="font-bold">{point.date}</div>
@@ -310,7 +314,7 @@ defmodule GroceryPlannerWeb.AnalyticsLive do
               </table>
             </div>
           </div>
-
+          
     <!-- Expiration Timeline (Simple Visual) -->
           <div class="bg-base-100 p-6 rounded-2xl shadow-sm border border-base-200">
             <h3 class="text-lg font-semibold text-base-content mb-6">Expiration Timeline</h3>
