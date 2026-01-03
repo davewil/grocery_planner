@@ -140,4 +140,12 @@ User
 - JavaScript in `assets/js/app.js`
 - No inline scripts in templates - use JS hooks instead
 
+**Theming:**
+- Uses daisyUI native themes (12 curated themes available)
+- Theme selection in user settings (Settings page)
+- Persisted per user in database (`users.theme` column)
+- Available themes: light, dark, cupcake, bumblebee, synthwave, retro, cyberpunk, dracula, nord, sunset, business, luxury
+- Theme switching handled automatically via `data-theme` attribute on HTML element
+- Validated on User resource to only accept valid theme names
+
 For detailed Phoenix and LiveView guidelines, see the comprehensive rules in AGENTS.md.

@@ -100,6 +100,13 @@ defmodule GroceryPlanner.Accounts.User do
     update_timestamp :updated_at
   end
 
+  validations do
+    validate one_of(:theme, [
+      "light", "dark", "cupcake", "bumblebee", "synthwave", "retro",
+      "cyberpunk", "dracula", "nord", "sunset", "business", "luxury"
+    ])
+  end
+
   relationships do
     has_many :memberships, GroceryPlanner.Accounts.AccountMembership do
       destination_attribute :user_id

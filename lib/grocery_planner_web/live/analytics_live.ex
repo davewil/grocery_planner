@@ -64,17 +64,17 @@ defmodule GroceryPlannerWeb.AnalyticsLive do
     >
       <div class="px-4 py-10 sm:px-6 lg:px-8">
         <div class="mb-8">
-          <h1 class="text-4xl font-bold text-gray-900">Analytics Dashboard</h1>
-          <p class="mt-2 text-lg text-gray-600">
+          <h1 class="text-4xl font-bold text-base-content">Analytics Dashboard</h1>
+          <p class="mt-2 text-lg text-base-content/70">
             Insights into your inventory, spending, and waste
           </p>
         </div>
         
     <!-- KPI Cards -->
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+          <div class="bg-base-100 p-6 rounded-2xl shadow-sm border border-base-200">
             <div class="flex items-center gap-4">
-              <div class="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center text-blue-600">
+              <div class="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center text-primary">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path
                     stroke-linecap="round"
@@ -85,21 +85,21 @@ defmodule GroceryPlannerWeb.AnalyticsLive do
                 </svg>
               </div>
               <div>
-                <p class="text-sm font-medium text-gray-500">Total Inventory</p>
+                <p class="text-sm font-medium text-base-content/60">Total Inventory</p>
                 <div class="flex items-baseline gap-2">
-                  <h3 class="text-2xl font-bold text-gray-900">{@inventory_summary.total_items}</h3>
-                  <span class="text-sm text-gray-500">items</span>
+                  <h3 class="text-2xl font-bold text-base-content">{@inventory_summary.total_items}</h3>
+                  <span class="text-sm text-base-content/60">items</span>
                 </div>
-                <p class="text-xs text-gray-400 mt-1">
+                <p class="text-xs text-base-content/50 mt-1">
                   {@inventory_summary.total_entries} individual units
                 </p>
               </div>
             </div>
           </div>
 
-          <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+          <div class="bg-base-100 p-6 rounded-2xl shadow-sm border border-base-200">
             <div class="flex items-center gap-4">
-              <div class="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center text-green-600">
+              <div class="w-12 h-12 bg-success/10 rounded-xl flex items-center justify-center text-success">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path
                     stroke-linecap="round"
@@ -110,18 +110,18 @@ defmodule GroceryPlannerWeb.AnalyticsLive do
                 </svg>
               </div>
               <div>
-                <p class="text-sm font-medium text-gray-500">Total Value</p>
-                <h3 class="text-2xl font-bold text-gray-900">
+                <p class="text-sm font-medium text-base-content/60">Total Value</p>
+                <h3 class="text-2xl font-bold text-base-content">
                   {Money.to_string!(@inventory_summary.total_value)}
                 </h3>
-                <p class="text-xs text-gray-400 mt-1">Estimated based on purchase price</p>
+                <p class="text-xs text-base-content/50 mt-1">Estimated based on purchase price</p>
               </div>
             </div>
           </div>
 
-          <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+          <div class="bg-base-100 p-6 rounded-2xl shadow-sm border border-base-200">
             <div class="flex items-center gap-4">
-              <div class="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center text-red-600">
+              <div class="w-12 h-12 bg-warning/10 rounded-xl flex items-center justify-center text-warning">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path
                     stroke-linecap="round"
@@ -132,23 +132,23 @@ defmodule GroceryPlannerWeb.AnalyticsLive do
                 </svg>
               </div>
               <div>
-                <p class="text-sm font-medium text-gray-500">Expiring Soon</p>
+                <p class="text-sm font-medium text-base-content/60">Expiring Soon</p>
                 <div class="flex items-baseline gap-2">
-                  <h3 class="text-2xl font-bold text-gray-900">
+                  <h3 class="text-2xl font-bold text-base-content">
                     {@expiration_summary.expiring_7_days}
                   </h3>
-                  <span class="text-sm text-gray-500">items</span>
+                  <span class="text-sm text-base-content/60">items</span>
                 </div>
-                <p class="text-xs text-red-500 mt-1">
+                <p class="text-xs text-error mt-1">
                   {@expiration_summary.expired_count} already expired
                 </p>
               </div>
             </div>
           </div>
 
-          <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+          <div class="bg-base-100 p-6 rounded-2xl shadow-sm border border-base-200">
             <div class="flex items-center gap-4">
-              <div class="w-12 h-12 bg-gray-100 rounded-xl flex items-center justify-center text-gray-600">
+              <div class="w-12 h-12 bg-base-300 rounded-xl flex items-center justify-center text-base-content">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path
                     stroke-linecap="round"
@@ -159,12 +159,12 @@ defmodule GroceryPlannerWeb.AnalyticsLive do
                 </svg>
               </div>
               <div>
-                <p class="text-sm font-medium text-gray-500">Total Waste</p>
+                <p class="text-sm font-medium text-base-content/60">Total Waste</p>
                 <div class="flex items-baseline gap-2">
-                  <h3 class="text-2xl font-bold text-gray-900">{@waste_stats.wasted_count}</h3>
-                  <span class="text-sm text-gray-500">items</span>
+                  <h3 class="text-2xl font-bold text-base-content">{@waste_stats.wasted_count}</h3>
+                  <span class="text-sm text-base-content/60">items</span>
                 </div>
-                <p class="text-xs text-red-500 mt-1">
+                <p class="text-xs text-error mt-1">
                   {Money.to_string!(@waste_stats.total_wasted_cost)} lost
                   ({Float.round(@waste_stats.waste_percentage, 1)}%)
                 </p>
@@ -174,19 +174,19 @@ defmodule GroceryPlannerWeb.AnalyticsLive do
         </div>
 
         <div class="mb-8">
-          <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-            <h3 class="text-lg font-semibold text-gray-900 mb-6">Category Breakdown</h3>
+          <div class="bg-base-100 p-6 rounded-2xl shadow-sm border border-base-200">
+            <h3 class="text-lg font-semibold text-base-content mb-6">Category Breakdown</h3>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
               <%= for category <- @category_breakdown do %>
-                <div class="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
-                  <span class="font-medium text-gray-700">{category.name}</span>
-                  <span class="bg-blue-100 text-blue-800 text-xs font-semibold px-2.5 py-0.5 rounded">
+                <div class="flex items-center justify-between p-4 bg-base-200 rounded-xl">
+                  <span class="font-medium text-base-content">{category.name}</span>
+                  <span class="badge badge-primary badge-sm">
                     {category.count} items
                   </span>
                 </div>
               <% end %>
               <%= if Enum.empty?(@category_breakdown) do %>
-                <div class="col-span-full text-center text-gray-500 py-4">
+                <div class="col-span-full text-center text-base-content/60 py-4">
                   No categories found.
                 </div>
               <% end %>
@@ -196,41 +196,41 @@ defmodule GroceryPlannerWeb.AnalyticsLive do
 
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
           <!-- Spending Trends -->
-          <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-            <h3 class="text-lg font-semibold text-gray-900 mb-6">Spending Trends (Last 30 Days)</h3>
+          <div class="bg-base-100 p-6 rounded-2xl shadow-sm border border-base-200">
+            <h3 class="text-lg font-semibold text-base-content mb-6">Spending Trends (Last 30 Days)</h3>
             <div class="h-64 flex items-end gap-2">
               <%= if Enum.empty?(@spending_trends) do %>
-                <div class="w-full h-full flex items-center justify-center text-gray-500">
+                <div class="w-full h-full flex items-center justify-center text-base-content/60">
                   No spending data available
                 </div>
               <% else %>
                 <%= for point <- @spending_trends do %>
                   <div class="flex-1 flex flex-col items-center group relative">
                     <div
-                      class="w-full bg-blue-500 rounded-t-sm hover:bg-blue-600 transition-all"
+                      class="w-full bg-primary rounded-t-sm hover:brightness-90 transition-all"
                       style={"height: #{max((Money.to_decimal(point.amount) |> Decimal.to_float()) / @max_spending * 100, 1)}%"}
                     >
                     </div>
                     <!-- Tooltip -->
-                    <div class="absolute bottom-full mb-2 hidden group-hover:block z-10 bg-gray-900 text-white text-xs rounded py-1 px-2 whitespace-nowrap">
+                    <div class="absolute bottom-full mb-2 hidden group-hover:block z-10 bg-neutral text-neutral-content text-xs rounded py-1 px-2 whitespace-nowrap">
                       {Calendar.strftime(point.date, "%b %d")}: {Money.to_string!(point.amount)}
                     </div>
                   </div>
                 <% end %>
               <% end %>
             </div>
-            <div class="flex justify-between mt-2 text-xs text-gray-500">
+            <div class="flex justify-between mt-2 text-xs text-base-content/60">
               <span>30 days ago</span>
               <span>Today</span>
             </div>
           </div>
-          
+
     <!-- Usage Trends -->
-          <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-            <h3 class="text-lg font-semibold text-gray-900 mb-6">Usage Trends (Last 30 Days)</h3>
+          <div class="bg-base-100 p-6 rounded-2xl shadow-sm border border-base-200">
+            <h3 class="text-lg font-semibold text-base-content mb-6">Usage Trends (Last 30 Days)</h3>
             <div class="h-64 flex items-end gap-2">
               <%= if Enum.empty?(@usage_trends) do %>
-                <div class="w-full h-full flex items-center justify-center text-gray-500">
+                <div class="w-full h-full flex items-center justify-center text-base-content/60">
                   No usage data available
                 </div>
               <% else %>
@@ -238,22 +238,22 @@ defmodule GroceryPlannerWeb.AnalyticsLive do
                   <div class="flex-1 flex flex-col justify-end group relative gap-px">
                     <!-- Wasted Bar -->
                     <div
-                      class="w-full bg-red-400 hover:bg-red-500 transition-all"
+                      class="w-full bg-error/70 hover:bg-error transition-all"
                       style={"height: #{if @max_usage > 0, do: (point.wasted / @max_usage) * 100, else: 0}%"}
                     >
                     </div>
                     <!-- Consumed Bar -->
                     <div
-                      class="w-full bg-green-500 hover:bg-green-600 transition-all"
+                      class="w-full bg-success hover:brightness-90 transition-all"
                       style={"height: #{if @max_usage > 0, do: (point.consumed / @max_usage) * 100, else: 0}%"}
                     >
                     </div>
-                    
+
     <!-- Tooltip -->
-                    <div class="absolute bottom-full mb-2 hidden group-hover:block z-10 bg-gray-900 text-white text-xs rounded py-1 px-2 whitespace-nowrap">
+                    <div class="absolute bottom-full mb-2 hidden group-hover:block z-10 bg-neutral text-neutral-content text-xs rounded py-1 px-2 whitespace-nowrap">
                       <div class="font-bold">{point.date}</div>
-                      <div class="text-green-300">Consumed: {point.consumed}</div>
-                      <div class="text-red-300">Wasted: {point.wasted}</div>
+                      <div>Consumed: {point.consumed}</div>
+                      <div>Wasted: {point.wasted}</div>
                     </div>
                   </div>
                 <% end %>
@@ -261,12 +261,12 @@ defmodule GroceryPlannerWeb.AnalyticsLive do
             </div>
             <div class="flex items-center justify-center gap-4 mt-4 text-sm">
               <div class="flex items-center gap-2">
-                <div class="w-3 h-3 bg-green-500 rounded-sm"></div>
-                <span class="text-gray-600">Consumed</span>
+                <div class="w-3 h-3 bg-success rounded-sm"></div>
+                <span class="text-base-content/70">Consumed</span>
               </div>
               <div class="flex items-center gap-2">
-                <div class="w-3 h-3 bg-red-400 rounded-sm"></div>
-                <span class="text-gray-600">Wasted</span>
+                <div class="w-3 h-3 bg-error/70 rounded-sm"></div>
+                <span class="text-base-content/70">Wasted</span>
               </div>
             </div>
           </div>
@@ -274,49 +274,34 @@ defmodule GroceryPlannerWeb.AnalyticsLive do
 
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
           <!-- Most Wasted Items -->
-          <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-            <h3 class="text-lg font-semibold text-gray-900 mb-6">Most Wasted Items</h3>
+          <div class="bg-base-100 p-6 rounded-2xl shadow-sm border border-base-200">
+            <h3 class="text-lg font-semibold text-base-content mb-6">Most Wasted Items</h3>
             <div class="overflow-hidden">
-              <table class="min-w-full divide-y divide-gray-200">
-                <thead class="bg-gray-50">
+              <table class="table table-sm">
+                <thead>
                   <tr>
-                    <th
-                      scope="col"
-                      class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                    >
-                      Item
-                    </th>
-                    <th
-                      scope="col"
-                      class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                    >
-                      Times Wasted
-                    </th>
-                    <th
-                      scope="col"
-                      class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                    >
-                      Total Cost
-                    </th>
+                    <th class="text-base-content/70">Item</th>
+                    <th class="text-base-content/70">Times Wasted</th>
+                    <th class="text-base-content/70">Total Cost</th>
                   </tr>
                 </thead>
-                <tbody class="bg-white divide-y divide-gray-200">
+                <tbody>
                   <%= for item <- @most_wasted_items do %>
                     <tr>
-                      <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                      <td class="font-medium text-base-content">
                         {item.name}
                       </td>
-                      <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      <td class="text-base-content/70">
                         {item.count}
                       </td>
-                      <td class="px-6 py-4 whitespace-nowrap text-sm text-red-600 font-medium">
+                      <td class="text-error font-medium">
                         {Money.to_string!(item.total_cost)}
                       </td>
                     </tr>
                   <% end %>
                   <%= if Enum.empty?(@most_wasted_items) do %>
                     <tr>
-                      <td colspan="3" class="px-6 py-8 text-center text-gray-500">
+                      <td colspan="3" class="text-center text-base-content/60 py-8">
                         No waste recorded yet. Good job!
                       </td>
                     </tr>
@@ -325,54 +310,54 @@ defmodule GroceryPlannerWeb.AnalyticsLive do
               </table>
             </div>
           </div>
-          
+
     <!-- Expiration Timeline (Simple Visual) -->
-          <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-            <h3 class="text-lg font-semibold text-gray-900 mb-6">Expiration Timeline</h3>
+          <div class="bg-base-100 p-6 rounded-2xl shadow-sm border border-base-200">
+            <h3 class="text-lg font-semibold text-base-content mb-6">Expiration Timeline</h3>
             <div class="space-y-6">
-              <div class="flex items-center justify-between p-4 bg-red-50 rounded-xl border border-red-100">
+              <div class="flex items-center justify-between p-4 bg-error/10 rounded-xl border border-error/20">
                 <div class="flex items-center gap-3">
-                  <div class="w-2 h-2 rounded-full bg-red-500"></div>
-                  <span class="font-medium text-red-900">Already Expired</span>
+                  <div class="w-2 h-2 rounded-full bg-error"></div>
+                  <span class="font-medium text-error">Already Expired</span>
                 </div>
-                <span class="text-xl font-bold text-red-700">
+                <span class="text-xl font-bold text-error">
                   {@expiration_summary.expired_count}
                 </span>
               </div>
 
-              <div class="flex items-center justify-between p-4 bg-orange-50 rounded-xl border border-orange-100">
+              <div class="flex items-center justify-between p-4 bg-warning/10 rounded-xl border border-warning/20">
                 <div class="flex items-center gap-3">
-                  <div class="w-2 h-2 rounded-full bg-orange-500"></div>
-                  <span class="font-medium text-orange-900">Next 7 Days</span>
+                  <div class="w-2 h-2 rounded-full bg-warning"></div>
+                  <span class="font-medium text-warning">Next 7 Days</span>
                 </div>
-                <span class="text-xl font-bold text-orange-700">
+                <span class="text-xl font-bold text-warning">
                   {@expiration_summary.expiring_7_days}
                 </span>
               </div>
 
-              <div class="flex items-center justify-between p-4 bg-yellow-50 rounded-xl border border-yellow-100">
+              <div class="flex items-center justify-between p-4 bg-info/10 rounded-xl border border-info/20">
                 <div class="flex items-center gap-3">
-                  <div class="w-2 h-2 rounded-full bg-yellow-500"></div>
-                  <span class="font-medium text-yellow-900">Next 30 Days</span>
+                  <div class="w-2 h-2 rounded-full bg-info"></div>
+                  <span class="font-medium text-info">Next 30 Days</span>
                 </div>
-                <span class="text-xl font-bold text-yellow-700">
+                <span class="text-xl font-bold text-info">
                   {@expiration_summary.expiring_30_days}
                 </span>
               </div>
             </div>
 
-            <div class="mt-8 pt-6 border-t border-gray-100">
-              <h4 class="text-sm font-medium text-gray-900 mb-3">Quick Actions</h4>
+            <div class="mt-8 pt-6 border-t border-base-200">
+              <h4 class="text-sm font-medium text-base-content mb-3">Quick Actions</h4>
               <div class="grid grid-cols-2 gap-3">
                 <.link
                   navigate={~p"/inventory?expiring=expired"}
-                  class="flex items-center justify-center px-4 py-2 border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition"
+                  class="btn btn-sm btn-outline"
                 >
                   Remove Expired
                 </.link>
                 <.link
                   navigate={~p"/inventory?expiring=this_week"}
-                  class="flex items-center justify-center px-4 py-2 border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition"
+                  class="btn btn-sm btn-outline"
                 >
                   View Expiring
                 </.link>
