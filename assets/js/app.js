@@ -24,10 +24,37 @@ import {Socket} from "phoenix"
 import {LiveSocket} from "phoenix_live_view"
 import topbar from "../vendor/topbar"
 
+// Theme handling
+const setTheme = (theme) => {
+  if (theme === "system") {
+    localStorage.removeItem("phx:theme");
+    document.documentElement.removeAttribute("data-theme");
+  } else {
+    localStorage.setItem("phx:theme", theme);
+    document.documentElement.setAttribute("data-theme", theme);
+  }
+};
+
+// Initialize theme
+if (!document.documentElement.hasAttribute("data-theme")) {
+  setTheme(localStorage.getItem("phx:theme") || "system");
+}
+
+window.addEventListener("storage", (e) => e.key === "phx:theme" && setTheme(e.newValue || "system"));
+window.addEventListener("phx:set-theme", (e) => setTheme(e.target.dataset.phxTheme));
+
+let Hooks = {};
+Hooks.ThemeChange = {
+  mounted() {
+    this.handleEvent("set-theme", ({theme}) => setTheme(theme));
+  }
+};
+
 const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
 const liveSocket = new LiveSocket("/live", Socket, {
   longPollFallbackMs: 2500,
   params: {_csrf_token: csrfToken},
+  hooks: Hooks
 })
 
 // Show progress bar on live navigation and form submits
