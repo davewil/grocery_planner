@@ -64,12 +64,10 @@ defmodule GroceryPlannerWeb.AnalyticsLive do
       current_scope={@current_scope}
     >
       <div class="px-4 py-10 sm:px-6 lg:px-8">
-        <div class="mb-8">
-          <h1 class="text-4xl font-bold text-base-content">Analytics Dashboard</h1>
-          <p class="mt-2 text-lg text-base-content/70">
-            Insights into your inventory, spending, and waste
-          </p>
-        </div>
+        <.page_header
+          title="Analytics Dashboard"
+          description="Insights into your inventory, spending, and waste"
+        />
         
     <!-- KPI Cards -->
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
@@ -110,8 +108,7 @@ defmodule GroceryPlannerWeb.AnalyticsLive do
         </div>
 
         <div class="mb-8">
-          <div class="bg-base-100 p-6 rounded-2xl shadow-sm border border-base-200">
-            <h3 class="text-lg font-semibold text-base-content mb-6">Category Breakdown</h3>
+          <.section title="Category Breakdown">
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
               <%= for category <- @category_breakdown do %>
                 <div class="flex items-center justify-between p-4 bg-base-200 rounded-xl">
@@ -127,15 +124,12 @@ defmodule GroceryPlannerWeb.AnalyticsLive do
                 </div>
               <% end %>
             </div>
-          </div>
+          </.section>
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
           <!-- Spending Trends -->
-          <div class="bg-base-100 p-6 rounded-2xl shadow-sm border border-base-200">
-            <h3 class="text-lg font-semibold text-base-content mb-6">
-              Spending Trends (Last 30 Days)
-            </h3>
+          <.section title="Spending Trends (Last 30 Days)">
             <div class="h-64 flex items-end gap-2">
               <%= if Enum.empty?(@spending_trends) do %>
                 <div class="w-full h-full flex items-center justify-center text-base-content/60">
@@ -161,11 +155,10 @@ defmodule GroceryPlannerWeb.AnalyticsLive do
               <span>30 days ago</span>
               <span>Today</span>
             </div>
-          </div>
-          
+          </.section>
+
     <!-- Usage Trends -->
-          <div class="bg-base-100 p-6 rounded-2xl shadow-sm border border-base-200">
-            <h3 class="text-lg font-semibold text-base-content mb-6">Usage Trends (Last 30 Days)</h3>
+          <.section title="Usage Trends (Last 30 Days)">
             <div class="h-64 flex items-end gap-2">
               <%= if Enum.empty?(@usage_trends) do %>
                 <div class="w-full h-full flex items-center justify-center text-base-content/60">
@@ -207,13 +200,12 @@ defmodule GroceryPlannerWeb.AnalyticsLive do
                 <span class="text-base-content/70">Wasted</span>
               </div>
             </div>
-          </div>
+          </.section>
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
           <!-- Most Wasted Items -->
-          <div class="bg-base-100 p-6 rounded-2xl shadow-sm border border-base-200">
-            <h3 class="text-lg font-semibold text-base-content mb-6">Most Wasted Items</h3>
+          <.section title="Most Wasted Items">
             <div class="overflow-hidden">
               <table class="table table-sm">
                 <thead>
@@ -247,11 +239,10 @@ defmodule GroceryPlannerWeb.AnalyticsLive do
                 </tbody>
               </table>
             </div>
-          </div>
-          
+          </.section>
+
     <!-- Expiration Timeline (Simple Visual) -->
-          <div class="bg-base-100 p-6 rounded-2xl shadow-sm border border-base-200">
-            <h3 class="text-lg font-semibold text-base-content mb-6">Expiration Timeline</h3>
+          <.section title="Expiration Timeline">
             <div class="space-y-6">
               <div class="flex items-center justify-between p-4 bg-error/10 rounded-xl border border-error/20">
                 <div class="flex items-center gap-3">
@@ -301,7 +292,7 @@ defmodule GroceryPlannerWeb.AnalyticsLive do
                 </.link>
               </div>
             </div>
-          </div>
+          </.section>
         </div>
       </div>
     </Layouts.app>

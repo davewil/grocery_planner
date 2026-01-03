@@ -7,8 +7,14 @@ defmodule GroceryPlannerWeb.UIComponents do
 
   ## Components
 
+  **Phase 1:**
   - `empty_state/1` - Empty state placeholder
   - `stat_card/1` - KPI/statistic display card
+
+  **Phase 2:**
+  - `page_header/1` - Page title with description and optional actions
+  - `section/1` - Section container with title
+  - `list_item/1` - Horizontal list item with icon and actions
 
   Note: For modal dialogs, use the `modal/1` component from `CoreComponents`
 
@@ -171,4 +177,180 @@ defmodule GroceryPlannerWeb.UIComponents do
   defp stat_description_color("warning"), do: "text-warning/80"
   defp stat_description_color("info"), do: "text-info/80"
   defp stat_description_color(_), do: "text-base-content/50"
+
+  @doc """
+  Renders a page header with title, description, and optional actions.
+
+  Standardizes page header appearance across the application.
+
+  ## Attributes
+
+  - `title` - Required. Page title text
+  - `description` - Optional. Descriptive text below title
+  - `centered` - Optional. Center-align text (default: false)
+
+  ## Slots
+
+  - `actions` - Optional slot for action buttons in top-right
+
+  ## Examples
+
+      <.page_header title="Recipes" description="Browse and manage your recipe collection" />
+
+      <.page_header title="Settings" description="Manage your account">
+        <:actions>
+          <.button phx-click="save" class="btn-primary">Save</.button>
+        </:actions>
+      </.page_header>
+
+      <.page_header title="Welcome, John!" description="Dashboard" centered={true} />
+  """
+  attr :title, :string, required: true
+  attr :description, :string, default: nil
+  attr :centered, :boolean, default: false
+
+  slot :actions
+
+  def page_header(assigns) do
+    ~H"""
+    <div class={[
+      "mb-8",
+      @centered && "text-center",
+      @actions != [] && "flex items-start justify-between"
+    ]}>
+      <div class={@actions != [] && "flex-1"}>
+        <h1 class="text-4xl font-bold text-base-content">{@title}</h1>
+        <p :if={@description} class="mt-2 text-lg text-base-content/70">{@description}</p>
+      </div>
+      <div :if={@actions != []} class="flex gap-3 ml-4">
+        {render_slot(@actions)}
+      </div>
+    </div>
+    """
+  end
+
+  @doc """
+  Renders a section container with title.
+
+  Provides consistent styling for content sections with optional title.
+
+  ## Attributes
+
+  - `title` - Optional. Section title
+  - `class` - Optional. Additional CSS classes
+
+  ## Slots
+
+  - `inner_block` - Required. Section content
+  - `header_actions` - Optional. Actions in header next to title
+
+  ## Examples
+
+      <.section title="Spending Trends">
+        <p>Chart content here</p>
+      </.section>
+
+      <.section title="Account Members">
+        <:header_actions>
+          <.button class="btn-secondary">Invite</.button>
+        </:header_actions>
+        <div>Members list...</div>
+      </.section>
+
+      <.section>
+        <p>Content without title</p>
+      </.section>
+  """
+  attr :title, :string, default: nil
+  attr :class, :string, default: nil
+
+  slot :inner_block, required: true
+  slot :header_actions
+
+  def section(assigns) do
+    ~H"""
+    <div class={"bg-base-100 p-6 rounded-2xl shadow-sm border border-base-200 #{@class}"}>
+      <div :if={@title || @header_actions != []} class="flex items-center justify-between mb-6">
+        <h3 :if={@title} class="text-lg font-semibold text-base-content">{@title}</h3>
+        <div :if={@header_actions != []} class="flex gap-2">
+          {render_slot(@header_actions)}
+        </div>
+      </div>
+      {render_slot(@inner_block)}
+    </div>
+    """
+  end
+
+  @doc """
+  Renders a horizontal list item with icon, content, and actions.
+
+  Provides consistent styling for list items across the application.
+
+  ## Attributes
+
+  - `icon` - Optional. Heroicon name
+  - `icon_color` - Optional. Icon background color (default: "secondary")
+  - `clickable` - Optional. Add hover effect (default: false)
+
+  ## Slots
+
+  - `icon_slot` - Optional alternative to icon attribute for custom icon content
+  - `content` - Required. Main content area
+  - `actions` - Optional. Action buttons on the right
+
+  ## Examples
+
+      <.list_item icon="hero-user" icon_color="primary">
+        <:content>
+          <p class="font-semibold">John Doe</p>
+          <p class="text-sm text-base-content/70">john@example.com</p>
+        </:content>
+        <:actions>
+          <.button class="btn-sm btn-error">Remove</.button>
+        </:actions>
+      </.list_item>
+
+      <.list_item clickable={true}>
+        <:icon_slot>
+          <img src="/avatar.jpg" class="w-10 h-10 rounded-full" />
+        </:icon_slot>
+        <:content>
+          <p>Custom content</p>
+        </:content>
+      </.list_item>
+  """
+  attr :icon, :string, default: nil
+  attr :icon_color, :string, default: "secondary"
+  attr :clickable, :boolean, default: false
+
+  slot :icon_slot
+  slot :content, required: true
+  slot :actions
+
+  def list_item(assigns) do
+    ~H"""
+    <div class={[
+      "flex items-center justify-between p-4 bg-base-200/30 rounded-xl border border-base-200 transition",
+      @clickable && "hover:border-#{@icon_color}/30 hover:bg-#{@icon_color}/5 cursor-pointer"
+    ]}>
+      <div class="flex items-center gap-4 flex-1">
+        <div :if={@icon || @icon_slot != []}>
+          <%= if @icon_slot != [] do %>
+            {render_slot(@icon_slot)}
+          <% else %>
+            <div class={"w-10 h-10 bg-#{@icon_color}/10 rounded-lg flex items-center justify-center"}>
+              <.icon name={@icon} class={"w-5 h-5 text-#{@icon_color}"} />
+            </div>
+          <% end %>
+        </div>
+        <div class="flex-1">
+          {render_slot(@content)}
+        </div>
+      </div>
+      <div :if={@actions != []} class="flex gap-2 ml-4">
+        {render_slot(@actions)}
+      </div>
+    </div>
+    """
+  end
 end

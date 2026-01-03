@@ -6,10 +6,10 @@
   voting_active={@voting_active}
 >
   <div class="px-4 py-10 sm:px-6 lg:px-8">
-    <div class="mb-12">
-      <h1 class="text-4xl font-bold text-base-content">Settings</h1>
-      <p class="mt-2 text-lg text-base-content/70">Manage your account and household</p>
-    </div>
+    <.page_header
+      title="Settings"
+      description="Manage your account and household"
+    />
 
     <div class="grid gap-8 lg:grid-cols-2">
       <div class="p-8 bg-base-100 rounded-box shadow-sm border border-base-200">
@@ -275,19 +275,19 @@
 
       <div class="space-y-3">
         <%= for membership <- @memberships do %>
-          <div class="flex items-center justify-between p-4 bg-base-100 rounded-xl border border-base-200 hover:border-secondary/30 hover:bg-secondary/5 transition">
-            <div class="flex items-center gap-3">
+          <.list_item icon_color="secondary">
+            <:icon_slot>
               <div class="w-10 h-10 bg-secondary/10 rounded-full flex items-center justify-center">
                 <span class="text-secondary font-semibold text-sm">
                   {String.first(membership.user.name)}
                 </span>
               </div>
-              <div>
-                <p class="font-semibold text-base-content">{membership.user.name}</p>
-                <p class="text-sm text-base-content/70">{to_string(membership.user.email)}</p>
-              </div>
-            </div>
-            <div class="flex items-center gap-3">
+            </:icon_slot>
+            <:content>
+              <p class="font-semibold text-base-content">{membership.user.name}</p>
+              <p class="text-sm text-base-content/70">{to_string(membership.user.email)}</p>
+            </:content>
+            <:actions>
               <span class="badge badge-secondary badge-soft capitalize">
                 {membership.role}
               </span>
@@ -301,8 +301,8 @@
                   Remove
                 </.button>
               <% end %>
-            </div>
-          </div>
+            </:actions>
+          </.list_item>
         <% end %>
       </div>
     </div>
