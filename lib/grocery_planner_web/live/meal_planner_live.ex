@@ -297,18 +297,8 @@ defmodule GroceryPlannerWeb.MealPlannerLive do
     end)
   end
 
-  defp meal_icon(:breakfast), do: "🌅"
-  defp meal_icon(:lunch), do: "☀️"
-  defp meal_icon(:dinner), do: "🌙"
-  defp meal_icon(:snack), do: "🍪"
-
-  defp meal_icon_bg(:breakfast), do: "bg-orange-50"
-  defp meal_icon_bg(:lunch), do: "bg-yellow-50"
-  defp meal_icon_bg(:dinner), do: "bg-indigo-50"
-  defp meal_icon_bg(:snack), do: "bg-pink-50"
-
-  defp meal_card_style(:breakfast), do: "bg-orange-50 border-orange-200"
-  defp meal_card_style(:lunch), do: "bg-yellow-50 border-yellow-200"
-  defp meal_card_style(:dinner), do: "bg-indigo-50 border-indigo-200"
-  defp meal_card_style(:snack), do: "bg-pink-50 border-pink-200"
+  defp meal_icon(:breakfast), do: "🍳"
+  defp meal_icon(:lunch), do: "🥗"
+  defp meal_icon(:dinner), do: "🍲"
+  defp meal_icon(:snack), do: "🍎"
 end

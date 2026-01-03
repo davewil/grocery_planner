@@ -18,13 +18,13 @@ defmodule GroceryPlannerWeb.InventoryLive do
       <div class="px-4 py-10 sm:px-6 lg:px-8">
         <div class="mb-8">
           <div>
-            <h1 class="text-4xl font-bold text-gray-900">Inventory Management</h1>
-            <p class="mt-2 text-lg text-gray-600">
+            <h1 class="text-4xl font-bold text-base-content">Inventory Management</h1>
+            <p class="mt-2 text-lg text-base-content/70">
               Manage your grocery items and track what's in stock
             </p>
             <%= if @expiring_filter do %>
               <div class="mt-4 flex flex-col sm:flex-row sm:items-center gap-2">
-                <span class="inline-flex items-center gap-2 px-3 py-2 sm:px-4 bg-blue-50 border border-blue-200 rounded-lg text-xs sm:text-sm font-medium text-blue-900">
+                <span class="inline-flex items-center gap-2 px-3 py-2 sm:px-4 bg-info/10 border border-info/20 rounded-lg text-xs sm:text-sm font-medium text-info">
                   <svg
                     class="w-4 h-4 flex-shrink-0"
                     fill="none"
@@ -42,7 +42,7 @@ defmodule GroceryPlannerWeb.InventoryLive do
                 </span>
                 <.link
                   patch="/inventory"
-                  class="text-xs sm:text-sm text-blue-600 hover:text-blue-800 underline"
+                  class="text-xs sm:text-sm text-info hover:text-info/80 underline"
                 >
                   Clear filter
                 </.link>
@@ -51,7 +51,7 @@ defmodule GroceryPlannerWeb.InventoryLive do
           </div>
         </div>
 
-        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+        <div class="bg-base-100 rounded-box shadow-sm border border-base-200 overflow-hidden">
           <.tab_navigation active_tab={@active_tab} />
 
           <div class="p-8">
@@ -102,7 +102,7 @@ defmodule GroceryPlannerWeb.InventoryLive do
 
   defp tab_navigation(assigns) do
     ~H"""
-    <div class="border-b border-gray-200 bg-gray-50">
+    <div class="border-b border-base-200 bg-base-200/50">
       <nav class="flex">
         <button
           phx-click="change_tab"
@@ -110,8 +110,8 @@ defmodule GroceryPlannerWeb.InventoryLive do
           class={[
             "flex-1 px-6 py-4 text-sm font-medium transition",
             if(@active_tab == "items",
-              do: "bg-white border-b-2 border-blue-500 text-blue-600",
-              else: "text-gray-600 hover:text-gray-900 hover:bg-white/50"
+              do: "bg-base-100 border-b-2 border-primary text-primary",
+              else: "text-base-content/60 hover:text-base-content hover:bg-base-100/50"
             )
           ]}
         >
@@ -131,8 +131,8 @@ defmodule GroceryPlannerWeb.InventoryLive do
           class={[
             "flex-1 px-6 py-4 text-sm font-medium transition",
             if(@active_tab == "inventory",
-              do: "bg-white border-b-2 border-blue-500 text-blue-600",
-              else: "text-gray-600 hover:text-gray-900 hover:bg-white/50"
+              do: "bg-base-100 border-b-2 border-primary text-primary",
+              else: "text-base-content/60 hover:text-base-content hover:bg-base-100/50"
             )
           ]}
         >
@@ -152,8 +152,8 @@ defmodule GroceryPlannerWeb.InventoryLive do
           class={[
             "flex-1 px-6 py-4 text-sm font-medium transition",
             if(@active_tab == "categories",
-              do: "bg-white border-b-2 border-blue-500 text-blue-600",
-              else: "text-gray-600 hover:text-gray-900 hover:bg-white/50"
+              do: "bg-base-100 border-b-2 border-primary text-primary",
+              else: "text-base-content/60 hover:text-base-content hover:bg-base-100/50"
             )
           ]}
         >
@@ -173,8 +173,8 @@ defmodule GroceryPlannerWeb.InventoryLive do
           class={[
             "flex-1 px-6 py-4 text-sm font-medium transition",
             if(@active_tab == "locations",
-              do: "bg-white border-b-2 border-blue-500 text-blue-600",
-              else: "text-gray-600 hover:text-gray-900 hover:bg-white/50"
+              do: "bg-base-100 border-b-2 border-primary text-primary",
+              else: "text-base-content/60 hover:text-base-content hover:bg-base-100/50"
             )
           ]}
         >
@@ -200,8 +200,8 @@ defmodule GroceryPlannerWeb.InventoryLive do
           class={[
             "flex-1 px-6 py-4 text-sm font-medium transition",
             if(@active_tab == "tags",
-              do: "bg-white border-b-2 border-blue-500 text-blue-600",
-              else: "text-gray-600 hover:text-gray-900 hover:bg-white/50"
+              do: "bg-base-100 border-b-2 border-primary text-primary",
+              else: "text-base-content/60 hover:text-base-content hover:bg-base-100/50"
             )
           ]}
         >
@@ -236,11 +236,11 @@ defmodule GroceryPlannerWeb.InventoryLive do
       <div class="flex flex-col gap-2">
         <%= if @tags != [] do %>
           <div class="flex items-center gap-2">
-            <span class="text-sm font-medium text-gray-700">Filter by tags:</span>
+            <span class="text-sm font-medium text-base-content/80">Filter by tags:</span>
             <%= if @filter_tag_ids != [] do %>
               <.button
                 phx-click="clear_tag_filters"
-                class="px-2 py-1 text-xs bg-gray-200 text-gray-700 rounded hover:bg-gray-300 transition font-medium"
+                class="btn-ghost btn-xs"
               >
                 Clear all
               </.button>
@@ -277,7 +277,7 @@ defmodule GroceryPlannerWeb.InventoryLive do
 
       <.button
         phx-click="new_item"
-        class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium"
+        class="btn-primary"
       >
         <svg
           class="w-5 h-5 inline mr-2"
@@ -302,7 +302,7 @@ defmodule GroceryPlannerWeb.InventoryLive do
       show={true}
       on_cancel={JS.push("cancel_form")}
     >
-      <h3 class="text-lg font-semibold text-gray-900 mb-4">
+      <h3 class="text-lg font-semibold text-base-content mb-4">
         {if @editing_id, do: "Edit Grocery Item", else: "Add New Grocery Item"}
       </h3>
       <.form for={@form} id="item-form" phx-submit="save_item">
@@ -325,7 +325,7 @@ defmodule GroceryPlannerWeb.InventoryLive do
 
           <%= if length(@tags) > 0 do %>
             <div class="space-y-2">
-              <label class="block text-sm font-medium text-gray-700">Tags</label>
+              <label class="block text-sm font-medium text-base-content/80">Tags</label>
               <div class="flex flex-wrap gap-2">
                 <%= for tag <- @tags do %>
                   <label
@@ -367,13 +367,13 @@ defmodule GroceryPlannerWeb.InventoryLive do
             <.button
               type="button"
               phx-click="cancel_form"
-              class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition"
+              class="btn-ghost"
             >
               Cancel
             </.button>
             <.button
               type="submit"
-              class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+              class="btn-primary"
             >
               Save Item
             </.button>
@@ -391,14 +391,14 @@ defmodule GroceryPlannerWeb.InventoryLive do
       <% item = @managing_tags_for %>
       <% item_tag_ids = Enum.map(item.tags || [], & &1.id) %>
 
-      <h3 class="text-lg font-semibold text-gray-900 mb-4">
+      <h3 class="text-lg font-semibold text-base-content mb-4">
         Manage Tags for {item.name}
       </h3>
 
       <div class="space-y-3">
         <div
           :for={tag <- @tags}
-          class="flex items-center justify-between p-3 bg-white rounded-lg border border-gray-200"
+          class="flex items-center justify-between p-3 bg-base-100 rounded-lg border border-base-200"
         >
           <div class="flex items-center gap-3">
             <div
@@ -421,8 +421,8 @@ defmodule GroceryPlannerWeb.InventoryLive do
               </svg>
             </div>
             <div>
-              <div class="font-medium text-gray-900">{tag.name}</div>
-              <div :if={tag.description} class="text-xs text-gray-500">{tag.description}</div>
+              <div class="font-medium text-base-content">{tag.name}</div>
+              <div :if={tag.description} class="text-xs text-base-content/50">{tag.description}</div>
             </div>
           </div>
 
@@ -431,7 +431,7 @@ defmodule GroceryPlannerWeb.InventoryLive do
               phx-click="remove_tag_from_item"
               phx-value-item-id={item.id}
               phx-value-tag-id={tag.id}
-              class="px-3 py-1 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition text-sm font-medium"
+              class="btn-error btn-soft btn-sm"
             >
               Remove
             </.button>
@@ -440,14 +440,14 @@ defmodule GroceryPlannerWeb.InventoryLive do
               phx-click="add_tag_to_item"
               phx-value-item-id={item.id}
               phx-value-tag-id={tag.id}
-              class="px-3 py-1 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition text-sm font-medium"
+              class="btn-success btn-soft btn-sm"
             >
               Add
             </.button>
           <% end %>
         </div>
 
-        <div :if={@tags == []} class="text-center py-8 text-gray-500">
+        <div :if={@tags == []} class="text-center py-8 text-base-content/50">
           No tags available. Create tags in the Tags tab first.
         </div>
       </div>
@@ -455,7 +455,7 @@ defmodule GroceryPlannerWeb.InventoryLive do
       <div class="flex justify-end mt-4">
         <.button
           phx-click="cancel_tag_management"
-          class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition"
+          class="btn-ghost"
         >
           Done
         </.button>
@@ -465,12 +465,12 @@ defmodule GroceryPlannerWeb.InventoryLive do
     <div class="space-y-3">
       <div
         :for={item <- @items}
-        class="flex items-center justify-between p-5 bg-gray-50 rounded-xl border border-gray-200 hover:border-blue-300 hover:bg-blue-50/30 transition"
+        class="flex items-center justify-between p-5 bg-base-200/30 rounded-xl border border-base-200 hover:border-primary/30 hover:bg-primary/5 transition"
       >
         <div class="flex items-center gap-4 flex-1">
-          <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
+          <div class="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0">
             <svg
-              class="w-6 h-6 text-blue-600"
+              class="w-6 h-6 text-primary"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -484,11 +484,11 @@ defmodule GroceryPlannerWeb.InventoryLive do
             </svg>
           </div>
           <div class="flex-1">
-            <div class="font-semibold text-gray-900">{item.name}</div>
-            <div :if={item.description} class="text-sm text-gray-600 mt-1">
+            <div class="font-semibold text-base-content">{item.name}</div>
+            <div :if={item.description} class="text-sm text-base-content/60 mt-1">
               {item.description}
             </div>
-            <div :if={item.default_unit} class="text-sm text-blue-600 mt-1">
+            <div :if={item.default_unit} class="text-sm text-primary mt-1">
               Default: {item.default_unit}
             </div>
             <div :if={item.tags != []} class="flex flex-wrap gap-1 mt-2">
@@ -506,7 +506,7 @@ defmodule GroceryPlannerWeb.InventoryLive do
           <.button
             phx-click="manage_tags"
             phx-value-id={item.id}
-            class="px-4 py-2 bg-pink-100 text-pink-700 rounded-lg hover:bg-pink-200 transition text-sm font-medium"
+            class="btn-ghost btn-sm text-secondary"
             title="Manage Tags"
           >
             <svg
@@ -526,14 +526,14 @@ defmodule GroceryPlannerWeb.InventoryLive do
           <.button
             phx-click="edit_item"
             phx-value-id={item.id}
-            class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition text-sm font-medium"
+            class="btn-ghost btn-sm"
           >
             Edit
           </.button>
           <.button
             phx-click="delete_item"
             phx-value-id={item.id}
-            class="px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition text-sm font-medium"
+            class="btn-error btn-outline btn-sm"
           >
             Delete
           </.button>
@@ -542,7 +542,7 @@ defmodule GroceryPlannerWeb.InventoryLive do
 
       <div :if={@items == []} class="text-center py-16">
         <svg
-          class="w-16 h-16 text-gray-300 mx-auto mb-4"
+          class="w-16 h-16 text-base-content/20 mx-auto mb-4"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -554,8 +554,8 @@ defmodule GroceryPlannerWeb.InventoryLive do
             d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"
           />
         </svg>
-        <p class="text-gray-500 font-medium">No grocery items yet</p>
-        <p class="text-gray-400 text-sm mt-1">Click "New Item" to get started</p>
+        <p class="text-base-content/50 font-medium">No grocery items yet</p>
+        <p class="text-base-content/30 text-sm mt-1">Click "New Item" to get started</p>
       </div>
     </div>
     """
@@ -572,7 +572,7 @@ defmodule GroceryPlannerWeb.InventoryLive do
     <div class="flex justify-end mb-6">
       <.button
         phx-click="new_entry"
-        class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-medium"
+        class="btn-success"
       >
         <svg
           class="w-5 h-5 inline mr-2"
@@ -592,8 +592,8 @@ defmodule GroceryPlannerWeb.InventoryLive do
     </div>
 
     <%= if @show_form == :entry do %>
-      <div class="mb-6 bg-green-50 border border-green-200 rounded-xl p-6">
-        <h3 class="text-lg font-semibold text-gray-900 mb-4">Add New Inventory Entry</h3>
+      <div class="mb-6 bg-success/5 border border-success/20 rounded-xl p-6">
+        <h3 class="text-lg font-semibold text-base-content mb-4">Add New Inventory Entry</h3>
         <.form for={@form} id="entry-form" phx-submit="save_entry">
           <div class="space-y-4">
             <.input
@@ -639,13 +639,13 @@ defmodule GroceryPlannerWeb.InventoryLive do
               <.button
                 type="button"
                 phx-click="cancel_form"
-                class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition"
+                class="btn-ghost"
               >
                 Cancel
               </.button>
               <.button
                 type="submit"
-                class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
+                class="btn-success"
               >
                 Save Entry
               </.button>
@@ -658,12 +658,12 @@ defmodule GroceryPlannerWeb.InventoryLive do
     <div class="space-y-3">
       <div
         :for={entry <- @inventory_entries}
-        class="flex items-center justify-between p-5 bg-gray-50 rounded-xl border border-gray-200 hover:border-green-300 hover:bg-green-50/30 transition"
+        class="flex items-center justify-between p-5 bg-base-200/30 rounded-xl border border-base-200 hover:border-success/30 hover:bg-success/5 transition"
       >
         <div class="flex items-center gap-4 flex-1">
-          <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center flex-shrink-0">
+          <div class="w-12 h-12 bg-success/10 rounded-lg flex items-center justify-center flex-shrink-0">
             <svg
-              class="w-6 h-6 text-green-600"
+              class="w-6 h-6 text-success"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -677,10 +677,10 @@ defmodule GroceryPlannerWeb.InventoryLive do
             </svg>
           </div>
           <div class="flex-1">
-            <div class="font-semibold text-gray-900 text-lg">
+            <div class="font-semibold text-base-content text-lg">
               {entry.grocery_item.name}
             </div>
-            <div class="text-sm text-gray-600 mt-1">
+            <div class="text-sm text-base-content/60 mt-1">
               {entry.quantity} {entry.unit}
               <%= if entry.storage_location do %>
                 · Stored in: {entry.storage_location.name}
@@ -688,7 +688,7 @@ defmodule GroceryPlannerWeb.InventoryLive do
             </div>
             <div
               :if={entry.use_by_date}
-              class="text-sm text-gray-600 mt-1 flex items-center gap-1"
+              class="text-sm text-base-content/60 mt-1 flex items-center gap-1"
             >
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
@@ -700,17 +700,17 @@ defmodule GroceryPlannerWeb.InventoryLive do
               </svg>
               Expires: {Calendar.strftime(entry.use_by_date, "%B %d, %Y")}
             </div>
-            <div :if={entry.notes} class="text-sm text-gray-600 mt-1">{entry.notes}</div>
+            <div :if={entry.notes} class="text-sm text-base-content/60 mt-1">{entry.notes}</div>
           </div>
         </div>
         <div class="flex items-center gap-3">
           <span class={[
-            "px-3 py-1 rounded-full text-sm font-medium capitalize",
+            "badge badge-sm capitalize",
             case entry.status do
-              :available -> "bg-green-100 text-green-800"
-              :reserved -> "bg-blue-100 text-blue-800"
-              :expired -> "bg-red-100 text-red-800"
-              :consumed -> "bg-gray-100 text-gray-800"
+              :available -> "badge-success"
+              :reserved -> "badge-info"
+              :expired -> "badge-error"
+              :consumed -> "badge-ghost"
             end
           ]}>
             {entry.status}
@@ -718,7 +718,7 @@ defmodule GroceryPlannerWeb.InventoryLive do
           <.button
             phx-click="consume_entry"
             phx-value-id={entry.id}
-            class="px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition text-sm font-medium"
+            class="btn-ghost btn-sm text-info"
             title="Mark as Consumed"
           >
             Consume
@@ -726,7 +726,7 @@ defmodule GroceryPlannerWeb.InventoryLive do
           <.button
             phx-click="expire_entry"
             phx-value-id={entry.id}
-            class="px-4 py-2 bg-orange-100 text-orange-700 rounded-lg hover:bg-orange-200 transition text-sm font-medium"
+            class="btn-ghost btn-sm text-warning"
             title="Mark as Expired"
           >
             Expire
@@ -734,7 +734,7 @@ defmodule GroceryPlannerWeb.InventoryLive do
           <.button
             phx-click="delete_entry"
             phx-value-id={entry.id}
-            class="px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition text-sm font-medium"
+            class="btn-error btn-outline btn-sm"
           >
             Delete
           </.button>
@@ -743,7 +743,7 @@ defmodule GroceryPlannerWeb.InventoryLive do
 
       <div :if={@inventory_entries == []} class="text-center py-16">
         <svg
-          class="w-16 h-16 text-gray-300 mx-auto mb-4"
+          class="w-16 h-16 text-base-content/20 mx-auto mb-4"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -755,7 +755,7 @@ defmodule GroceryPlannerWeb.InventoryLive do
             d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
           />
         </svg>
-        <p class="text-gray-500 font-medium">No inventory entries yet</p>
+        <p class="text-base-content/50 font-medium">No inventory entries yet</p>
       </div>
     </div>
     """
@@ -770,7 +770,7 @@ defmodule GroceryPlannerWeb.InventoryLive do
     <div class="flex justify-end mb-6">
       <.button
         phx-click="new_category"
-        class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition font-medium"
+        class="btn-secondary"
       >
         <svg
           class="w-5 h-5 inline mr-2"
@@ -790,8 +790,8 @@ defmodule GroceryPlannerWeb.InventoryLive do
     </div>
 
     <%= if @show_form == :category do %>
-      <div class="mb-6 bg-purple-50 border border-purple-200 rounded-xl p-6">
-        <h3 class="text-lg font-semibold text-gray-900 mb-4">Add New Category</h3>
+      <div class="mb-6 bg-secondary/5 border border-secondary/20 rounded-xl p-6">
+        <h3 class="text-lg font-semibold text-base-content mb-4">Add New Category</h3>
         <.form for={@form} id="category-form" phx-submit="save_category">
           <div class="space-y-4">
             <.input field={@form[:name]} type="text" label="Name" required />
@@ -802,13 +802,13 @@ defmodule GroceryPlannerWeb.InventoryLive do
               <.button
                 type="button"
                 phx-click="cancel_form"
-                class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition"
+                class="btn-ghost"
               >
                 Cancel
               </.button>
               <.button
                 type="submit"
-                class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition"
+                class="btn-secondary"
               >
                 Save Category
               </.button>
@@ -821,12 +821,12 @@ defmodule GroceryPlannerWeb.InventoryLive do
     <div class="space-y-3">
       <div
         :for={category <- @categories}
-        class="flex items-center justify-between p-5 bg-gray-50 rounded-xl border border-gray-200 hover:border-purple-300 hover:bg-purple-50/30 transition"
+        class="flex items-center justify-between p-5 bg-base-200/30 rounded-xl border border-base-200 hover:border-secondary/30 hover:bg-secondary/5 transition"
       >
         <div class="flex items-center gap-4">
-          <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center flex-shrink-0">
+          <div class="w-12 h-12 bg-secondary/10 rounded-lg flex items-center justify-center flex-shrink-0">
             <svg
-              class="w-6 h-6 text-purple-600"
+              class="w-6 h-6 text-secondary"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -840,8 +840,8 @@ defmodule GroceryPlannerWeb.InventoryLive do
             </svg>
           </div>
           <div>
-            <div class="font-semibold text-gray-900">{category.name}</div>
-            <div :if={category.icon} class="text-sm text-purple-600 mt-1">
+            <div class="font-semibold text-base-content">{category.name}</div>
+            <div :if={category.icon} class="text-sm text-secondary mt-1">
               Icon: {category.icon}
             </div>
           </div>
@@ -849,7 +849,7 @@ defmodule GroceryPlannerWeb.InventoryLive do
         <.button
           phx-click="delete_category"
           phx-value-id={category.id}
-          class="px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition text-sm font-medium"
+          class="btn-error btn-outline btn-sm"
         >
           Delete
         </.button>
@@ -857,7 +857,7 @@ defmodule GroceryPlannerWeb.InventoryLive do
 
       <div :if={@categories == []} class="text-center py-16">
         <svg
-          class="w-16 h-16 text-gray-300 mx-auto mb-4"
+          class="w-16 h-16 text-base-content/20 mx-auto mb-4"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -869,7 +869,7 @@ defmodule GroceryPlannerWeb.InventoryLive do
             d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"
           />
         </svg>
-        <p class="text-gray-500 font-medium">No categories yet</p>
+        <p class="text-base-content/50 font-medium">No categories yet</p>
       </div>
     </div>
     """
@@ -884,7 +884,7 @@ defmodule GroceryPlannerWeb.InventoryLive do
     <div class="flex justify-end mb-6">
       <.button
         phx-click="new_location"
-        class="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition font-medium"
+        class="btn-accent"
       >
         <svg
           class="w-5 h-5 inline mr-2"
@@ -904,8 +904,8 @@ defmodule GroceryPlannerWeb.InventoryLive do
     </div>
 
     <%= if @show_form == :location do %>
-      <div class="mb-6 bg-orange-50 border border-orange-200 rounded-xl p-6">
-        <h3 class="text-lg font-semibold text-gray-900 mb-4">Add New Storage Location</h3>
+      <div class="mb-6 bg-accent/5 border border-accent/20 rounded-xl p-6">
+        <h3 class="text-lg font-semibold text-base-content mb-4">Add New Storage Location</h3>
         <.form for={@form} id="location-form" phx-submit="save_location">
           <div class="space-y-4">
             <.input field={@form[:name]} type="text" label="Name" required />
@@ -925,13 +925,13 @@ defmodule GroceryPlannerWeb.InventoryLive do
               <.button
                 type="button"
                 phx-click="cancel_form"
-                class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition"
+                class="btn-ghost"
               >
                 Cancel
               </.button>
               <.button
                 type="submit"
-                class="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition"
+                class="btn-accent"
               >
                 Save Location
               </.button>
@@ -944,12 +944,12 @@ defmodule GroceryPlannerWeb.InventoryLive do
     <div class="space-y-3">
       <div
         :for={location <- @storage_locations}
-        class="flex items-center justify-between p-5 bg-gray-50 rounded-xl border border-gray-200 hover:border-orange-300 hover:bg-orange-50/30 transition"
+        class="flex items-center justify-between p-5 bg-base-200/30 rounded-xl border border-base-200 hover:border-accent/30 hover:bg-accent/5 transition"
       >
         <div class="flex items-center gap-4">
-          <div class="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center flex-shrink-0">
+          <div class="w-12 h-12 bg-accent/10 rounded-lg flex items-center justify-center flex-shrink-0">
             <svg
-              class="w-6 h-6 text-orange-600"
+              class="w-6 h-6 text-accent"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -969,10 +969,10 @@ defmodule GroceryPlannerWeb.InventoryLive do
             </svg>
           </div>
           <div>
-            <div class="font-semibold text-gray-900">{location.name}</div>
+            <div class="font-semibold text-base-content">{location.name}</div>
             <div
               :if={location.temperature_zone}
-              class="text-sm text-orange-600 mt-1 capitalize"
+              class="text-sm text-accent mt-1 capitalize"
             >
               Temperature: {location.temperature_zone}
             </div>
@@ -981,7 +981,7 @@ defmodule GroceryPlannerWeb.InventoryLive do
         <.button
           phx-click="delete_location"
           phx-value-id={location.id}
-          class="px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition text-sm font-medium"
+          class="btn-error btn-outline btn-sm"
         >
           Delete
         </.button>
@@ -989,7 +989,7 @@ defmodule GroceryPlannerWeb.InventoryLive do
 
       <div :if={@storage_locations == []} class="text-center py-16">
         <svg
-          class="w-16 h-16 text-gray-300 mx-auto mb-4"
+          class="w-16 h-16 text-base-content/20 mx-auto mb-4"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -1007,7 +1007,7 @@ defmodule GroceryPlannerWeb.InventoryLive do
             d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
           />
         </svg>
-        <p class="text-gray-500 font-medium">No storage locations yet</p>
+        <p class="text-base-content/50 font-medium">No storage locations yet</p>
       </div>
     </div>
     """
@@ -1023,7 +1023,7 @@ defmodule GroceryPlannerWeb.InventoryLive do
     <div class="flex justify-end mb-6">
       <.button
         phx-click="new_tag"
-        class="px-4 py-2 bg-pink-600 text-white rounded-lg hover:bg-pink-700 transition font-medium"
+        class="btn-secondary"
       >
         <svg
           class="w-5 h-5 inline mr-2"
@@ -1043,8 +1043,8 @@ defmodule GroceryPlannerWeb.InventoryLive do
     </div>
 
     <%= if @show_form == :tag do %>
-      <div class="mb-6 bg-pink-50 border border-pink-200 rounded-xl p-6">
-        <h3 class="text-lg font-semibold text-gray-900 mb-4">
+      <div class="mb-6 bg-secondary/5 border border-secondary/20 rounded-xl p-6">
+        <h3 class="text-lg font-semibold text-base-content mb-4">
           {if @editing_id, do: "Edit Tag", else: "Add New Tag"}
         </h3>
         <.form for={@form} id="tag-form" phx-submit="save_tag">
@@ -1066,13 +1066,13 @@ defmodule GroceryPlannerWeb.InventoryLive do
               <.button
                 type="button"
                 phx-click="cancel_form"
-                class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition"
+                class="btn-ghost"
               >
                 Cancel
               </.button>
               <.button
                 type="submit"
-                class="px-4 py-2 bg-pink-600 text-white rounded-lg hover:bg-pink-700 transition"
+                class="btn-secondary"
               >
                 Save Tag
               </.button>
@@ -1085,7 +1085,7 @@ defmodule GroceryPlannerWeb.InventoryLive do
     <div class="space-y-3">
       <div
         :for={tag <- @tags}
-        class="flex items-center justify-between p-5 bg-gray-50 rounded-xl border border-gray-200 hover:border-pink-300 hover:bg-pink-50/30 transition"
+        class="flex items-center justify-between p-5 bg-base-200/30 rounded-xl border border-base-200 hover:border-secondary/30 hover:bg-secondary/5 transition"
       >
         <div class="flex items-center gap-4">
           <div
@@ -1108,8 +1108,8 @@ defmodule GroceryPlannerWeb.InventoryLive do
             </svg>
           </div>
           <div>
-            <div class="font-semibold text-gray-900">{tag.name}</div>
-            <div :if={tag.description} class="text-sm text-gray-600 mt-1">
+            <div class="font-semibold text-base-content">{tag.name}</div>
+            <div :if={tag.description} class="text-sm text-base-content/60 mt-1">
               {tag.description}
             </div>
           </div>
@@ -1118,14 +1118,14 @@ defmodule GroceryPlannerWeb.InventoryLive do
           <.button
             phx-click="edit_tag"
             phx-value-id={tag.id}
-            class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition text-sm font-medium"
+            class="btn-ghost btn-sm"
           >
             Edit
           </.button>
           <.button
             phx-click="delete_tag"
             phx-value-id={tag.id}
-            class="px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition text-sm font-medium"
+            class="btn-error btn-outline btn-sm"
           >
             Delete
           </.button>
@@ -1134,7 +1134,7 @@ defmodule GroceryPlannerWeb.InventoryLive do
 
       <div :if={@tags == []} class="text-center py-16">
         <svg
-          class="w-16 h-16 text-gray-300 mx-auto mb-4"
+          class="w-16 h-16 text-base-content/20 mx-auto mb-4"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -1146,8 +1146,8 @@ defmodule GroceryPlannerWeb.InventoryLive do
             d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"
           />
         </svg>
-        <p class="text-gray-500 font-medium">No tags yet</p>
-        <p class="text-gray-400 text-sm mt-1">Create tags to organize your grocery items</p>
+        <p class="text-base-content/50 font-medium">No tags yet</p>
+        <p class="text-base-content/30 text-sm mt-1">Create tags to organize your grocery items</p>
       </div>
     </div>
     """
