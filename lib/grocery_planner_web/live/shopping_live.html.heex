@@ -131,25 +131,13 @@
             </div>
           <% end %>
 
-          <%= if Enum.empty?(@selected_list.items) do %>
-            <div class="text-center py-12 text-base-content/40">
-              <svg
-                class="w-16 h-16 mx-auto mb-4 opacity-20"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
-                />
-              </svg>
-              <p>No items in this list yet</p>
-              <p class="text-sm mt-1">Click "Add Item" to get started</p>
-            </div>
-          <% end %>
+          <.empty_state
+            :if={Enum.empty?(@selected_list.items)}
+            icon="hero-clipboard-document-list"
+            title="No items in this list yet"
+            description="Click 'Add Item' to get started"
+            padding="py-12"
+          />
         </div>
       </div>
     <% else %>
@@ -233,25 +221,13 @@
           </div>
         <% end %>
 
-        <%= if Enum.empty?(@shopping_lists) do %>
-          <div class="col-span-full text-center py-12 text-base-content/40">
-            <svg
-              class="w-16 h-16 mx-auto mb-4 opacity-20"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
-              />
-            </svg>
-            <p>No shopping lists yet</p>
-            <p class="text-sm mt-1">Create your first list to get started</p>
-          </div>
-        <% end %>
+        <.empty_state
+          :if={Enum.empty?(@shopping_lists)}
+          icon="hero-clipboard-document-list"
+          title="No shopping lists yet"
+          description="Create your first list to get started"
+          padding="py-12"
+        />
       </div>
     <% end %>
   </div>

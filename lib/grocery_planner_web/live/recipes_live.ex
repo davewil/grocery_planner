@@ -1,5 +1,6 @@
 defmodule GroceryPlannerWeb.RecipesLive do
   use GroceryPlannerWeb, :live_view
+  import GroceryPlannerWeb.UIComponents
 
   on_mount {GroceryPlannerWeb.Auth, :require_authenticated_user}
 

@@ -1,5 +1,6 @@
 defmodule GroceryPlannerWeb.ShoppingLive do
   use GroceryPlannerWeb, :live_view
+  import GroceryPlannerWeb.UIComponents
   require Logger
   require Ash.Query
 

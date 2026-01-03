@@ -51,7 +51,9 @@
           <div class="flex items-start justify-between mb-6">
             <div class="flex-1">
               <h1 class="text-4xl font-bold text-base-content mb-2">{@recipe.name}</h1>
-              <p :if={@recipe.description} class="text-lg text-base-content/70">{@recipe.description}</p>
+              <p :if={@recipe.description} class="text-lg text-base-content/70">
+                {@recipe.description}
+              </p>
             </div>
             <div class="flex gap-2 ml-4">
               <button
@@ -146,15 +148,21 @@
           <div class="border-t border-base-200 pt-8">
             <h2 class="text-2xl font-bold text-base-content mb-6">Ingredients</h2>
 
-            <div :if={@ingredients == []} class="text-center py-8 bg-base-200 rounded-lg">
-              <p class="text-base-content/60">No ingredients added yet</p>
-              <.button
-                phx-click="add_ingredient"
-                class="btn btn-primary mt-4"
-              >
-                Add Ingredients
-              </.button>
-            </div>
+            <.empty_state
+              :if={@ingredients == []}
+              icon="hero-beaker"
+              title="No ingredients added yet"
+              padding="py-8"
+            >
+              <:action>
+                <.button
+                  phx-click="add_ingredient"
+                  class="btn btn-primary mt-4"
+                >
+                  Add Ingredients
+                </.button>
+              </:action>
+            </.empty_state>
 
             <div :if={@ingredients != []} class="space-y-3">
               <div
@@ -174,7 +182,10 @@
                     <div :if={ingredient.is_optional} class="text-xs text-base-content/50 mt-1">
                       Optional
                     </div>
-                    <div :if={ingredient.substitution_notes} class="text-xs text-base-content/50 mt-1">
+                    <div
+                      :if={ingredient.substitution_notes}
+                      class="text-xs text-base-content/50 mt-1"
+                    >
                       Substitution: {ingredient.substitution_notes}
                     </div>
                   </div>

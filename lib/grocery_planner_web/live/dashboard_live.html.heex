@@ -17,45 +17,45 @@
     <div :if={@expiring_summary.total_count > 0} class="mb-8">
       <h2 class="text-2xl font-bold text-base-content mb-4">⚠️ Expiration Alerts</h2>
       <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <.link
+        <.stat_card
           :if={@expiring_summary.expired_count > 0}
-          navigate={~p"/inventory?expiring=expired"}
-          class="p-6 bg-error/10 rounded-xl border-2 border-error hover:border-error hover:shadow-lg transition-all cursor-pointer"
-        >
-          <h3 class="text-sm font-medium text-error mb-1">Expired</h3>
-          <p class="text-3xl font-bold text-error">{@expiring_summary.expired_count}</p>
-          <p class="text-sm text-error/80 mt-1">Remove immediately</p>
-        </.link>
+          icon="hero-fire"
+          color="error"
+          label="Expired"
+          value={to_string(@expiring_summary.expired_count)}
+          description="Remove immediately"
+          link={~p"/inventory?expiring=expired"}
+        />
 
-        <.link
+        <.stat_card
           :if={@expiring_summary.today_count > 0}
-          navigate={~p"/inventory?expiring=today"}
-          class="p-6 bg-warning/10 rounded-xl border-2 border-warning hover:border-warning hover:shadow-lg transition-all cursor-pointer"
-        >
-          <h3 class="text-sm font-medium text-warning mb-1">Expires Today</h3>
-          <p class="text-3xl font-bold text-warning">{@expiring_summary.today_count}</p>
-          <p class="text-sm text-warning/80 mt-1">Use today</p>
-        </.link>
+          icon="hero-exclamation-triangle"
+          color="warning"
+          label="Expires Today"
+          value={to_string(@expiring_summary.today_count)}
+          description="Use today"
+          link={~p"/inventory?expiring=today"}
+        />
 
-        <.link
+        <.stat_card
           :if={@expiring_summary.tomorrow_count > 0}
-          navigate={~p"/inventory?expiring=tomorrow"}
-          class="p-6 bg-warning/5 rounded-xl border-2 border-warning/50 hover:border-warning hover:shadow-lg transition-all cursor-pointer"
-        >
-          <h3 class="text-sm font-medium text-warning mb-1">Expires Tomorrow</h3>
-          <p class="text-3xl font-bold text-warning">{@expiring_summary.tomorrow_count}</p>
-          <p class="text-sm text-warning/80 mt-1">Plan to use soon</p>
-        </.link>
+          icon="hero-clock"
+          color="warning"
+          label="Expires Tomorrow"
+          value={to_string(@expiring_summary.tomorrow_count)}
+          description="Plan to use soon"
+          link={~p"/inventory?expiring=tomorrow"}
+        />
 
-        <.link
+        <.stat_card
           :if={@expiring_summary.this_week_count > 0}
-          navigate={~p"/inventory?expiring=this_week"}
-          class="p-6 bg-info/10 rounded-xl border-2 border-info hover:border-info hover:shadow-lg transition-all cursor-pointer"
-        >
-          <h3 class="text-sm font-medium text-info mb-1">This Week</h3>
-          <p class="text-3xl font-bold text-info">{@expiring_summary.this_week_count}</p>
-          <p class="text-sm text-info/80 mt-1">Next 3 days</p>
-        </.link>
+          icon="hero-calendar"
+          color="info"
+          label="This Week"
+          value={to_string(@expiring_summary.this_week_count)}
+          description="Next 3 days"
+          link={~p"/inventory?expiring=this_week"}
+        />
       </div>
     </div>
     
