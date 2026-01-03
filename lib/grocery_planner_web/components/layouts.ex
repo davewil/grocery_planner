@@ -38,14 +38,14 @@ defmodule GroceryPlannerWeb.Layouts do
 
   def app(assigns) do
     ~H"""
-    <div class="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50">
-      <header class="bg-white/50 backdrop-blur-sm px-4 sm:px-6 lg:px-8 border-b border-gray-200 sticky top-0 z-50">
+    <div class="min-h-screen bg-base-200">
+      <header class="bg-base-100/50 backdrop-blur-sm px-4 sm:px-6 lg:px-8 border-b border-base-content/10 sticky top-0 z-50">
         <div class="max-w-7xl mx-auto">
           <div class="flex items-center justify-between py-4">
             <div class="flex-1">
               <.link navigate="/dashboard" class="flex items-center gap-2">
                 <img src={~p"/images/logo.svg"} width="36" alt="GroceryPlanner logo" />
-                <span class="text-xl font-bold text-gray-900">GroceryPlanner</span>
+                <span class="text-xl font-bold text-base-content">GroceryPlanner</span>
               </.link>
             </div>
             
@@ -56,7 +56,7 @@ defmodule GroceryPlannerWeb.Layouts do
                   <li>
                     <.link
                       navigate="/dashboard"
-                      class="px-4 py-2 text-gray-700 hover:text-gray-900 font-medium transition"
+                      class="px-4 py-2 text-base-content/70 hover:text-base-content font-medium transition"
                     >
                       Dashboard
                     </.link>
@@ -64,7 +64,7 @@ defmodule GroceryPlannerWeb.Layouts do
                   <li>
                     <.link
                       navigate="/inventory"
-                      class="px-4 py-2 text-gray-700 hover:text-gray-900 font-medium transition"
+                      class="px-4 py-2 text-base-content/70 hover:text-base-content font-medium transition"
                     >
                       Inventory
                     </.link>
@@ -72,7 +72,7 @@ defmodule GroceryPlannerWeb.Layouts do
                   <li>
                     <.link
                       navigate="/recipes"
-                      class="px-4 py-2 text-gray-700 hover:text-gray-900 font-medium transition"
+                      class="px-4 py-2 text-base-content/70 hover:text-base-content font-medium transition"
                     >
                       Recipes
                     </.link>
@@ -80,7 +80,7 @@ defmodule GroceryPlannerWeb.Layouts do
                   <li>
                     <.link
                       navigate="/meal-planner"
-                      class="px-4 py-2 text-gray-700 hover:text-gray-900 font-medium transition"
+                      class="px-4 py-2 text-base-content/70 hover:text-base-content font-medium transition"
                     >
                       Meal Planner
                     </.link>
@@ -88,7 +88,7 @@ defmodule GroceryPlannerWeb.Layouts do
                   <li>
                     <.link
                       navigate="/voting"
-                      class="px-4 py-2 text-gray-700 hover:text-gray-900 font-medium transition flex items-center gap-1"
+                      class="px-4 py-2 text-base-content/70 hover:text-base-content font-medium transition flex items-center gap-1"
                     >
                       Voting
                       <span
@@ -96,16 +96,16 @@ defmodule GroceryPlannerWeb.Layouts do
                         class="relative flex h-2 w-2"
                         title="Voting in progress"
                       >
-                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-purple-400 opacity-75">
+                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-accent opacity-75">
                         </span>
-                        <span class="relative inline-flex rounded-full h-2 w-2 bg-purple-500"></span>
+                        <span class="relative inline-flex rounded-full h-2 w-2 bg-accent"></span>
                       </span>
                     </.link>
                   </li>
                   <li>
                     <.link
                       navigate="/shopping"
-                      class="px-4 py-2 text-gray-700 hover:text-gray-900 font-medium transition"
+                      class="px-4 py-2 text-base-content/70 hover:text-base-content font-medium transition"
                     >
                       Shopping
                     </.link>
@@ -113,7 +113,7 @@ defmodule GroceryPlannerWeb.Layouts do
                   <li>
                     <.link
                       navigate="/analytics"
-                      class="px-4 py-2 text-gray-700 hover:text-gray-900 font-medium transition"
+                      class="px-4 py-2 text-base-content/70 hover:text-base-content font-medium transition"
                     >
                       Analytics
                     </.link>
@@ -121,7 +121,7 @@ defmodule GroceryPlannerWeb.Layouts do
                   <li>
                     <.link
                       navigate="/settings"
-                      class="px-4 py-2 text-gray-700 hover:text-gray-900 font-medium transition"
+                      class="px-4 py-2 text-base-content/70 hover:text-base-content font-medium transition"
                     >
                       Settings
                     </.link>
@@ -130,7 +130,7 @@ defmodule GroceryPlannerWeb.Layouts do
                     <.link
                       href="/auth/sign-out"
                       method="delete"
-                      class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition font-medium"
+                      class="px-4 py-2 bg-base-200 text-base-content/70 rounded-lg hover:bg-base-300 transition font-medium"
                       data-confirm="Are you sure you want to sign out?"
                     >
                       Sign Out
@@ -140,7 +140,7 @@ defmodule GroceryPlannerWeb.Layouts do
                   <li>
                     <.link
                       navigate="/sign-in"
-                      class="px-4 py-2 text-gray-700 hover:text-gray-900 font-medium transition"
+                      class="px-4 py-2 text-base-content/70 hover:text-base-content font-medium transition"
                     >
                       Sign In
                     </.link>
@@ -148,7 +148,7 @@ defmodule GroceryPlannerWeb.Layouts do
                   <li>
                     <.link
                       navigate="/sign-up"
-                      class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium"
+                      class="btn btn-primary px-6"
                     >
                       Sign Up
                     </.link>
@@ -159,7 +159,7 @@ defmodule GroceryPlannerWeb.Layouts do
             
     <!-- Mobile Menu Button -->
             <button
-              class="lg:hidden p-2 text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition"
+              class="lg:hidden p-2 text-base-content/70 hover:text-base-content hover:bg-base-200 rounded-lg transition"
               phx-click={
                 JS.toggle(to: "#mobile-menu") |> JS.toggle_class("hidden", to: "#mobile-menu")
               }
@@ -182,35 +182,35 @@ defmodule GroceryPlannerWeb.Layouts do
               <%= if assigns[:current_user] do %>
                 <.link
                   navigate="/dashboard"
-                  class="px-4 py-2 text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg font-medium transition"
+                  class="px-4 py-2 text-base-content/70 hover:text-base-content hover:bg-base-200 rounded-lg font-medium transition"
                   phx-click={JS.add_class("hidden", to: "#mobile-menu")}
                 >
                   Dashboard
                 </.link>
                 <.link
                   navigate="/inventory"
-                  class="px-4 py-2 text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg font-medium transition"
+                  class="px-4 py-2 text-base-content/70 hover:text-base-content hover:bg-base-200 rounded-lg font-medium transition"
                   phx-click={JS.add_class("hidden", to: "#mobile-menu")}
                 >
                   Inventory
                 </.link>
                 <.link
                   navigate="/recipes"
-                  class="px-4 py-2 text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg font-medium transition"
+                  class="px-4 py-2 text-base-content/70 hover:text-base-content hover:bg-base-200 rounded-lg font-medium transition"
                   phx-click={JS.add_class("hidden", to: "#mobile-menu")}
                 >
                   Recipes
                 </.link>
                 <.link
                   navigate="/meal-planner"
-                  class="px-4 py-2 text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg font-medium transition"
+                  class="px-4 py-2 text-base-content/70 hover:text-base-content hover:bg-base-200 rounded-lg font-medium transition"
                   phx-click={JS.add_class("hidden", to: "#mobile-menu")}
                 >
                   Meal Planner
                 </.link>
                 <.link
                   navigate="/voting"
-                  class="px-4 py-2 text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg font-medium transition flex items-center gap-2"
+                  class="px-4 py-2 text-base-content/70 hover:text-base-content hover:bg-base-200 rounded-lg font-medium transition flex items-center gap-2"
                   phx-click={JS.add_class("hidden", to: "#mobile-menu")}
                 >
                   Voting
@@ -219,28 +219,28 @@ defmodule GroceryPlannerWeb.Layouts do
                     class="relative flex h-2 w-2"
                     title="Voting in progress"
                   >
-                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-purple-400 opacity-75">
+                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-accent opacity-75">
                     </span>
-                    <span class="relative inline-flex rounded-full h-2 w-2 bg-purple-500"></span>
+                    <span class="relative inline-flex rounded-full h-2 w-2 bg-accent"></span>
                   </span>
                 </.link>
                 <.link
                   navigate="/shopping"
-                  class="px-4 py-2 text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg font-medium transition"
+                  class="px-4 py-2 text-base-content/70 hover:text-base-content hover:bg-base-200 rounded-lg font-medium transition"
                   phx-click={JS.add_class("hidden", to: "#mobile-menu")}
                 >
                   Shopping
                 </.link>
                 <.link
                   navigate="/analytics"
-                  class="px-4 py-2 text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg font-medium transition"
+                  class="px-4 py-2 text-base-content/70 hover:text-base-content hover:bg-base-200 rounded-lg font-medium transition"
                   phx-click={JS.add_class("hidden", to: "#mobile-menu")}
                 >
                   Analytics
                 </.link>
                 <.link
                   navigate="/settings"
-                  class="px-4 py-2 text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg font-medium transition"
+                  class="px-4 py-2 text-base-content/70 hover:text-base-content hover:bg-base-200 rounded-lg font-medium transition"
                   phx-click={JS.add_class("hidden", to: "#mobile-menu")}
                 >
                   Settings
@@ -248,7 +248,7 @@ defmodule GroceryPlannerWeb.Layouts do
                 <.link
                   href="/auth/sign-out"
                   method="delete"
-                  class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition font-medium"
+                  class="px-4 py-2 bg-base-200 text-base-content/70 rounded-lg hover:bg-base-300 transition font-medium"
                   data-confirm="Are you sure you want to sign out?"
                 >
                   Sign Out
@@ -256,14 +256,14 @@ defmodule GroceryPlannerWeb.Layouts do
               <% else %>
                 <.link
                   navigate="/sign-in"
-                  class="px-4 py-2 text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg font-medium transition"
+                  class="px-4 py-2 text-base-content/70 hover:text-base-content hover:bg-base-200 rounded-lg font-medium transition"
                   phx-click={JS.add_class("hidden", to: "#mobile-menu")}
                 >
                   Sign In
                 </.link>
                 <.link
                   navigate="/sign-up"
-                  class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium text-center"
+                  class="btn btn-primary w-full text-center"
                   phx-click={JS.add_class("hidden", to: "#mobile-menu")}
                 >
                   Sign Up
