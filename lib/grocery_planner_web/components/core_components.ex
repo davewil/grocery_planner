@@ -209,7 +209,7 @@ defmodule GroceryPlannerWeb.CoreComponents do
     ~H"""
     <div class="fieldset mb-2">
       <label>
-        <span :if={@label} class="label mb-1 text-gray-900 font-medium">{@label}</span>
+        <span :if={@label} class="label mb-1 text-base-content font-medium">{@label}</span>
         <select
           id={@id}
           name={@name}
@@ -230,7 +230,7 @@ defmodule GroceryPlannerWeb.CoreComponents do
     ~H"""
     <div class="fieldset mb-2">
       <label>
-        <span :if={@label} class="label mb-1 text-gray-900 font-medium">{@label}</span>
+        <span :if={@label} class="label mb-1 text-base-content font-medium">{@label}</span>
         <textarea
           id={@id}
           name={@name}
@@ -251,7 +251,7 @@ defmodule GroceryPlannerWeb.CoreComponents do
     ~H"""
     <div class="fieldset mb-2">
       <label>
-        <span :if={@label} class="label mb-1 text-gray-900 font-medium">{@label}</span>
+        <span :if={@label} class="label mb-1 text-base-content font-medium">{@label}</span>
         <input
           type={@type}
           name={@name}
@@ -451,7 +451,7 @@ defmodule GroceryPlannerWeb.CoreComponents do
     >
       <div
         id={"#{@id}-bg"}
-        class="fixed inset-0 bg-gray-900/50 transition-opacity"
+        class="fixed inset-0 bg-neutral/50 transition-opacity"
         aria-hidden="true"
       />
       <div
@@ -463,7 +463,7 @@ defmodule GroceryPlannerWeb.CoreComponents do
         tabindex="0"
       >
         <div class="flex min-h-full items-center justify-center p-4 text-center">
-          <div class="w-full max-w-3xl transform overflow-hidden rounded-2xl bg-white p-6 text-left align-middle shadow-xl transition-all">
+          <div class="w-full max-w-3xl transform overflow-hidden rounded-2xl bg-base-100 p-6 text-left align-middle shadow-xl transition-all">
             <div class="absolute top-4 right-4">
               <button
                 phx-click={JS.exec("data-cancel", to: "##{@id}")}

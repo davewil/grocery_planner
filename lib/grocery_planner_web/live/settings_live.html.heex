@@ -7,16 +7,16 @@
 >
   <div class="px-4 py-10 sm:px-6 lg:px-8">
     <div class="mb-12">
-      <h1 class="text-4xl font-bold text-gray-900">Settings</h1>
-      <p class="mt-2 text-lg text-gray-600">Manage your account and household</p>
+      <h1 class="text-4xl font-bold text-base-content">Settings</h1>
+      <p class="mt-2 text-lg text-base-content/70">Manage your account and household</p>
     </div>
 
     <div class="grid gap-8 lg:grid-cols-2">
-      <div class="p-8 bg-white rounded-2xl shadow-sm border border-gray-100">
+      <div class="p-8 bg-base-100 rounded-box shadow-sm border border-base-200">
         <div class="flex items-center gap-3 mb-6">
-          <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+          <div class="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
             <svg
-              class="w-5 h-5 text-blue-600"
+              class="w-5 h-5 text-primary"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -29,7 +29,7 @@
               />
             </svg>
           </div>
-          <h2 class="text-2xl font-semibold text-gray-900">Account Information</h2>
+          <h2 class="text-2xl font-semibold text-base-content">Account Information</h2>
         </div>
         <.form
           for={@account_form}
@@ -56,21 +56,18 @@
           />
 
           <div class="pt-2">
-            <.button
-              phx-disable-with="Saving..."
-              class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium"
-            >
+            <.button phx-disable-with="Saving..." class="btn-primary">
               Save Changes
             </.button>
           </div>
         </.form>
       </div>
 
-      <div class="p-8 bg-white rounded-2xl shadow-sm border border-gray-100">
+      <div class="p-8 bg-base-100 rounded-box shadow-sm border border-base-200">
         <div class="flex items-center gap-3 mb-6">
-          <div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+          <div class="w-10 h-10 bg-secondary/10 rounded-lg flex items-center justify-center">
             <svg
-              class="w-5 h-5 text-green-600"
+              class="w-5 h-5 text-secondary"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -83,7 +80,7 @@
               />
             </svg>
           </div>
-          <h2 class="text-2xl font-semibold text-gray-900">User Profile</h2>
+          <h2 class="text-2xl font-semibold text-base-content">User Profile</h2>
         </div>
         <.form
           for={@user_form}
@@ -94,12 +91,20 @@
         >
           <.input field={@user_form[:name]} type="text" label="Name" required />
           <.input field={@user_form[:email]} type="email" label="Email" required />
+          <.input
+            field={@user_form[:theme]}
+            type="select"
+            label="Theme"
+            options={[
+              {"Fresh & Organic", "fresh"},
+              {"Bistro & Bold", "bistro"},
+              {"Pantry Professional", "professional"}
+            ]}
+            required
+          />
 
           <div class="pt-2">
-            <.button
-              phx-disable-with="Saving..."
-              class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium"
-            >
+            <.button phx-disable-with="Saving..." class="btn-primary">
               Save Changes
             </.button>
           </div>
@@ -107,11 +112,11 @@
       </div>
     </div>
 
-    <div class="mt-8 p-8 bg-white rounded-2xl shadow-sm border border-gray-100">
+    <div class="mt-8 p-8 bg-base-100 rounded-box shadow-sm border border-base-200">
       <div class="flex items-center gap-3 mb-6">
-        <div class="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center">
+        <div class="w-10 h-10 bg-accent/10 rounded-lg flex items-center justify-center">
           <svg
-            class="w-5 h-5 text-orange-600"
+            class="w-5 h-5 text-accent"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -124,7 +129,7 @@
             />
           </svg>
         </div>
-        <h2 class="text-2xl font-semibold text-gray-900">Notification Preferences</h2>
+        <h2 class="text-2xl font-semibold text-base-content">Notification Preferences</h2>
       </div>
       <.form
         for={@notification_form}
@@ -135,9 +140,9 @@
       >
         <div class="grid gap-6 md:grid-cols-2">
           <div class="space-y-4">
-            <h3 class="text-lg font-medium text-gray-900">Expiration Alerts</h3>
+            <h3 class="text-lg font-medium text-base-content">Expiration Alerts</h3>
             <div class="flex items-center justify-between">
-              <label class="text-sm font-medium text-gray-700">Enable Expiration Alerts</label>
+              <label class="text-sm font-medium text-base-content/80">Enable Expiration Alerts</label>
               <.input field={@notification_form[:expiration_alerts_enabled]} type="checkbox" />
             </div>
             <%= if @notification_form[:expiration_alerts_enabled].value do %>
@@ -152,9 +157,9 @@
           </div>
 
           <div class="space-y-4">
-            <h3 class="text-lg font-medium text-gray-900">Recipe Suggestions</h3>
+            <h3 class="text-lg font-medium text-base-content">Recipe Suggestions</h3>
             <div class="flex items-center justify-between">
-              <label class="text-sm font-medium text-gray-700">
+              <label class="text-sm font-medium text-base-content/80">
                 Suggest Recipes for Expiring Items
               </label>
               <.input field={@notification_form[:recipe_suggestions_enabled]} type="checkbox" />
@@ -162,22 +167,22 @@
           </div>
         </div>
 
-        <div class="border-t border-gray-100 pt-6">
-          <h3 class="text-lg font-medium text-gray-900 mb-4">Delivery Methods</h3>
+        <div class="border-t border-base-200 pt-6">
+          <h3 class="text-lg font-medium text-base-content mb-4">Delivery Methods</h3>
           <div class="grid gap-6 md:grid-cols-2">
             <div class="flex items-center justify-between">
               <div>
-                <label class="text-sm font-medium text-gray-700 block">
+                <label class="text-sm font-medium text-base-content/80 block">
                   In-App Notifications
                 </label>
-                <p class="text-xs text-gray-500">Show alerts on the dashboard</p>
+                <p class="text-xs text-base-content/60">Show alerts on the dashboard</p>
               </div>
               <.input field={@notification_form[:in_app_notifications_enabled]} type="checkbox" />
             </div>
             <div class="flex items-center justify-between">
               <div>
-                <label class="text-sm font-medium text-gray-700 block">Email Notifications</label>
-                <p class="text-xs text-gray-500">Receive daily summaries via email</p>
+                <label class="text-sm font-medium text-base-content/80 block">Email Notifications</label>
+                <p class="text-xs text-base-content/60">Receive daily summaries via email</p>
               </div>
               <.input field={@notification_form[:email_notifications_enabled]} type="checkbox" />
             </div>
@@ -185,22 +190,19 @@
         </div>
 
         <div class="pt-2">
-          <.button
-            phx-disable-with="Saving..."
-            class="px-6 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition font-medium"
-          >
+          <.button phx-disable-with="Saving..." class="btn-primary">
             Save Preferences
           </.button>
         </div>
       </.form>
     </div>
 
-    <div class="mt-8 p-8 bg-white rounded-2xl shadow-sm border border-gray-100">
+    <div class="mt-8 p-8 bg-base-100 rounded-box shadow-sm border border-base-200">
       <div class="flex items-center justify-between mb-6">
         <div class="flex items-center gap-3">
-          <div class="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+          <div class="w-10 h-10 bg-secondary/10 rounded-lg flex items-center justify-center">
             <svg
-              class="w-5 h-5 text-purple-600"
+              class="w-5 h-5 text-secondary"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -213,12 +215,9 @@
               />
             </svg>
           </div>
-          <h2 class="text-2xl font-semibold text-gray-900">Household Members</h2>
+          <h2 class="text-2xl font-semibold text-base-content">Household Members</h2>
         </div>
-        <.button
-          phx-click="show_invite_form"
-          class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition font-medium"
-        >
+        <.button phx-click="show_invite_form" class="btn-secondary">
           <svg class="w-5 h-5 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
               stroke-linecap="round"
@@ -232,7 +231,7 @@
       </div>
 
       <%= if @show_invite_form do %>
-        <div class="mb-6 p-6 bg-purple-50 border border-purple-200 rounded-xl">
+        <div class="mb-6 p-6 bg-base-200/50 border border-base-300 rounded-box">
           <.form
             for={@invite_form}
             id="invite-form"
@@ -250,17 +249,10 @@
             />
 
             <div class="flex gap-2 pt-2">
-              <.button
-                phx-disable-with="Sending..."
-                class="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition font-medium"
-              >
+              <.button phx-disable-with="Sending..." class="btn-secondary">
                 Send Invitation
               </.button>
-              <.button
-                type="button"
-                phx-click="hide_invite_form"
-                class="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition font-medium"
-              >
+              <.button type="button" phx-click="hide_invite_form" class="btn-ghost">
                 Cancel
               </.button>
             </div>
@@ -270,20 +262,20 @@
 
       <div class="space-y-3">
         <%= for membership <- @memberships do %>
-          <div class="flex items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-200 hover:border-purple-200 hover:bg-purple-50/50 transition">
+          <div class="flex items-center justify-between p-4 bg-base-100 rounded-xl border border-base-200 hover:border-secondary/30 hover:bg-secondary/5 transition">
             <div class="flex items-center gap-3">
-              <div class="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
-                <span class="text-purple-700 font-semibold text-sm">
+              <div class="w-10 h-10 bg-secondary/10 rounded-full flex items-center justify-center">
+                <span class="text-secondary font-semibold text-sm">
                   {String.first(membership.user.name)}
                 </span>
               </div>
               <div>
-                <p class="font-semibold text-gray-900">{membership.user.name}</p>
-                <p class="text-sm text-gray-600">{to_string(membership.user.email)}</p>
+                <p class="font-semibold text-base-content">{membership.user.name}</p>
+                <p class="text-sm text-base-content/70">{to_string(membership.user.email)}</p>
               </div>
             </div>
             <div class="flex items-center gap-3">
-              <span class="px-3 py-1 text-sm font-medium rounded-full bg-purple-100 text-purple-800 capitalize">
+              <span class="badge badge-secondary badge-soft capitalize">
                 {membership.role}
               </span>
               <%= if membership.role != :owner && @current_role in [:owner, :admin] do %>
@@ -291,7 +283,7 @@
                   phx-click="remove_member"
                   phx-value-id={membership.id}
                   data-confirm="Are you sure?"
-                  class="px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition font-medium text-sm"
+                  class="btn-error btn-outline btn-sm"
                 >
                   Remove
                 </.button>
