@@ -38,7 +38,12 @@ defmodule GroceryPlannerWeb.Layouts do
 
   def app(assigns) do
     ~H"""
-    <div class="min-h-screen bg-base-200">
+    <div
+      id="app-layout"
+      phx-hook="ThemeChange"
+      data-theme={@current_user && @current_user.theme}
+      class="min-h-screen bg-base-200"
+    >
       <header class="bg-base-100/50 backdrop-blur-sm px-4 sm:px-6 lg:px-8 border-b border-base-content/10 sticky top-0 z-50">
         <div class="max-w-7xl mx-auto">
           <div class="flex items-center justify-between py-4">
