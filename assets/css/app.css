@@ -16,95 +16,95 @@
 
 /* Theme variables - Tailwind v4 automatically picks up --color-* variables */
 @layer base {
-  /* LIGHT: Ultra-Clean & Airy */
+  /* LIGHT: Clinical, Paper White, Minimalist */
   :root,
   [data-theme="light"] {
     color-scheme: light;
     --color-base-100: oklch(100% 0 0);
-    --color-base-200: oklch(98% 0.01 240);
-    --color-base-300: oklch(95% 0.02 240);
-    --color-base-content: oklch(20% 0.02 240);
+    --color-base-200: oklch(98% 0.005 240);
+    --color-base-300: oklch(95% 0.01 240);
+    --color-base-content: oklch(15% 0.01 240);
     
-    --color-primary: oklch(55% 0.2 250);
+    --color-primary: oklch(50% 0.05 240); /* Deep Slate Blue */
     --color-primary-content: oklch(100% 0 0);
     
-    --color-secondary: oklch(75% 0.15 150);
-    --color-secondary-content: oklch(20% 0.05 150);
-    
-    --color-accent: oklch(65% 0.2 30);
-    --color-accent-content: oklch(100% 0 0);
-    
-    --color-neutral: oklch(30% 0.05 240);
-    --color-neutral-content: oklch(100% 0 0);
-    
-    --color-info: oklch(70% 0.15 240);
-    --color-success: oklch(65% 0.15 140);
-    --color-warning: oklch(80% 0.15 85);
-    --color-error: oklch(60% 0.2 30);
-    
-    --radius-selector: 1.5rem;
-    --radius-field: 0.75rem;
-    --radius-box: 2rem;
-  }
-
-  /* DARK: Deep Premium Midnight */
-  [data-theme="dark"] {
-    color-scheme: dark;
-    --color-base-100: oklch(12% 0.015 260);
-    --color-base-200: oklch(16% 0.02 260);
-    --color-base-300: oklch(20% 0.025 260);
-    --color-base-content: oklch(95% 0.01 260);
-    
-    --color-primary: oklch(75% 0.18 200);
-    --color-primary-content: oklch(15% 0.02 200);
-    
-    --color-secondary: oklch(70% 0.25 330);
+    --color-secondary: oklch(65% 0.1 180); /* Muted Teal */
     --color-secondary-content: oklch(100% 0 0);
     
-    --color-accent: oklch(85% 0.2 140);
-    --color-accent-content: oklch(15% 0.05 140);
+    --color-accent: oklch(60% 0.15 30); /* Terracotta */
+    --color-accent-content: oklch(100% 0 0);
     
-    --color-neutral: oklch(25% 0.03 260);
+    --color-neutral: oklch(25% 0.02 240);
+    --color-neutral-content: oklch(100% 0 0);
+    
+    --color-info: oklch(70% 0.1 220);
+    --color-success: oklch(65% 0.12 150);
+    --color-warning: oklch(85% 0.12 80);
+    --color-error: oklch(60% 0.18 25);
+    
+    --radius-selector: 0.5rem;
+    --radius-field: 0.375rem;
+    --radius-box: 0.75rem;
+  }
+
+  /* DARK: Stealth, OLED Black, High-Contrast Cyan */
+  [data-theme="dark"] {
+    color-scheme: dark;
+    --color-base-100: oklch(5% 0 0); /* Pure Black */
+    --color-base-200: oklch(10% 0.01 250); /* Deep Grey */
+    --color-base-300: oklch(15% 0.02 250);
+    --color-base-content: oklch(90% 0.01 250);
+    
+    --color-primary: oklch(80% 0.2 190); /* Electric Cyan */
+    --color-primary-content: oklch(10% 0.05 190);
+    
+    --color-secondary: oklch(70% 0.05 250); /* Steel Blue */
+    --color-secondary-content: oklch(100% 0 0);
+    
+    --color-accent: oklch(85% 0.15 150); /* Mint */
+    --color-accent-content: oklch(10% 0.05 150);
+    
+    --color-neutral: oklch(20% 0.02 250);
     --color-neutral-content: oklch(95% 0 0);
     
-    --color-info: oklch(75% 0.15 240);
+    --color-info: oklch(75% 0.15 200);
     --color-success: oklch(75% 0.15 150);
     --color-warning: oklch(85% 0.15 85);
     --color-error: oklch(70% 0.2 30);
     
-    --radius-selector: 0.5rem;
-    --radius-field: 0.5rem;
-    --radius-box: 1rem;
+    --radius-selector: 0.25rem;
+    --radius-field: 0.25rem;
+    --radius-box: 0.5rem;
   }
 
-  /* PROGRESSIVE: Vibrant Futuristic */
+  /* PROGRESSIVE: Deep Indigo, Neon Pink, Glassmorphism */
   [data-theme="progressive"] {
     color-scheme: dark;
-    --color-base-100: oklch(18% 0.08 280);
-    --color-base-200: oklch(22% 0.1 280);
-    --color-base-300: oklch(26% 0.12 280);
+    --color-base-100: oklch(30% 0.15 280); /* Deep Royal Indigo */
+    --color-base-200: oklch(35% 0.18 280); /* Vibrant Indigo */
+    --color-base-300: oklch(40% 0.2 280);
     --color-base-content: oklch(98% 0.02 280);
     
-    --color-primary: oklch(85% 0.22 145);
-    --color-primary-content: oklch(20% 0.1 145);
+    --color-primary: oklch(75% 0.3 340); /* Neon Hot Pink */
+    --color-primary-content: oklch(100% 0 0);
     
-    --color-secondary: oklch(65% 0.25 350);
-    --color-secondary-content: oklch(100% 0 0);
+    --color-secondary: oklch(85% 0.25 140); /* Bright Lime */
+    --color-secondary-content: oklch(20% 0.1 140);
     
-    --color-accent: oklch(75% 0.2 250);
+    --color-accent: oklch(70% 0.3 260); /* Vivid Electric Blue */
     --color-accent-content: oklch(100% 0 0);
     
-    --color-neutral: oklch(35% 0.1 280);
-    --color-neutral-content: oklch(98% 0 0);
+    --color-neutral: oklch(45% 0.15 280);
+    --color-neutral-content: oklch(100% 0 0);
     
-    --color-info: oklch(75% 0.15 200);
-    --color-success: oklch(80% 0.2 150);
-    --color-warning: oklch(85% 0.2 90);
-    --color-error: oklch(65% 0.25 30);
+    --color-info: oklch(80% 0.15 200);
+    --color-success: oklch(85% 0.2 150);
+    --color-warning: oklch(90% 0.2 90);
+    --color-error: oklch(70% 0.3 20);
     
-    --radius-selector: 2rem;
-    --radius-field: 1rem;
-    --radius-box: 2.5rem;
+    --radius-selector: 2.5rem; /* Large pill buttons */
+    --radius-field: 1.25rem;
+    --radius-box: 3rem; /* Very rounded cards */
   }
 }
 
@@ -119,7 +119,7 @@
 body {
   color: var(--color-base-content);
   background-color: var(--color-base-100);
-  transition: background-color 0.3s ease, color 0.3s ease;
+  transition: background-color 0.4s cubic-bezier(0.4, 0, 0.2, 1), color 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* Standardize component variables for DaisyUI */
@@ -141,10 +141,18 @@ body {
   --rounded-box: var(--radius-box);
 }
 
-/* Progressive Theme Special Effects */
-[data-theme="progressive"] .rounded-box,
-[data-theme="progressive"] .btn {
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
-  backdrop-filter: blur(4px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+/* Progressive Theme Special Effects - Glassmorphism */
+[data-theme="progressive"] .rounded-box {
+  background-color: oklch(from var(--color-base-100) l c h / 0.6);
+  backdrop-filter: blur(16px);
+  border: 1px solid oklch(from var(--color-base-content) l c h / 0.1);
+  box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.2), 0 8px 10px -6px rgb(0 0 0 / 0.2);
+}
+
+[data-theme="progressive"] .btn:not(.btn-ghost) {
+  box-shadow: 0 4px 14px 0 oklch(from var(--color-primary) l c h / 0.4);
+}
+
+[data-theme="dark"] .rounded-box {
+  border: 1px solid oklch(from var(--color-base-content) l c h / 0.05);
 }
