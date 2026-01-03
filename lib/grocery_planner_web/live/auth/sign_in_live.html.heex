@@ -12,8 +12,20 @@
 
     <.form for={@form} id="sign-in-form" action="/auth/sign-in" method="post" class="mt-10">
       <div class="space-y-4">
-        <.input field={@form[:email]} type="email" label="Email" required placeholder="you@example.com" />
-        <.input field={@form[:password]} type="password" label="Password" required placeholder="••••••••" />
+        <.input
+          field={@form[:email]}
+          type="email"
+          label="Email"
+          required
+          placeholder="you@example.com"
+        />
+        <.input
+          field={@form[:password]}
+          type="password"
+          label="Password"
+          required
+          placeholder="••••••••"
+        />
 
         <div class="mt-6">
           <button
