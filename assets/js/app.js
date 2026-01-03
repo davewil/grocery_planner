@@ -46,7 +46,16 @@ window.addEventListener("phx:set-theme", (e) => setTheme(e.target.dataset.phxThe
 let Hooks = {};
 Hooks.ThemeChange = {
   mounted() {
-    this.handleEvent("set-theme", ({theme}) => setTheme(theme));
+    const theme = this.el.dataset.theme;
+    if (theme) setTheme(theme);
+    
+    this.handleEvent("set-theme", ({theme}) => {
+      setTheme(theme);
+    });
+  },
+  updated() {
+    const theme = this.el.dataset.theme;
+    if (theme) setTheme(theme);
   }
 };
 

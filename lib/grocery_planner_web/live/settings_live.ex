@@ -178,7 +178,6 @@ defmodule GroceryPlannerWeb.SettingsLive do
         {:noreply,
          socket
          |> put_flash(:info, "Profile updated successfully")
-         |> push_event("set-theme", %{theme: user.theme})
          |> assign(:current_user, user)}
 
       {:error, _} ->
