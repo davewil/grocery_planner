@@ -88,7 +88,7 @@ defmodule GroceryPlanner.Accounts.User do
 
     attribute :theme, :string do
       allow_nil? false
-      default "fresh"
+      default "light"
       public? true
     end
 

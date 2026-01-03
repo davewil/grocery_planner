@@ -9,7 +9,7 @@ defmodule GroceryPlanner.Repo.Migrations.AddThemeToUsers do
 
   def up do
     alter table(:users) do
-      add :theme, :text, null: false, default: "fresh"
+      add :theme, :text, null: false, default: "light"
     end
   end
 
