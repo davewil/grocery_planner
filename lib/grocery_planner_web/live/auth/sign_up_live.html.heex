@@ -4,7 +4,7 @@
       Create Account
       <:subtitle>
         Already have an account?
-        <.link navigate="/sign-in" class="font-semibold text-primary hover:underline">
+        <.link navigate="/sign-in" class="font-semibold text-blue-600 hover:underline">
           Sign in
         </.link>
       </:subtitle>
@@ -18,9 +18,13 @@
         <.input field={@form[:account_name]} type="text" label="Household Name" required />
 
         <div class="mt-6">
-          <.button phx-disable-with="Creating account..." class="w-full" variant="primary">
+          <button
+            type="submit"
+            phx-disable-with="Creating account..."
+            class="w-full px-4 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition shadow-sm"
+          >
             Create Account
-          </.button>
+          </button>
         </div>
       </div>
     </.form>
