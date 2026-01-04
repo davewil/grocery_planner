@@ -23,7 +23,7 @@
           :if={@session && remaining_seconds(@session, @now) == 0}
           phx-click="finalize"
           disabled={@finalizing}
-          class={@finalizing && "btn-disabled" || "btn-success"}
+          class={(@finalizing && "btn-disabled") || "btn-success"}
           type="button"
         >
           {if @finalizing, do: "Finalizing...", else: "Finalize"}
