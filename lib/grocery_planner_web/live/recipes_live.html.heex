@@ -13,13 +13,23 @@
       <:actions>
         <.link navigate="/recipes/search" class="btn btn-primary">
           <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+            />
           </svg>
           Search TheMealDB
         </.link>
         <.button phx-click="new_recipe" class="btn btn-secondary">
           <svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+            />
           </svg>
           New Recipe
         </.button>
@@ -76,106 +86,69 @@
     />
 
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      <div
+      <.item_card
         :for={recipe <- @recipes}
-        class="bg-base-100 rounded-box shadow-sm border border-base-200 overflow-hidden hover:shadow-md transition cursor-pointer"
+        title={recipe.name}
+        image_url={recipe.image_url}
+        description={recipe.description}
         phx-click="view_recipe"
         phx-value-id={recipe.id}
       >
-        <div :if={recipe.image_url} class="h-48 bg-base-200">
-          <img src={recipe.image_url} alt={recipe.name} class="w-full h-full object-cover" />
-        </div>
-        <div
-          :if={!recipe.image_url}
-          class="h-48 bg-secondary/10 flex items-center justify-center"
-        >
-          <svg
-            class="w-16 h-16 text-secondary/30"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
+        <:image_placeholder>
+          <div class="h-48 bg-secondary/10 flex items-center justify-center">
+            <.icon name="hero-book-open" class="w-16 h-16 text-secondary/30" />
+          </div>
+        </:image_placeholder>
+        <:title_actions>
+          <button
+            phx-click="toggle_favorite"
+            phx-value-id={recipe.id}
+            phx-no-bubble
+            class={[
+              "transition",
+              recipe.is_favorite && "text-warning",
+              !recipe.is_favorite && "text-base-content/20",
+              "hover:text-secondary"
+            ]}
+            type="button"
           >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
-            />
-          </svg>
-        </div>
-
-        <div class="p-5">
-          <div class="flex items-start justify-between mb-2">
-            <h3 class="text-lg font-semibold text-base-content flex-1">{recipe.name}</h3>
-            <button
-              phx-click="toggle_favorite"
-              phx-value-id={recipe.id}
-              phx-no-bubble
-              class={[
-                "flex-shrink-0 ml-2 transition",
-                recipe.is_favorite && "text-warning",
-                !recipe.is_favorite && "text-base-content/20",
-                "hover:text-secondary"
-              ]}
-              type="button"
+            <svg
+              class="w-6 h-6"
+              fill={if recipe.is_favorite, do: "currentColor", else: "none"}
+              stroke="currentColor"
+              viewBox="0 0 24 24"
             >
-              <svg
-                class="w-6 h-6"
-                fill={if recipe.is_favorite, do: "currentColor", else: "none"}
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"
-                />
-              </svg>
-            </button>
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"
+              />
+            </svg>
+          </button>
+        </:title_actions>
+        <:footer>
+          <div class="flex items-center gap-1">
+            <.icon name="hero-clock" class="w-4 h-4" />
+            <span>{(recipe.prep_time_minutes || 0) + (recipe.cook_time_minutes || 0)} min</span>
           </div>
-
-          <p :if={recipe.description} class="text-sm text-base-content/60 mb-3 line-clamp-2">
-            {recipe.description}
-          </p>
-
-          <div class="flex items-center gap-4 text-sm text-base-content/50">
-            <div class="flex items-center gap-1">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                />
-              </svg>
-              <span>{(recipe.prep_time_minutes || 0) + (recipe.cook_time_minutes || 0)} min</span>
-            </div>
-            <div class="flex items-center gap-1">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
-                />
-              </svg>
-              <span>{recipe.servings} servings</span>
-            </div>
-            <div class={[
-              "badge badge-sm capitalize",
-              case recipe.difficulty do
-                :easy -> "badge-success"
-                :medium -> "badge-warning"
-                :hard -> "badge-error"
-                _ -> "badge-ghost"
-              end
-            ]}>
-              {recipe.difficulty}
-            </div>
+          <div class="flex items-center gap-1">
+            <.icon name="hero-user-group" class="w-4 h-4" />
+            <span>{recipe.servings} servings</span>
           </div>
-        </div>
-      </div>
+          <div class={[
+            "badge badge-sm capitalize",
+            case recipe.difficulty do
+              :easy -> "badge-success"
+              :medium -> "badge-warning"
+              :hard -> "badge-error"
+              _ -> "badge-ghost"
+            end
+          ]}>
+            {recipe.difficulty}
+          </div>
+        </:footer>
+      </.item_card>
     </div>
   </div>
 </Layouts.app>

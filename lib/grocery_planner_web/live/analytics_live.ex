@@ -156,7 +156,7 @@ defmodule GroceryPlannerWeb.AnalyticsLive do
               <span>Today</span>
             </div>
           </.section>
-
+          
     <!-- Usage Trends -->
           <.section title="Usage Trends (Last 30 Days)">
             <div class="h-64 flex items-end gap-2">
@@ -240,7 +240,7 @@ defmodule GroceryPlannerWeb.AnalyticsLive do
               </table>
             </div>
           </.section>
-
+          
     <!-- Expiration Timeline (Simple Visual) -->
           <.section title="Expiration Timeline">
             <div class="space-y-6">

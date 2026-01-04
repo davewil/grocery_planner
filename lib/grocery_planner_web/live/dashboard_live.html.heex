@@ -90,135 +90,55 @@
     </div>
     
 <!-- Main Navigation -->
-    <h2 class="text-2xl font-bold text-base-content mb-4">Quick Access</h2>
+    <h2 class="text-2xl font-semibold text-base-content mb-4">Quick Access</h2>
     <div class="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
-      <.link
+      <.nav_card
+        icon="hero-cube"
+        color="primary"
+        title="Inventory"
+        description="Manage your grocery items and track what's in stock"
         navigate={~p"/inventory"}
-        class="group p-8 bg-base-100 rounded-box shadow-sm border border-base-200 hover:shadow-lg hover:border-primary/50 transition-all"
-      >
-        <div class="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mb-4 group-hover:bg-primary/20 transition">
-          <svg class="w-6 h-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"
-            />
-          </svg>
-        </div>
-        <h3 class="text-xl font-semibold text-base-content mb-2">Inventory</h3>
-        <p class="text-base-content/70">Manage your grocery items and track what's in stock</p>
-      </.link>
+      />
 
-      <.link
+      <.nav_card
+        icon="hero-book-open"
+        color="secondary"
+        title="Recipe Collection"
+        description="Store your favorite recipes and see what you can make"
         navigate={~p"/recipes"}
-        class="group p-8 bg-base-100 rounded-box shadow-sm border border-base-200 hover:shadow-lg hover:border-secondary/50 transition-all"
-      >
-        <div class="w-12 h-12 bg-secondary/10 rounded-lg flex items-center justify-center mb-4 group-hover:bg-secondary/20 transition">
-          <svg
-            class="w-6 h-6 text-secondary"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
-            />
-          </svg>
-        </div>
-        <h3 class="text-xl font-semibold text-base-content mb-2">Recipe Collection</h3>
-        <p class="text-base-content/70">Store your favorite recipes and see what you can make</p>
-      </.link>
+      />
 
-      <.link
+      <.nav_card
+        icon="hero-calendar"
+        color="accent"
+        title="Meal Planning"
+        description="Plan your meals for the week and stay organized"
         navigate={~p"/meal-planner"}
-        class="group p-8 bg-base-100 rounded-box shadow-sm border border-base-200 hover:shadow-lg hover:border-accent/50 transition-all"
-      >
-        <div class="w-12 h-12 bg-accent/10 rounded-lg flex items-center justify-center mb-4 group-hover:bg-accent/20 transition">
-          <svg
-            class="w-6 h-6 text-accent"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-            />
-          </svg>
-        </div>
-        <h3 class="text-xl font-semibold text-base-content mb-2">Meal Planning</h3>
-        <p class="text-base-content/70">Plan your meals for the week and stay organized</p>
-      </.link>
+      />
 
-      <.link
+      <.nav_card
+        icon="hero-shopping-cart"
+        color="warning"
+        title="Shopping Lists"
+        description="Create lists and generate from your meal plans"
         navigate={~p"/shopping"}
-        class="group p-8 bg-base-100 rounded-box shadow-sm border border-base-200 hover:shadow-lg hover:border-warning/50 transition-all"
-      >
-        <div class="w-12 h-12 bg-warning/10 rounded-lg flex items-center justify-center mb-4 group-hover:bg-warning/20 transition">
-          <svg
-            class="w-6 h-6 text-warning"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"
-            />
-          </svg>
-        </div>
-        <h3 class="text-xl font-semibold text-base-content mb-2">Shopping Lists</h3>
-        <p class="text-base-content/70">Create lists and generate from your meal plans</p>
-      </.link>
+      />
 
-      <.link
+      <.nav_card
+        icon="hero-clipboard-document-check"
+        color="accent"
+        title="Meal Voting"
+        description="Vote on recipes for next week's dinners"
         navigate={~p"/voting"}
-        class="group p-8 bg-base-100 rounded-box shadow-sm border border-base-200 hover:shadow-lg hover:border-accent/50 transition-all"
-      >
-        <div class="w-12 h-12 bg-accent/10 rounded-lg flex items-center justify-center mb-4 group-hover:bg-accent/20 transition">
-          <svg
-            class="w-6 h-6 text-accent"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"
-            />
-          </svg>
-        </div>
-        <h3 class="text-xl font-semibold text-base-content mb-2">Meal Voting</h3>
-        <p class="text-base-content/70">Vote on recipes for next week's dinners</p>
-      </.link>
+      />
 
-      <.link
+      <.nav_card
+        icon="hero-chart-bar"
+        color="info"
+        title="Waste Analytics"
+        description="Track your food waste and save money"
         navigate={~p"/analytics"}
-        class="group p-8 bg-base-100 rounded-box shadow-sm border border-base-200 hover:shadow-lg hover:border-info/50 transition-all"
-      >
-        <div class="w-12 h-12 bg-info/10 rounded-lg flex items-center justify-center mb-4 group-hover:bg-info/20 transition">
-          <svg class="w-6 h-6 text-info" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
-            />
-          </svg>
-        </div>
-        <h3 class="text-xl font-semibold text-base-content mb-2">Waste Analytics</h3>
-        <p class="text-base-content/70">Track your food waste and save money</p>
-      </.link>
+      />
     </div>
   </div>
 </Layouts.app>

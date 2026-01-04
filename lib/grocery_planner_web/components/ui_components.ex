@@ -353,4 +353,151 @@ defmodule GroceryPlannerWeb.UIComponents do
     </div>
     """
   end
+
+  @doc """
+  Renders a navigation card for dashboard-style layouts.
+
+  Displays a clickable card with icon, title, and description for main navigation.
+
+  ## Attributes
+
+  - `icon` - Required. Heroicon name or custom SVG path
+  - `color` - Required. Semantic color (primary, secondary, accent, warning, info, error, success)
+  - `title` - Required. Card title
+  - `description` - Required. Card description text
+  - `navigate` - Required. Phoenix route to navigate to
+
+  ## Examples
+
+      <.nav_card
+        icon="hero-cube"
+        color="primary"
+        title="Inventory"
+        description="Manage your grocery items and track what's in stock"
+        navigate={~p"/inventory"}
+      />
+
+      <.nav_card
+        icon="hero-calendar"
+        color="accent"
+        title="Meal Planning"
+        description="Plan your meals for the week and stay organized"
+        navigate={~p"/meal-planner"}
+      />
+  """
+  attr :icon, :string, required: true
+  attr :color, :string, required: true
+  attr :title, :string, required: true
+  attr :description, :string, required: true
+  attr :navigate, :string, required: true
+
+  def nav_card(assigns) do
+    ~H"""
+    <.link
+      navigate={@navigate}
+      class="group p-8 bg-base-100 rounded-box shadow-sm border border-base-200 hover:shadow-lg hover:border-{@color}/50 transition-all"
+    >
+      <div class={"w-12 h-12 bg-#{@color}/10 rounded-lg flex items-center justify-center mb-4 group-hover:bg-#{@color}/20 transition"}>
+        <.icon name={@icon} class={"w-6 h-6 text-#{@color}"} />
+      </div>
+      <h3 class="text-xl font-semibold text-base-content mb-2">{@title}</h3>
+      <p class="text-base-content/70">{@description}</p>
+    </.link>
+    """
+  end
+
+  @doc """
+  Renders an item card for displaying recipes, inventory items, or similar entities.
+
+  Displays a card with optional image, title, metadata, and action buttons.
+
+  ## Attributes
+
+  - `title` - Required. Card title
+  - `image_url` - Optional. URL for card image
+  - `description` - Optional. Card description text
+  - `clickable` - Optional. Whether card is clickable (default: true)
+  - `rest` - Additional attributes passed to the container (e.g., phx-click, phx-value-id)
+
+  ## Slots
+
+  - `image_placeholder` - Optional slot for custom image placeholder content
+  - `title_actions` - Optional slot for actions next to title (e.g., favorite button)
+  - `footer` - Optional slot for card footer content (metadata, badges, etc.)
+
+  ## Examples
+
+      <.item_card
+        title={recipe.name}
+        image_url={recipe.image_url}
+        description={recipe.description}
+        phx-click="view_recipe"
+        phx-value-id={recipe.id}
+      >
+        <:title_actions>
+          <button phx-click="toggle_favorite" class="text-warning">★</button>
+        </:title_actions>
+        <:footer>
+          <span>30 min</span>
+          <span>4 servings</span>
+          <span class="badge badge-success">Easy</span>
+        </:footer>
+      </.item_card>
+  """
+  attr :title, :string, required: true
+  attr :image_url, :string, default: nil
+  attr :description, :string, default: nil
+  attr :clickable, :boolean, default: true
+  attr :rest, :global
+
+  slot :image_placeholder
+  slot :title_actions
+  slot :footer
+
+  def item_card(assigns) do
+    ~H"""
+    <div
+      class={[
+        "bg-base-100 rounded-box shadow-sm border border-base-200 overflow-hidden transition",
+        @clickable && "hover:shadow-md cursor-pointer"
+      ]}
+      {@rest}
+    >
+      <%= if @image_url do %>
+        <div class="h-48 bg-base-200">
+          <img src={@image_url} alt={@title} class="w-full h-full object-cover" />
+        </div>
+      <% else %>
+        <%= if @image_placeholder != [] do %>
+          {render_slot(@image_placeholder)}
+        <% else %>
+          <div class="h-48 bg-secondary/10 flex items-center justify-center">
+            <.icon name="hero-photo" class="w-16 h-16 text-secondary/30" />
+          </div>
+        <% end %>
+      <% end %>
+
+      <div class="p-5">
+        <div class="flex items-start justify-between mb-2">
+          <h3 class="text-lg font-semibold text-base-content flex-1">{@title}</h3>
+          <%= if @title_actions != [] do %>
+            <div class="flex-shrink-0 ml-2">
+              {render_slot(@title_actions)}
+            </div>
+          <% end %>
+        </div>
+
+        <p :if={@description} class="text-sm text-base-content/60 mb-3 line-clamp-2">
+          {@description}
+        </p>
+
+        <%= if @footer != [] do %>
+          <div class="flex items-center gap-4 text-sm text-base-content/50">
+            {render_slot(@footer)}
+          </div>
+        <% end %>
+      </div>
+    </div>
+    """
+  end
 end
