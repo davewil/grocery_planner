@@ -6,115 +6,110 @@
   voting_active={@session != nil}
 >
   <div class="px-4 py-10 sm:px-6 lg:px-8">
-    <div class="flex items-center justify-between mb-8">
-      <div>
-        <h1 class="text-4xl font-bold text-gray-900">Meal Planner Voting</h1>
-        <p class="mt-2 text-lg text-gray-600">Vote on favorite recipes for next week's dinners</p>
-      </div>
-      <div class="flex gap-3">
-        <button
+    <.page_header
+      title="Meal Planner Voting"
+      description="Vote on favorite recipes for next week's dinners"
+    >
+      <:actions>
+        <.button
           :if={!@session}
           phx-click="start_vote"
-          class="px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition font-medium shadow-sm"
+          class="btn-secondary"
           type="button"
         >
           Start Voting
-        </button>
-        <button
+        </.button>
+        <.button
           :if={@session && remaining_seconds(@session, @now) == 0}
           phx-click="finalize"
           disabled={@finalizing}
-          class={[
-            "px-6 py-3 rounded-lg transition font-medium shadow-sm",
-            @finalizing && "bg-gray-300 text-gray-500",
-            !@finalizing && "bg-green-600 text-white hover:bg-green-700"
-          ]}
+          class={@finalizing && "btn-disabled" || "btn-success"}
           type="button"
         >
           {if @finalizing, do: "Finalizing...", else: "Finalize"}
-        </button>
-      </div>
-    </div>
+        </.button>
+      </:actions>
+    </.page_header>
 
     <div :if={@session} class="mb-8 grid grid-cols-1 md:grid-cols-3 gap-6">
-      <div class="p-6 bg-white border border-gray-200 rounded-xl shadow-sm">
-        <h2 class="text-xl font-semibold text-gray-800 mb-2">Status</h2>
-        <p class="text-gray-600">
+      <div class="p-6 bg-base-100 border border-base-200 rounded-xl shadow-sm">
+        <h2 class="text-xl font-semibold text-base-content mb-2">Status</h2>
+        <p class="text-base-content/70">
           {if remaining_seconds(@session, @now) > 0,
             do: "Voting in progress",
             else: "Voting ended"}
         </p>
-        <p class="text-sm text-gray-500 mt-1">
+        <p class="text-sm text-base-content/50 mt-1">
           Ends at {Calendar.strftime(@session.ends_at, "%Y-%m-%d %H:%M:%S UTC")}
         </p>
       </div>
-      <div class="p-6 bg-white border border-gray-200 rounded-xl shadow-sm">
-        <h2 class="text-xl font-semibold text-gray-800 mb-2">Time Remaining</h2>
-        <p class="text-3xl font-bold text-gray-900">
+      <div class="p-6 bg-base-100 border border-base-200 rounded-xl shadow-sm">
+        <h2 class="text-xl font-semibold text-base-content mb-2">Time Remaining</h2>
+        <p class="text-3xl font-bold text-base-content">
           {seconds_to_hms(remaining_seconds(@session, @now))}
         </p>
       </div>
-      <div class="p-6 bg-white border border-gray-200 rounded-xl shadow-sm">
-        <h2 class="text-xl font-semibold text-gray-800 mb-2">Your Votes</h2>
-        <p class="text-gray-600">{MapSet.size(@user_votes)} selected</p>
+      <div class="p-6 bg-base-100 border border-base-200 rounded-xl shadow-sm">
+        <h2 class="text-xl font-semibold text-base-content mb-2">Your Votes</h2>
+        <p class="text-base-content/70">{MapSet.size(@user_votes)} selected</p>
       </div>
     </div>
 
-    <div :if={@recipes == []} class="text-center py-16">
-      <p class="text-gray-500 font-medium">No favorite recipes to vote on</p>
-      <p class="text-gray-400 text-sm mt-1">Mark recipes as favorite to include them in voting</p>
-    </div>
+    <.empty_state
+      :if={@recipes == []}
+      icon="hero-star"
+      title="No favorite recipes to vote on"
+      description="Mark recipes as favorite to include them in voting"
+    />
 
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       <div
         :for={recipe <- @recipes}
-        class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden transition"
+        class="bg-base-100 rounded-xl shadow-sm border border-base-200 overflow-hidden transition"
       >
-        <div :if={recipe.image_url} class="h-40 bg-gray-100">
+        <div :if={recipe.image_url} class="h-40 bg-base-200">
           <img src={recipe.image_url} alt={recipe.name} class="w-full h-full object-cover" />
         </div>
         <div
           :if={!recipe.image_url}
-          class="h-40 bg-gradient-to-br from-purple-100 to-pink-100 flex items-center justify-center"
+          class="h-40 bg-secondary/10 flex items-center justify-center"
         >
-          <span class="text-purple-400 font-semibold">No Image</span>
+          <span class="text-secondary/50 font-semibold">No Image</span>
         </div>
         <div class="p-5">
           <div class="flex items-start justify-between mb-3">
-            <h3 class="text-lg font-semibold text-gray-900 flex-1">{recipe.name}</h3>
+            <h3 class="text-lg font-semibold text-base-content flex-1">{recipe.name}</h3>
             <button
               :if={@session}
               phx-click="vote"
               phx-value-id={recipe.id}
               class={[
-                "ml-2 px-3 py-1 rounded-full text-sm font-medium transition",
-                MapSet.member?(@user_votes, recipe.id) &&
-                  "bg-yellow-100 text-yellow-700 border border-yellow-300 hover:bg-yellow-200",
-                !MapSet.member?(@user_votes, recipe.id) &&
-                  "bg-gray-100 text-gray-600 border border-gray-300 hover:bg-gray-200"
+                "ml-2 px-3 py-1 rounded-full text-sm font-medium transition badge",
+                MapSet.member?(@user_votes, recipe.id) && "badge-warning",
+                !MapSet.member?(@user_votes, recipe.id) && "badge-ghost"
               ]}
               type="button"
             >
               {if MapSet.member?(@user_votes, recipe.id), do: "Voted", else: "Vote"}
             </button>
           </div>
-          <p :if={recipe.description} class="text-sm text-gray-600 mb-3 line-clamp-2">
+          <p :if={recipe.description} class="text-sm text-base-content/60 mb-3 line-clamp-2">
             {recipe.description}
           </p>
-          <div class="flex items-center justify-between text-sm text-gray-500">
+          <div class="flex items-center justify-between text-sm text-base-content/50">
             <span>{recipe.servings} servings</span>
             <span class={[
-              "px-2 py-1 rounded-full text-xs font-medium capitalize",
+              "badge badge-sm capitalize",
               case recipe.difficulty do
-                :easy -> "bg-green-100 text-green-800"
-                :medium -> "bg-yellow-100 text-yellow-800"
-                :hard -> "bg-red-100 text-red-800"
-                _ -> "bg-gray-100 text-gray-800"
+                :easy -> "badge-success"
+                :medium -> "badge-warning"
+                :hard -> "badge-error"
+                _ -> "badge-ghost"
               end
             ]}>
               {recipe.difficulty}
             </span>
-            <span class="text-gray-700 font-semibold">Votes: {@tally[recipe.id]}</span>
+            <span class="text-base-content font-semibold">Votes: {@tally[recipe.id]}</span>
           </div>
         </div>
       </div>
