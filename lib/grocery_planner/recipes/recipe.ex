@@ -38,7 +38,13 @@ defmodule GroceryPlanner.Recipes.Recipe do
         :difficulty,
         :image_url,
         :source,
-        :is_favorite
+        :is_favorite,
+        :is_base_recipe,
+        :is_follow_up,
+        :parent_recipe_id,
+        :freezable,
+        :preservation_tip,
+        :waste_reduction_tip
       ]
 
       argument :account_id, :uuid, allow_nil?: false
@@ -57,7 +63,13 @@ defmodule GroceryPlanner.Recipes.Recipe do
         :difficulty,
         :image_url,
         :source,
-        :is_favorite
+        :is_favorite,
+        :is_base_recipe,
+        :is_follow_up,
+        :parent_recipe_id,
+        :freezable,
+        :preservation_tip,
+        :waste_reduction_tip
       ]
 
       require_atomic? false
@@ -131,6 +143,31 @@ defmodule GroceryPlanner.Recipes.Recipe do
       public? true
     end
 
+    attribute :is_base_recipe, :boolean do
+      default false
+      public? true
+      description "If true, this recipe is designed to produce leftovers for other meals."
+    end
+
+    attribute :is_follow_up, :boolean do
+      default false
+      public? true
+      description "If true, this recipe is designed to use leftovers from a base meal."
+    end
+
+    attribute :freezable, :boolean do
+      default false
+      public? true
+    end
+
+    attribute :preservation_tip, :string do
+      public? true
+    end
+
+    attribute :waste_reduction_tip, :string do
+      public? true
+    end
+
     attribute :account_id, :uuid do
       allow_nil? false
       public? true
@@ -158,6 +195,15 @@ defmodule GroceryPlanner.Recipes.Recipe do
 
     has_many :meal_plans, GroceryPlanner.MealPlanning.MealPlan do
       destination_attribute :recipe_id
+    end
+
+    belongs_to :parent_recipe, GroceryPlanner.Recipes.Recipe do
+      public? true
+      description "The base recipe this recipe is derived from."
+    end
+
+    has_many :follow_up_recipes, GroceryPlanner.Recipes.Recipe do
+      destination_attribute :parent_recipe_id
     end
   end
 

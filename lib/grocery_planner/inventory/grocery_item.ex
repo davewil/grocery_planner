@@ -34,14 +34,14 @@ defmodule GroceryPlanner.Inventory.GroceryItem do
     defaults [:read, :destroy]
 
     create :create do
-      accept [:name, :description, :default_unit, :barcode, :category_id]
+      accept [:name, :description, :default_unit, :barcode, :category_id, :is_waste_risk]
       argument :account_id, :uuid, allow_nil?: false
 
       change set_attribute(:account_id, arg(:account_id))
     end
 
     update :update do
-      accept [:name, :description, :default_unit, :barcode, :category_id]
+      accept [:name, :description, :default_unit, :barcode, :category_id, :is_waste_risk]
       require_atomic? false
     end
   end
@@ -95,6 +95,13 @@ defmodule GroceryPlanner.Inventory.GroceryItem do
 
     attribute :category_id, :uuid do
       public? true
+    end
+
+    attribute :is_waste_risk, :boolean do
+      default false
+      public? true
+
+      description "If true, this item is bulky/fresh and likely to have leftovers (e.g. Kale, Cabbage)."
     end
 
     create_timestamp :created_at

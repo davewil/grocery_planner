@@ -27,6 +27,8 @@ defmodule GroceryPlannerWeb.Router do
 
     live("/sign-up", Auth.SignUpLive)
     live("/sign-in", Auth.SignInLive)
+    live("/forgot-password", Auth.ForgotPasswordLive)
+    live("/reset-password/:token", Auth.ResetPasswordLive)
     post("/auth/sign-in", AuthController, :sign_in)
     delete("/auth/sign-out", AuthController, :sign_out)
   end

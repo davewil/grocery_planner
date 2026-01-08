@@ -22,7 +22,8 @@ defmodule GroceryPlanner.Recipes.RecipeIngredient do
         :is_optional,
         :substitution_notes,
         :preparation,
-        :sort_order
+        :sort_order,
+        :usage_type
       ]
 
       argument :account_id, :uuid, allow_nil?: false
@@ -37,7 +38,8 @@ defmodule GroceryPlanner.Recipes.RecipeIngredient do
         :is_optional,
         :substitution_notes,
         :preparation,
-        :sort_order
+        :sort_order,
+        :usage_type
       ]
 
       require_atomic? false
@@ -67,7 +69,7 @@ defmodule GroceryPlanner.Recipes.RecipeIngredient do
     uuid_primary_key :id
 
     attribute :quantity, :decimal do
-      allow_nil? false
+      allow_nil? true
       public? true
     end
 
@@ -86,6 +88,14 @@ defmodule GroceryPlanner.Recipes.RecipeIngredient do
 
     attribute :preparation, :string do
       public? true
+    end
+
+    attribute :usage_type, :atom do
+      constraints one_of: [:fresh, :leftover]
+      default :fresh
+      public? true
+
+      description "Indicates if the ingredient is bought fresh or used as a leftover from a previous meal."
     end
 
     attribute :sort_order, :integer do

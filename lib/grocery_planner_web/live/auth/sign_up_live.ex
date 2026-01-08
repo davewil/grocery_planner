@@ -35,12 +35,17 @@ defmodule GroceryPlannerWeb.Auth.SignUpLive do
     %{"email" => email, "name" => name, "password" => password, "account_name" => account_name} =
       params
 
+    kit_type = String.to_existing_atom(params["kit_type"] || "omnivore")
+
     with {:ok, account} <- Accounts.Account.create(%{name: account_name}, authorize?: false),
          {:ok, user} <- Accounts.User.create(email, name, password, authorize?: false),
          {:ok, _membership} <-
            Accounts.AccountMembership.create(account.id, user.id, %{role: :owner},
              authorize?: false
            ) do
+      # Seed initial data for the new account with selected kit
+      GroceryPlanner.Onboarding.seed_account(account.id, kit_type)
+
       {:ok, user}
     else
       {:error, error} -> {:error, error}

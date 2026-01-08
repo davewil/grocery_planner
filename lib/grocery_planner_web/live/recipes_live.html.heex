@@ -37,25 +37,28 @@
     </.page_header>
 
     <div class="mb-6 flex gap-4">
-      <div class="flex-1">
+      <form class="flex-1" phx-change="search">
         <input
           type="text"
+          name="query"
           placeholder="Search recipes..."
-          phx-change="search"
-          phx-value-query={@search_query}
+          value={@search_query}
           class="input w-full"
         />
-      </div>
+      </form>
       <div class="flex gap-2">
-        <select
-          phx-change="filter_difficulty"
-          class="select"
-        >
-          <option value="">All Difficulties</option>
-          <option value="easy">Easy</option>
-          <option value="medium">Medium</option>
-          <option value="hard">Hard</option>
-        </select>
+        <form phx-change="filter_difficulty">
+          <select
+            name="value"
+            value={@difficulty_filter || ""}
+            class="select"
+          >
+            <option value="">All Difficulties</option>
+            <option value="easy">Easy</option>
+            <option value="medium">Medium</option>
+            <option value="hard">Hard</option>
+          </select>
+        </form>
         <.button
           phx-click="toggle_favorites"
           class={if(@show_favorites, do: "btn btn-secondary", else: "btn btn-ghost")}

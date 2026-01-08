@@ -99,7 +99,10 @@ defmodule GroceryPlannerWeb.RecipeShowLive do
       {:ok, recipe} ->
         recipe_with_ingredients =
           recipe
-          |> Ash.load!(:recipe_ingredients, actor: user, tenant: account_id)
+          |> Ash.load!([:recipe_ingredients, :parent_recipe, :follow_up_recipes],
+            actor: user,
+            tenant: account_id
+          )
 
         ingredients =
           case recipe_with_ingredients.recipe_ingredients do

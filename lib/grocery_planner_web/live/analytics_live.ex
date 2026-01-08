@@ -77,7 +77,7 @@ defmodule GroceryPlannerWeb.AnalyticsLive do
             label="Total Inventory"
             value={to_string(@inventory_summary.total_items)}
             value_suffix="items"
-            description="#{@inventory_summary.total_entries} individual units"
+            description={"#{@inventory_summary.total_entries} individual units"}
           />
 
           <.stat_card
@@ -94,7 +94,7 @@ defmodule GroceryPlannerWeb.AnalyticsLive do
             label="Expiring Soon"
             value={to_string(@expiration_summary.expiring_7_days)}
             value_suffix="items"
-            description="#{@expiration_summary.expired_count} already expired"
+            description={"#{@expiration_summary.expired_count} already expired"}
           />
 
           <.stat_card
@@ -103,7 +103,7 @@ defmodule GroceryPlannerWeb.AnalyticsLive do
             label="Total Waste"
             value={to_string(@waste_stats.wasted_count)}
             value_suffix="items"
-            description="#{Money.to_string!(@waste_stats.total_wasted_cost)} lost (#{Float.round(@waste_stats.waste_percentage, 1)}%)"
+            description={"#{Money.to_string!(@waste_stats.total_wasted_cost)} lost (#{Float.round(@waste_stats.waste_percentage, 1)}%)"}
           />
         </div>
 

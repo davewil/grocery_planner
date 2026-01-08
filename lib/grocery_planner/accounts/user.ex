@@ -18,6 +18,9 @@ defmodule GroceryPlanner.Accounts.User do
     define :destroy
     define :by_id, action: :read, get_by: [:id]
     define :by_email, args: [:email], get?: true
+    define :by_reset_token, args: [:token], get?: true
+    define :request_password_reset
+    define :reset_password, args: [:password]
   end
 
   actions do
@@ -58,6 +61,43 @@ defmodule GroceryPlanner.Accounts.User do
     read :by_email do
       argument :email, :ci_string, allow_nil?: false
       filter expr(email == ^arg(:email))
+    end
+
+    read :by_reset_token do
+      argument :token, :string, allow_nil?: false
+      filter expr(reset_password_token == ^arg(:token))
+    end
+
+    update :request_password_reset do
+      accept []
+      require_atomic? false
+
+      change fn changeset, _ ->
+        token = :crypto.strong_rand_bytes(32) |> Base.url_encode64(padding: false)
+
+        changeset
+        |> Ash.Changeset.change_attribute(:reset_password_token, token)
+        |> Ash.Changeset.change_attribute(:reset_password_sent_at, DateTime.utc_now())
+      end
+    end
+
+    update :reset_password do
+      accept []
+      require_atomic? false
+      argument :password, :string, allow_nil?: false, sensitive?: true
+
+      change fn changeset, _ ->
+        case Ash.Changeset.get_argument(changeset, :password) do
+          nil ->
+            changeset
+
+          password ->
+            changeset
+            |> Ash.Changeset.change_attribute(:hashed_password, Bcrypt.hash_pwd_salt(password))
+            |> Ash.Changeset.change_attribute(:reset_password_token, nil)
+            |> Ash.Changeset.change_attribute(:reset_password_sent_at, nil)
+        end
+      end
     end
   end
 
@@ -111,6 +151,14 @@ defmodule GroceryPlanner.Accounts.User do
 
     attribute :confirmed_at, :utc_datetime do
       public? true
+    end
+
+    attribute :reset_password_token, :string do
+      public? false
+    end
+
+    attribute :reset_password_sent_at, :utc_datetime do
+      public? false
     end
 
     create_timestamp :created_at
