@@ -17,6 +17,7 @@ defmodule GroceryPlannerWeb.RecipesLive do
       |> assign(:voting_active, voting_active)
       |> assign(:search_query, "")
       |> assign(:show_favorites, false)
+      |> assign(:show_chains, false)
       |> assign(:difficulty_filter, nil)
       |> load_recipes()
 
@@ -69,6 +70,15 @@ defmodule GroceryPlannerWeb.RecipesLive do
     {:noreply, socket}
   end
 
+  def handle_event("toggle_chains", _, socket) do
+    socket =
+      socket
+      |> assign(:show_chains, !socket.assigns.show_chains)
+      |> load_recipes()
+
+    {:noreply, socket}
+  end
+
   def handle_event("search", %{"query" => query}, socket) do
     socket =
       socket
@@ -109,6 +119,7 @@ defmodule GroceryPlannerWeb.RecipesLive do
         {:ok, all_recipes} ->
           all_recipes
           |> filter_by_favorites(socket.assigns.show_favorites)
+          |> filter_by_chains(socket.assigns.show_chains)
           |> filter_by_difficulty(socket.assigns.difficulty_filter)
           |> filter_by_search(socket.assigns.search_query)
 
@@ -121,6 +132,11 @@ defmodule GroceryPlannerWeb.RecipesLive do
 
   defp filter_by_favorites(recipes, false), do: recipes
   defp filter_by_favorites(recipes, true), do: Enum.filter(recipes, & &1.is_favorite)
+
+  defp filter_by_chains(recipes, false), do: recipes
+
+  defp filter_by_chains(recipes, true),
+    do: Enum.filter(recipes, &(&1.is_base_recipe || &1.is_follow_up))
 
   defp filter_by_difficulty(recipes, nil), do: recipes
 

@@ -121,6 +121,7 @@ defmodule GroceryPlanner.Onboarding.StarterData do
         is_base_recipe: true,
         freezable: true,
         preservation_tip: "Carve meat and freeze in 250g portions for up to 3 months.",
+        image_url: "https://www.themealdb.com/images/media/meals/qxutws1486978099.jpg",
         ingredients: [
           %{item: "Whole Chicken", quantity: 1, unit: "large"},
           %{item: "Salt", quantity: 10, unit: "g"},
@@ -137,6 +138,7 @@ defmodule GroceryPlanner.Onboarding.StarterData do
         is_follow_up: true,
         parent_recipe_name: "Sunday Roast Chicken",
         waste_reduction_tip: "Uses only 2 leeks. Save the rest of the bunch for the soup!",
+        image_url: "https://www.themealdb.com/images/media/meals/qqwypw1504642429.jpg",
         ingredients: [
           %{item: "Roast Chicken Leftovers", quantity: 300, unit: "g", usage_type: :leftover},
           %{item: "Arborio Rice", quantity: 200, unit: "g"},
@@ -152,6 +154,7 @@ defmodule GroceryPlanner.Onboarding.StarterData do
         servings: 2,
         is_follow_up: true,
         parent_recipe_name: "Sunday Roast Chicken",
+        image_url: "https://www.themealdb.com/images/media/meals/sutxtx1487965141.jpg",
         ingredients: [
           %{item: "Roast Chicken Leftovers", quantity: 200, unit: "g", usage_type: :leftover},
           %{item: "Sweetcorn", quantity: 1, unit: "can"},
@@ -172,6 +175,7 @@ defmodule GroceryPlanner.Onboarding.StarterData do
         is_base_recipe: true,
         waste_reduction_tip:
           "You've used 1/3 of the kale bag. Use the next 1/3 in tomorrow's pasta!",
+        image_url: "https://www.themealdb.com/images/media/meals/1548772327.jpg",
         ingredients: [
           %{item: "Salmon", quantity: 2, unit: "fillets"},
           %{item: "Kale", quantity: 100, unit: "g"},
@@ -187,6 +191,7 @@ defmodule GroceryPlanner.Onboarding.StarterData do
         is_follow_up: true,
         parent_recipe_name: "Pan-Seared Salmon with Crispy Kale",
         waste_reduction_tip: "Almost done with the kale! Use the final handful in a smoothie.",
+        image_url: "https://www.themealdb.com/images/media/meals/ustsqw1468250014.jpg",
         ingredients: [
           %{item: "Sausage", quantity: 4, unit: "links"},
           %{item: "Kale", quantity: 100, unit: "g"},
@@ -201,6 +206,7 @@ defmodule GroceryPlanner.Onboarding.StarterData do
         servings: 1,
         is_follow_up: true,
         parent_recipe_name: "Pan-Seared Salmon with Crispy Kale",
+        image_url: "https://www.themealdb.com/images/media/meals/rsutuy1511179166.jpg",
         ingredients: [
           %{item: "Kale", quantity: 50, unit: "g"},
           %{item: "Apple", quantity: 1, unit: "unit"},

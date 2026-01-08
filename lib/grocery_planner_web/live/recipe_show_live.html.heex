@@ -128,9 +128,9 @@
             </div>
           </div>
 
-          <div class="flex items-center gap-4 mb-8">
+          <div class="flex items-center gap-4 mb-8 flex-wrap">
             <div class={[
-              "badge badge-lg capitalize",
+              "badge badge-lg capitalize whitespace-nowrap",
               case @recipe.difficulty do
                 :easy -> "badge-success"
                 :medium -> "badge-warning"
@@ -140,7 +140,7 @@
             ]}>
               {to_string(@recipe.difficulty)} difficulty
             </div>
-            <div :if={@recipe.freezable} class="badge badge-lg badge-info gap-2">
+            <div :if={@recipe.freezable} class="badge badge-lg badge-info gap-2 whitespace-nowrap">
               <.icon name="hero-snowflake" class="w-4 h-4" />
               Freezable
             </div>
@@ -151,36 +151,36 @@
 
           <!-- Preservation & Waste Tips -->
           <div :if={@recipe.preservation_tip || @recipe.waste_reduction_tip} class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-            <div :if={@recipe.preservation_tip} class="p-4 bg-info/10 rounded-xl border border-info/20 flex gap-3">
-              <.icon name="hero-light-bulb" class="w-6 h-6 text-info" />
+            <div :if={@recipe.preservation_tip} class="p-4 bg-base-200 rounded-xl border border-base-300 flex gap-3">
+              <.icon name="hero-light-bulb" class="w-6 h-6 text-info shrink-0" />
               <div>
-                <div class="font-bold text-info-content text-sm">Preservation Tip</div>
-                <div class="text-sm text-info-content/80">{@recipe.preservation_tip}</div>
+                <div class="font-bold text-base-content text-sm">Preservation Tip</div>
+                <div class="text-sm text-base-content/70">{@recipe.preservation_tip}</div>
               </div>
             </div>
-            <div :if={@recipe.waste_reduction_tip} class="p-4 bg-success/10 rounded-xl border border-success/20 flex gap-3">
-              <.icon name="hero-receipt-percent" class="w-6 h-6 text-success" />
+            <div :if={@recipe.waste_reduction_tip} class="p-4 bg-base-200 rounded-xl border border-base-300 flex gap-3">
+              <.icon name="hero-receipt-percent" class="w-6 h-6 text-success shrink-0" />
               <div>
-                <div class="font-bold text-success-content text-sm">Waste Reduction</div>
-                <div class="text-sm text-success-content/80">{@recipe.waste_reduction_tip}</div>
+                <div class="font-bold text-base-content text-sm">Waste Reduction</div>
+                <div class="text-sm text-base-content/70">{@recipe.waste_reduction_tip}</div>
               </div>
             </div>
           </div>
 
           <!-- Chained Meal Sequence UI -->
-          <div :if={@recipe.is_base_recipe || @recipe.is_follow_up} class="mb-8 p-6 bg-blue-50/50 rounded-2xl border border-blue-100">
-            <h3 class="flex items-center gap-2 font-bold text-blue-900 mb-4">
-              <.icon name="hero-arrow-path" class="w-5 h-5" />
-               part of a Chained Meal Sequence
+          <div :if={@recipe.is_base_recipe || @recipe.is_follow_up} class="mb-8 p-6 bg-primary/5 rounded-2xl border border-primary/20">
+            <h3 class="flex items-center gap-2 font-bold text-base-content mb-4">
+              <.icon name="hero-arrow-path" class="w-5 h-5 text-primary" />
+               Part of a Chained Meal Sequence
             </h3>
             
             <div class="flex flex-col gap-4">
               <!-- If this is a follow-up, show the parent -->
               <div :if={@recipe.parent_recipe} class="flex items-center gap-3">
-                <span class="text-sm text-blue-600 font-medium">Derived from:</span>
+                <span class="text-sm text-base-content/70 font-medium">Derived from:</span>
                 <.link 
                   navigate={~p"/recipes/#{@recipe.parent_recipe.id}"}
-                  class="flex items-center gap-2 px-3 py-1.5 bg-white rounded-lg border border-blue-200 shadow-sm hover:border-blue-400 text-sm font-semibold transition"
+                  class="flex items-center gap-2 px-3 py-1.5 bg-base-100 rounded-lg border border-base-300 shadow-sm hover:border-primary text-sm font-semibold transition"
                 >
                   <img :if={@recipe.parent_recipe.image_url} src={@recipe.parent_recipe.image_url} class="w-6 h-6 rounded-md object-cover" />
                   {@recipe.parent_recipe.name}
@@ -189,12 +189,12 @@
 
               <!-- if this is a base recipe, show follow-ups -->
               <div :if={@recipe.follow_up_recipes != []} class="flex flex-col gap-2">
-                <span class="text-sm text-blue-600 font-medium">Recommended Follow-ups:</span>
+                <span class="text-sm text-base-content/70 font-medium">Recommended Follow-ups:</span>
                 <div class="flex flex-wrap gap-2">
                    <.link 
                     :for={follow <- @recipe.follow_up_recipes}
                     navigate={~p"/recipes/#{follow.id}"}
-                    class="flex items-center gap-2 px-3 py-1.5 bg-white rounded-lg border border-blue-200 shadow-sm hover:border-blue-400 text-sm font-semibold transition"
+                    class="flex items-center gap-2 px-3 py-1.5 bg-base-100 rounded-lg border border-base-300 shadow-sm hover:border-primary text-sm font-semibold transition"
                   >
                     <img :if={follow.image_url} src={follow.image_url} class="w-6 h-6 rounded-md object-cover" />
                     {follow.name}
@@ -202,7 +202,7 @@
                 </div>
               </div>
 
-              <div class="text-xs text-blue-500 italic mt-2">
+              <div class="text-xs text-base-content/50 italic mt-2">
                 This strategy helps you use ingredients across multiple meals to reduce waste and save money.
               </div>
             </div>
