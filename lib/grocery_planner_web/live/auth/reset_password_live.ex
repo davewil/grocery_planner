@@ -45,7 +45,10 @@ defmodule GroceryPlannerWeb.Auth.ResetPasswordLive do
           {:ok, _user} ->
             {:noreply,
              socket
-             |> put_flash(:info, "Password reset successfully. Please sign in with your new password.")
+             |> put_flash(
+               :info,
+               "Password reset successfully. Please sign in with your new password."
+             )
              |> push_navigate(to: "/sign-in")}
 
           {:error, error} ->
@@ -79,6 +82,9 @@ defmodule GroceryPlannerWeb.Auth.ResetPasswordLive do
     DateTime.diff(DateTime.utc_now(), sent_at, :second) > @token_max_age_seconds
   end
 
-  defp token_error_message(:expired), do: "This password reset link has expired. Please request a new one."
-  defp token_error_message(:invalid), do: "This password reset link is invalid. Please request a new one."
+  defp token_error_message(:expired),
+    do: "This password reset link has expired. Please request a new one."
+
+  defp token_error_message(:invalid),
+    do: "This password reset link is invalid. Please request a new one."
 end

@@ -16,11 +16,11 @@
         <.input field={@form[:email]} type="email" label="Email" required />
         <.input field={@form[:password]} type="password" label="Password" required />
         <.input field={@form[:account_name]} type="text" label="Household Name" required />
-        
-        <.input 
-          field={@form[:kit_type]} 
-          type="select" 
-          label="Choose Your Cooking Style" 
+
+        <.input
+          field={@form[:kit_type]}
+          type="select"
+          label="Choose Your Cooking Style"
           options={[
             {"Everything (Omnivore)", "omnivore"},
             {"Vegetarian", "vegetarian"},
@@ -28,8 +28,8 @@
             {"Keto", "keto"},
             {"Single or Couple", "single_couple"},
             {"Budget Friendly", "budget"}
-          ]} 
-          required 
+          ]}
+          required
         />
 
         <div class="mt-6">

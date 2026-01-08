@@ -141,24 +141,32 @@
               {to_string(@recipe.difficulty)} difficulty
             </div>
             <div :if={@recipe.freezable} class="badge badge-lg badge-info gap-2 whitespace-nowrap">
-              <.icon name="hero-snowflake" class="w-4 h-4" />
-              Freezable
+              <.icon name="hero-snowflake" class="w-4 h-4" /> Freezable
             </div>
             <div :if={@recipe.source} class="text-sm text-base-content/60 ml-auto">
               Source: {@recipe.source}
             </div>
           </div>
-
-          <!-- Preservation & Waste Tips -->
-          <div :if={@recipe.preservation_tip || @recipe.waste_reduction_tip} class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-            <div :if={@recipe.preservation_tip} class="p-4 bg-base-200 rounded-xl border border-base-300 flex gap-3">
+          
+<!-- Preservation & Waste Tips -->
+          <div
+            :if={@recipe.preservation_tip || @recipe.waste_reduction_tip}
+            class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8"
+          >
+            <div
+              :if={@recipe.preservation_tip}
+              class="p-4 bg-base-200 rounded-xl border border-base-300 flex gap-3"
+            >
               <.icon name="hero-light-bulb" class="w-6 h-6 text-info shrink-0" />
               <div>
                 <div class="font-bold text-base-content text-sm">Preservation Tip</div>
                 <div class="text-sm text-base-content/70">{@recipe.preservation_tip}</div>
               </div>
             </div>
-            <div :if={@recipe.waste_reduction_tip} class="p-4 bg-base-200 rounded-xl border border-base-300 flex gap-3">
+            <div
+              :if={@recipe.waste_reduction_tip}
+              class="p-4 bg-base-200 rounded-xl border border-base-300 flex gap-3"
+            >
               <.icon name="hero-receipt-percent" class="w-6 h-6 text-success shrink-0" />
               <div>
                 <div class="font-bold text-base-content text-sm">Waste Reduction</div>
@@ -166,37 +174,50 @@
               </div>
             </div>
           </div>
-
-          <!-- Chained Meal Sequence UI -->
-          <div :if={@recipe.is_base_recipe || @recipe.is_follow_up} class="mb-8 p-6 bg-primary/5 rounded-2xl border border-primary/20">
+          
+<!-- Chained Meal Sequence UI -->
+          <div
+            :if={@recipe.is_base_recipe || @recipe.is_follow_up}
+            class="mb-8 p-6 bg-primary/5 rounded-2xl border border-primary/20"
+          >
             <h3 class="flex items-center gap-2 font-bold text-base-content mb-4">
               <.icon name="hero-arrow-path" class="w-5 h-5 text-primary" />
-               Part of a Chained Meal Sequence
+              Part of a Chained Meal Sequence
             </h3>
-            
+
             <div class="flex flex-col gap-4">
               <!-- If this is a follow-up, show the parent -->
               <div :if={@recipe.parent_recipe} class="flex items-center gap-3">
                 <span class="text-sm text-base-content/70 font-medium">Derived from:</span>
-                <.link 
+                <.link
                   navigate={~p"/recipes/#{@recipe.parent_recipe.id}"}
                   class="flex items-center gap-2 px-3 py-1.5 bg-base-100 rounded-lg border border-base-300 shadow-sm hover:border-primary text-sm font-semibold transition"
                 >
-                  <img :if={@recipe.parent_recipe.image_url} src={@recipe.parent_recipe.image_url} class="w-6 h-6 rounded-md object-cover" />
+                  <img
+                    :if={@recipe.parent_recipe.image_url}
+                    src={@recipe.parent_recipe.image_url}
+                    class="w-6 h-6 rounded-md object-cover"
+                  />
                   {@recipe.parent_recipe.name}
                 </.link>
               </div>
-
-              <!-- if this is a base recipe, show follow-ups -->
+              
+<!-- if this is a base recipe, show follow-ups -->
               <div :if={@recipe.follow_up_recipes != []} class="flex flex-col gap-2">
-                <span class="text-sm text-base-content/70 font-medium">Recommended Follow-ups:</span>
+                <span class="text-sm text-base-content/70 font-medium">
+                  Recommended Follow-ups:
+                </span>
                 <div class="flex flex-wrap gap-2">
-                   <.link 
+                  <.link
                     :for={follow <- @recipe.follow_up_recipes}
                     navigate={~p"/recipes/#{follow.id}"}
                     class="flex items-center gap-2 px-3 py-1.5 bg-base-100 rounded-lg border border-base-300 shadow-sm hover:border-primary text-sm font-semibold transition"
                   >
-                    <img :if={follow.image_url} src={follow.image_url} class="w-6 h-6 rounded-md object-cover" />
+                    <img
+                      :if={follow.image_url}
+                      src={follow.image_url}
+                      class="w-6 h-6 rounded-md object-cover"
+                    />
                     {follow.name}
                   </.link>
                 </div>
@@ -242,13 +263,16 @@
                       {ingredient.quantity} {ingredient.unit}
                       {if ingredient.preparation, do: " - #{ingredient.preparation}"}
                     </div>
-                    <div :if={ingredient.usage_type == :leftover} class="flex items-center gap-1.5 mt-1">
+                    <div
+                      :if={ingredient.usage_type == :leftover}
+                      class="flex items-center gap-1.5 mt-1"
+                    >
                       <span class="px-2 py-0.5 bg-green-100 text-green-700 text-[10px] font-bold uppercase tracking-wider rounded-full border border-green-200 flex items-center gap-1">
-                        <.icon name="hero-arrow-uturn-left" class="w-3 h-3" />
-                         Leftover
+                        <.icon name="hero-arrow-uturn-left" class="w-3 h-3" /> Leftover
                       </span>
                       <span class="text-[11px] text-green-600 font-medium italic">
-                        From {@recipe.parent_recipe && @recipe.parent_recipe.name || "previous meal"}
+                        From {(@recipe.parent_recipe && @recipe.parent_recipe.name) ||
+                          "previous meal"}
                       </span>
                     </div>
                     <div :if={ingredient.is_optional} class="text-xs text-base-content/50 mt-1">
