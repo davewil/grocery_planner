@@ -63,7 +63,7 @@ defmodule GroceryPlannerWeb.RecipesLiveTest do
       assert render(view) =~ "Chicken Curry"
 
       view
-      |> element("input[phx-change='search']")
+      |> element("form[phx-change='search']")
       |> render_change(%{"query" => "Curry"})
 
       assert render(view) =~ "Chicken Curry"
@@ -80,7 +80,7 @@ defmodule GroceryPlannerWeb.RecipesLiveTest do
       assert render(view) =~ "Hard Dish"
 
       view
-      |> element("select[phx-change='filter_difficulty']")
+      |> element("form[phx-change='filter_difficulty']")
       |> render_change(%{"value" => "easy"})
 
       assert render(view) =~ "Easy Dish"
@@ -88,7 +88,7 @@ defmodule GroceryPlannerWeb.RecipesLiveTest do
 
       # Test invalid difficulty
       view
-      |> element("select[phx-change='filter_difficulty']")
+      |> element("form[phx-change='filter_difficulty']")
       |> render_change(%{"value" => "invalid"})
 
       assert render(view) =~ "Easy Dish"
