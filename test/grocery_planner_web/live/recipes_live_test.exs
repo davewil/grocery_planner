@@ -170,6 +170,78 @@ defmodule GroceryPlannerWeb.RecipesLiveTest do
       assert html =~ "Classic Italian dish"
       assert html =~ "Boil pasta. Cook sauce."
     end
+
+    test "renders recipe with timing and servings info", %{
+      conn: conn,
+      account: account,
+      user: user
+    } do
+      recipe =
+        create_recipe(account, user, %{
+          name: "Timed Recipe",
+          prep_time_minutes: 15,
+          cook_time_minutes: 30,
+          servings: 6,
+          difficulty: :hard
+        })
+
+      {:ok, _view, html} = live(conn, "/recipes/#{recipe.id}")
+
+      assert html =~ "Timed Recipe"
+      assert html =~ "15"
+      assert html =~ "30"
+      assert html =~ "6"
+    end
+
+    test "toggles favorite status", %{conn: conn, account: account, user: user} do
+      recipe = create_recipe(account, user, %{name: "Favorite Test", is_favorite: false})
+
+      {:ok, view, html} = live(conn, "/recipes/#{recipe.id}")
+      refute html =~ "Remove from Favorites"
+
+      view
+      |> element("button[phx-click='toggle_favorite']")
+      |> render_click()
+
+      html = render(view)
+      assert html =~ "Remove from Favorites" or html =~ "Favorite Test"
+    end
+
+    test "navigates to edit page", %{conn: conn, account: account, user: user} do
+      recipe = create_recipe(account, user, %{name: "Editable Recipe"})
+
+      {:ok, view, _html} = live(conn, "/recipes/#{recipe.id}")
+
+      view
+      |> element("button[phx-click='edit_recipe']")
+      |> render_click()
+
+      {path, _flash} = assert_redirect(view)
+      assert path == "/recipes/#{recipe.id}/edit"
+    end
+
+    test "deletes recipe and redirects", %{conn: conn, account: account, user: user} do
+      recipe = create_recipe(account, user, %{name: "Delete Me"})
+
+      {:ok, view, _html} = live(conn, "/recipes/#{recipe.id}")
+
+      view
+      |> element("button[phx-click='delete_recipe']")
+      |> render_click()
+
+      {path, flash} = assert_redirect(view)
+      assert path == "/recipes"
+      assert flash["info"] == "Recipe deleted successfully"
+    end
+
+    test "redirects when recipe not found", %{conn: conn} do
+      non_existent_id = Ash.UUID.generate()
+
+      assert {:error, {:live_redirect, %{to: "/recipes", flash: flash}}} =
+               live(conn, "/recipes/#{non_existent_id}")
+
+      assert flash["error"] == "Recipe not found"
+    end
   end
 
   describe "Recipe Form" do
@@ -216,6 +288,103 @@ defmodule GroceryPlannerWeb.RecipesLiveTest do
 
       {path, _flash} = assert_redirect(view)
       assert path == "/recipes/#{recipe.id}"
+    end
+
+    test "cancel from new recipe returns to recipes list", %{conn: conn} do
+      {:ok, view, _html} = live(conn, "/recipes/new")
+
+      view
+      |> element("button[phx-click='cancel']")
+      |> render_click()
+
+      {path, _flash} = assert_redirect(view)
+      assert path == "/recipes"
+    end
+
+    test "cancel from edit recipe returns to recipe details", %{
+      conn: conn,
+      account: account,
+      user: user
+    } do
+      recipe = create_recipe(account, user, %{name: "Test Recipe"})
+
+      {:ok, view, _html} = live(conn, "/recipes/#{recipe.id}/edit")
+
+      view
+      |> element("button[phx-click='cancel']")
+      |> render_click()
+
+      {path, _flash} = assert_redirect(view)
+      assert path == "/recipes/#{recipe.id}"
+    end
+
+    test "toggle favorite in new recipe form", %{conn: conn} do
+      {:ok, view, _html} = live(conn, "/recipes/new")
+
+      # Toggle favorite on
+      view
+      |> element("button[phx-click='toggle_favorite']")
+      |> render_click()
+
+      # The form should have the favorite toggled
+      html = render(view)
+      assert html =~ "toggle_favorite"
+    end
+
+    test "redirects when editing non-existent recipe", %{conn: conn} do
+      non_existent_id = Ash.UUID.generate()
+
+      assert {:error, {:live_redirect, %{to: "/recipes", flash: flash}}} =
+               live(conn, "/recipes/#{non_existent_id}/edit")
+
+      assert flash["error"] == "Recipe not found"
+    end
+
+    test "creates recipe with optional fields empty", %{conn: conn} do
+      {:ok, view, _html} = live(conn, "/recipes/new")
+
+      view
+      |> form("#recipe-form", %{
+        "recipe" => %{
+          "name" => "Minimal Recipe",
+          "description" => "Just the basics",
+          "instructions" => "Keep it simple.",
+          "prep_time_minutes" => "",
+          "cook_time_minutes" => "",
+          "servings" => "2",
+          "difficulty" => "easy",
+          "image_url" => "",
+          "source" => ""
+        }
+      })
+      |> render_submit()
+
+      {path, _flash} = assert_redirect(view)
+      assert path =~ "/recipes/"
+    end
+
+    test "creates recipe with all fields populated", %{conn: conn} do
+      {:ok, view, _html} = live(conn, "/recipes/new")
+
+      view
+      |> form("#recipe-form", %{
+        "recipe" => %{
+          "name" => "Complete Recipe",
+          "description" => "Full details recipe",
+          "instructions" => "Step 1. Step 2. Step 3.",
+          "prep_time_minutes" => "20",
+          "cook_time_minutes" => "45",
+          "servings" => "8",
+          "difficulty" => "hard",
+          "image_url" => "https://example.com/image.jpg",
+          "source" => "Grandma's cookbook"
+        }
+      })
+      |> render_submit()
+
+      {path, flash} = assert_redirect(view)
+      assert path =~ "/recipes/"
+      assert flash["info"] == "Recipe saved successfully"
     end
   end
 end

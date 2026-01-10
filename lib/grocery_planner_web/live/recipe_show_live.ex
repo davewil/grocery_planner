@@ -1,7 +1,6 @@
 defmodule GroceryPlannerWeb.RecipeShowLive do
   use GroceryPlannerWeb, :live_view
   import GroceryPlannerWeb.UIComponents
-  require Logger
 
   on_mount {GroceryPlannerWeb.Auth, :require_authenticated_user}
 
@@ -23,31 +22,22 @@ defmodule GroceryPlannerWeb.RecipeShowLive do
   end
 
   def handle_event("toggle_favorite", _, socket) do
-    Logger.info("Toggle favorite clicked for recipe #{socket.assigns.recipe.id}")
-    Logger.info("Current favorite status: #{socket.assigns.recipe.is_favorite}")
-
     case GroceryPlanner.Recipes.update_recipe(
            socket.assigns.recipe,
            %{is_favorite: !socket.assigns.recipe.is_favorite},
            actor: socket.assigns.current_user,
            tenant: socket.assigns.current_account.id
          ) do
-      {:ok, updated_recipe} ->
-        Logger.info(
-          "Successfully updated recipe, new favorite status: #{updated_recipe.is_favorite}"
-        )
-
+      {:ok, _updated_recipe} ->
         case load_recipe(socket, socket.assigns.recipe.id) do
           {:ok, updated_socket} ->
             {:noreply, updated_socket}
 
-          {:error, reason} ->
-            Logger.error("Failed to reload recipe: #{inspect(reason)}")
+          {:error, _reason} ->
             {:noreply, put_flash(socket, :error, "Failed to reload recipe")}
         end
 
-      {:error, error} ->
-        Logger.error("Failed to update favorite status: #{inspect(error)}")
+      {:error, _error} ->
         {:noreply, put_flash(socket, :error, "Failed to update favorite status")}
     end
   end

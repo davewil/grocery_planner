@@ -1,7 +1,6 @@
 defmodule GroceryPlannerWeb.MealPlannerLive do
   use GroceryPlannerWeb, :live_view
   import GroceryPlannerWeb.UIComponents
-  require Logger
 
   on_mount {GroceryPlannerWeb.Auth, :require_authenticated_user}
 
@@ -181,8 +180,6 @@ defmodule GroceryPlannerWeb.MealPlannerLive do
   end
 
   def handle_event("edit_meal", %{"id" => meal_plan_id}, socket) do
-    Logger.info("=== EDIT MEAL CLICKED === ID: #{meal_plan_id}")
-
     {:ok, meal_plan} =
       GroceryPlanner.MealPlanning.get_meal_plan(
         meal_plan_id,
@@ -191,14 +188,11 @@ defmodule GroceryPlannerWeb.MealPlannerLive do
         load: [:recipe]
       )
 
-    Logger.info("=== MEAL PLAN LOADED === #{inspect(meal_plan.recipe.name)}")
-
     socket =
       socket
       |> assign(:show_edit_meal_modal, true)
       |> assign(:editing_meal_plan, meal_plan)
 
-    Logger.info("=== MODAL SHOULD BE SHOWING ===")
     {:noreply, socket}
   end
 

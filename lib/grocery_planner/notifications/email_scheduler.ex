@@ -97,38 +97,175 @@ defmodule GroceryPlanner.Notifications.EmailScheduler do
     end
   end
 
-  # TODO: Implement actual rendering of email content
   defp render_email_content(user, account, expiration_summary, recipe_suggestions, days_threshold) do
-    # For now, a simple text-based content. This will be replaced with proper HTML rendering.
+    expiration_rows = build_expiration_rows(expiration_summary, days_threshold)
+    recipe_rows = build_recipe_rows(recipe_suggestions)
+    today = Date.utc_today() |> Calendar.strftime("%B %d, %Y")
+
     body = """
-    <h1>Hello #{user.name},</h1>
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Grocery Planner Daily Digest</title>
+    </head>
+    <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f4f4f5;">
+      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: #f4f4f5;">
+        <tr>
+          <td align="center" style="padding: 40px 20px;">
+            <table role="presentation" width="600" cellspacing="0" cellpadding="0" style="background-color: #ffffff; border-radius: 12px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+              <!-- Header -->
+              <tr>
+                <td style="padding: 32px 40px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 12px 12px 0 0;">
+                  <h1 style="margin: 0; color: #ffffff; font-size: 28px; font-weight: 700;">Grocery Planner</h1>
+                  <p style="margin: 8px 0 0; color: rgba(255,255,255,0.9); font-size: 14px;">Daily Digest for #{today}</p>
+                </td>
+              </tr>
 
-    <p>Here's your daily Grocery Planner digest for #{Date.utc_today()}.</p>
+              <!-- Greeting -->
+              <tr>
+                <td style="padding: 32px 40px 24px;">
+                  <p style="margin: 0; color: #374151; font-size: 16px; line-height: 1.6;">
+                    Hello <strong>#{escape_html(user.name)}</strong>,
+                  </p>
+                  <p style="margin: 12px 0 0; color: #6b7280; font-size: 15px; line-height: 1.6;">
+                    Here's what's happening in your household <strong>#{escape_html(account.name)}</strong> today.
+                  </p>
+                </td>
+              </tr>
 
-    <h2>Expiration Alerts</h2>
-    <p>You have items expiring soon in your household '#{account.name}'.</p>
-    <ul>
-      <li>Expired: #{expiration_summary.expired_count}</li>
-      <li>Expiring Today: #{expiration_summary.today_count}</li>
-      <li>Expiring Tomorrow: #{expiration_summary.tomorrow_count}</li>
-      <li>Expiring This Week (within #{days_threshold} days): #{expiration_summary.this_week_count}</li>
-      <li>Expiring Soon (within #{days_threshold} days): #{expiration_summary.soon_count}</li>
-    </ul>
+              <!-- Expiration Alerts Section -->
+              <tr>
+                <td style="padding: 0 40px 24px;">
+                  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: #fef3c7; border-radius: 8px; border-left: 4px solid #f59e0b;">
+                    <tr>
+                      <td style="padding: 20px;">
+                        <h2 style="margin: 0 0 16px; color: #92400e; font-size: 18px; font-weight: 600;">
+                          ⚠️ Expiration Alerts
+                        </h2>
+                        <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+                          #{expiration_rows}
+                        </table>
+                      </td>
+                    </tr>
+                  </table>
+                </td>
+              </tr>
 
-    <h2>Recipe Suggestions</h2>
-    <p>Here are some recipes that can help you use up expiring ingredients:</p>
-    <ul>
-    #{Enum.map_join(recipe_suggestions, "\n", fn s -> "<li>#{s.recipe.name} (Score: #{s.score}, #{s.reason})</li>" end)}
-    </ul>
+              <!-- Recipe Suggestions Section -->
+              #{if Enum.any?(recipe_suggestions) do
+      """
+      <tr>
+        <td style="padding: 0 40px 24px;">
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: #ecfdf5; border-radius: 8px; border-left: 4px solid #10b981;">
+            <tr>
+              <td style="padding: 20px;">
+                <h2 style="margin: 0 0 16px; color: #065f46; font-size: 18px; font-weight: 600;">
+                  🍳 Recipe Suggestions
+                </h2>
+                <p style="margin: 0 0 12px; color: #047857; font-size: 14px;">
+                  Use up expiring ingredients with these recipes:
+                </p>
+                #{recipe_rows}
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+      """
+    else
+      ""
+    end}
 
-    <p>Log in to your Grocery Planner account for more details.</p>
+              <!-- CTA Button -->
+              <tr>
+                <td align="center" style="padding: 8px 40px 32px;">
+                  <a href="#" style="display: inline-block; padding: 14px 32px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #ffffff; text-decoration: none; font-weight: 600; font-size: 15px; border-radius: 8px;">
+                    View Full Details
+                  </a>
+                </td>
+              </tr>
 
-    <p>Best regards,</p>
-    <p>The Grocery Planner Team</p>
+              <!-- Footer -->
+              <tr>
+                <td style="padding: 24px 40px; background-color: #f9fafb; border-radius: 0 0 12px 12px; border-top: 1px solid #e5e7eb;">
+                  <p style="margin: 0; color: #9ca3af; font-size: 13px; text-align: center;">
+                    You're receiving this email because you enabled daily digest notifications.
+                  </p>
+                  <p style="margin: 8px 0 0; color: #9ca3af; font-size: 13px; text-align: center;">
+                    © #{Date.utc_today().year} Grocery Planner
+                  </p>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+      </table>
+    </body>
+    </html>
     """
 
     {:ok, body}
   end
+
+  defp build_expiration_rows(summary, days_threshold) do
+    rows = [
+      {:expired, summary.expired_count, "#dc2626", "Expired"},
+      {:today, summary.today_count, "#ea580c", "Expiring Today"},
+      {:tomorrow, summary.tomorrow_count, "#d97706", "Expiring Tomorrow"},
+      {:this_week, summary.this_week_count, "#ca8a04", "This Week"},
+      {:soon, summary.soon_count, "#65a30d", "Within #{days_threshold} Days"}
+    ]
+
+    rows
+    |> Enum.filter(fn {_key, count, _color, _label} -> count > 0 end)
+    |> Enum.map(fn {_key, count, color, label} ->
+      """
+      <tr>
+        <td style="padding: 6px 0;">
+          <span style="display: inline-block; width: 12px; height: 12px; background-color: #{color}; border-radius: 50%; margin-right: 8px; vertical-align: middle;"></span>
+          <span style="color: #78350f; font-size: 14px;">#{label}:</span>
+          <strong style="color: #78350f; font-size: 14px; margin-left: 4px;">#{count}</strong>
+        </td>
+      </tr>
+      """
+    end)
+    |> Enum.join("\n")
+    |> case do
+      "" ->
+        "<tr><td style='color: #047857; font-size: 14px;'>No items expiring soon. Great job!</td></tr>"
+
+      rows ->
+        rows
+    end
+  end
+
+  defp build_recipe_rows(suggestions) do
+    suggestions
+    |> Enum.take(5)
+    |> Enum.map(fn suggestion ->
+      """
+      <div style="background-color: #ffffff; border-radius: 6px; padding: 12px; margin-bottom: 8px;">
+        <strong style="color: #065f46; font-size: 14px;">#{escape_html(suggestion.recipe.name)}</strong>
+        <p style="margin: 4px 0 0; color: #047857; font-size: 12px;">#{escape_html(suggestion.reason)}</p>
+      </div>
+      """
+    end)
+    |> Enum.join("\n")
+  end
+
+  defp escape_html(nil), do: ""
+
+  defp escape_html(text) when is_binary(text) do
+    text
+    |> String.replace("&", "&amp;")
+    |> String.replace("<", "&lt;")
+    |> String.replace(">", "&gt;")
+    |> String.replace("\"", "&quot;")
+  end
+
+  defp escape_html(text), do: escape_html(to_string(text))
 
   defp schedule_email_send do
     # Calculate time until next 7 AM UTC
