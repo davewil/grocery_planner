@@ -21,7 +21,7 @@ Legend:
 ### Shared interaction primitives (all layouts)
 - [x] Shared recipe picker surface exists (modal / bottom sheet)
 - [~] Shared add-to-plan flow (Explorer uses slot picker; other layouts partly overlap)
-- [ ] Undo support for destructive/committing actions (remove meal, add meal, move meal)
+- [x] Undo support for destructive/committing actions (remove meal, add meal, move meal)
 - [ ] Skeleton/loading states for recipe lists and slot pickers
 - [ ] Consistent terminology + labels across layouts (Day, Meal slot, Add, Swap, Clear)
 

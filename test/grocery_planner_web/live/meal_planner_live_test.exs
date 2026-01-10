@@ -445,7 +445,7 @@ defmodule GroceryPlannerWeb.MealPlannerLiveTest do
         |> element("button[phx-click='remove_meal'][phx-value-id='#{meal_plan.id}']")
         |> render_click()
 
-      assert html =~ "Meal removed successfully"
+      assert html =~ "Meal removed"
       refute html =~ "Burger and Fries"
     end
   end

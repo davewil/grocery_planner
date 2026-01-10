@@ -44,6 +44,7 @@ defmodule GroceryPlannerWeb.MealPlannerLive do
       |> assign(:explorer_selected_slot, nil)
       |> assign(:explorer_slot_prompt_open, false)
       |> assign(:explorer_slot_prompt_slot, nil)
+      |> assign(:explorer_undo, nil)
       |> load_meal_plans()
       |> maybe_load_explorer_recipes()
 
@@ -185,17 +186,28 @@ defmodule GroceryPlannerWeb.MealPlannerLive do
     case GroceryPlanner.MealPlanning.get_meal_plan(
            meal_plan_id,
            actor: socket.assigns.current_user,
-           tenant: socket.assigns.current_account.id
+           tenant: socket.assigns.current_account.id,
+           load: [:recipe]
          ) do
       {:ok, meal_plan} ->
+        attrs = %{
+          recipe_id: meal_plan.recipe_id,
+          scheduled_date: meal_plan.scheduled_date,
+          meal_type: meal_plan.meal_type,
+          servings: meal_plan.servings,
+          notes: meal_plan.notes,
+          status: meal_plan.status
+        }
+
         case GroceryPlanner.MealPlanning.destroy_meal_plan(meal_plan,
                actor: socket.assigns.current_user
              ) do
           :ok ->
             socket =
               socket
+              |> assign(:explorer_undo, %{action: :remove_meal, attrs: attrs})
               |> load_meal_plans()
-              |> put_flash(:info, "Meal removed successfully")
+              |> put_flash(:info, "Meal removed")
 
             {:noreply, socket}
 
@@ -420,12 +432,16 @@ defmodule GroceryPlannerWeb.MealPlannerLive do
       )
 
     case result do
-      {:ok, _meal_plan} ->
+      {:ok, meal_plan} ->
         socket =
           socket
           |> assign(:show_explorer_slot_picker, false)
           |> assign(:explorer_picking_recipe, nil)
           |> assign(:explorer_selected_slot, nil)
+          |> assign(:explorer_undo, %{
+            action: :add_meal,
+            meal_plan_id: meal_plan.id
+          })
           |> load_meal_plans()
           |> put_flash(:info, "Added to plan")
 
@@ -621,6 +637,57 @@ defmodule GroceryPlannerWeb.MealPlannerLive do
 
   def handle_event("dismiss_chain_suggestion", _params, socket) do
     {:noreply, close_chain_suggestion_modal(socket)}
+  end
+
+  def handle_event("explorer_undo", _params, socket) do
+    case socket.assigns.explorer_undo do
+      %{action: :add_meal, meal_plan_id: id} ->
+        with {:ok, meal_plan} <-
+               GroceryPlanner.MealPlanning.get_meal_plan(
+                 id,
+                 actor: socket.assigns.current_user,
+                 tenant: socket.assigns.current_account.id
+               ),
+             :ok <-
+               GroceryPlanner.MealPlanning.destroy_meal_plan(meal_plan,
+                 actor: socket.assigns.current_user,
+                 tenant: socket.assigns.current_account.id
+               ) do
+          socket =
+            socket
+            |> assign(:explorer_undo, nil)
+            |> load_meal_plans()
+            |> put_flash(:info, "Undid add")
+
+          {:noreply, socket}
+        else
+          _ ->
+            {:noreply, put_flash(socket, :error, "Could not undo")}
+        end
+
+      %{action: :remove_meal, attrs: attrs} ->
+        case GroceryPlanner.MealPlanning.create_meal_plan(
+               socket.assigns.current_account.id,
+               attrs,
+               actor: socket.assigns.current_user,
+               tenant: socket.assigns.current_account.id
+             ) do
+          {:ok, _meal_plan} ->
+            socket =
+              socket
+              |> assign(:explorer_undo, nil)
+              |> load_meal_plans()
+              |> put_flash(:info, "Restored meal")
+
+            {:noreply, socket}
+
+          {:error, _} ->
+            {:noreply, put_flash(socket, :error, "Could not restore meal")}
+        end
+
+      _ ->
+        {:noreply, socket}
+    end
   end
 
   defp load_meal_plans(socket) do
