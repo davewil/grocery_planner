@@ -477,7 +477,7 @@ defmodule GroceryPlannerWeb.MealPlannerLiveTest do
 
       view
       |> element(
-        "button[phx-click='add_meal'][phx-value-date='#{tuesday}'][phx-value-meal_type='lunch']"
+        "button[phx-click='explorer_open_recipe_picker'][phx-value-date='#{tuesday}'][phx-value-meal_type='lunch']"
       )
       |> render_click()
 
@@ -538,7 +538,7 @@ defmodule GroceryPlannerWeb.MealPlannerLiveTest do
 
       view
       |> element(
-        "button[phx-click='add_meal'][phx-value-date='#{tuesday}'][phx-value-meal_type='lunch']"
+        "button[phx-click='explorer_open_recipe_picker'][phx-value-date='#{tuesday}'][phx-value-meal_type='lunch']"
       )
       |> render_click()
 
@@ -577,7 +577,7 @@ defmodule GroceryPlannerWeb.MealPlannerLiveTest do
 
       view
       |> element(
-        "button[phx-click='add_meal'][phx-value-date='#{tuesday}'][phx-value-meal_type='lunch']"
+        "button[phx-click='explorer_open_recipe_picker'][phx-value-date='#{tuesday}'][phx-value-meal_type='lunch']"
       )
       |> render_click()
 

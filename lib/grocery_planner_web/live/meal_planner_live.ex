@@ -42,6 +42,8 @@ defmodule GroceryPlannerWeb.MealPlannerLive do
       |> assign(:show_explorer_slot_picker, false)
       |> assign(:explorer_picking_recipe, nil)
       |> assign(:explorer_selected_slot, nil)
+      |> assign(:explorer_slot_prompt_open, false)
+      |> assign(:explorer_slot_prompt_slot, nil)
       |> load_meal_plans()
       |> maybe_load_explorer_recipes()
 
@@ -110,6 +112,8 @@ defmodule GroceryPlannerWeb.MealPlannerLive do
     socket =
       socket
       |> assign(:show_add_meal_modal, true)
+      |> assign(:explorer_slot_prompt_open, false)
+      |> assign(:explorer_slot_prompt_slot, nil)
       |> assign(:selected_date, date)
       |> assign(:selected_meal_type, meal_type_atom)
       |> assign(:available_recipes, recipes)
@@ -124,6 +128,8 @@ defmodule GroceryPlannerWeb.MealPlannerLive do
       |> assign(:selected_date, nil)
       |> assign(:selected_meal_type, nil)
       |> assign(:available_recipes, [])
+      |> assign(:explorer_slot_prompt_open, false)
+      |> assign(:explorer_slot_prompt_slot, nil)
 
     {:noreply, socket}
   end
@@ -134,8 +140,12 @@ defmodule GroceryPlannerWeb.MealPlannerLive do
 
   def handle_event("select_recipe", %{"id" => recipe_id}, socket) do
     recipe = Enum.find(socket.assigns.available_recipes, &(&1.id == recipe_id))
-    selected_date = socket.assigns.selected_date
-    selected_meal_type = socket.assigns.selected_meal_type
+
+    {selected_date, selected_meal_type} =
+      case socket.assigns.explorer_slot_prompt_slot do
+        %{date: date, meal_type: meal_type} -> {date, meal_type}
+        _ -> {socket.assigns.selected_date, socket.assigns.selected_meal_type}
+      end
 
     result =
       GroceryPlanner.MealPlanning.create_meal_plan(
@@ -155,6 +165,8 @@ defmodule GroceryPlannerWeb.MealPlannerLive do
         socket =
           socket
           |> assign(:show_add_meal_modal, false)
+          |> assign(:explorer_slot_prompt_open, false)
+          |> assign(:explorer_slot_prompt_slot, nil)
           |> assign(:selected_date, nil)
           |> assign(:selected_meal_type, nil)
           |> assign(:available_recipes, [])
@@ -258,6 +270,34 @@ defmodule GroceryPlannerWeb.MealPlannerLive do
     {:noreply, socket}
   end
 
+  def handle_event("explorer_toggle_favorite", %{"recipe_id" => recipe_id}, socket) do
+    with {:ok, recipe} <-
+           GroceryPlanner.Recipes.get_recipe(recipe_id,
+             actor: socket.assigns.current_user,
+             tenant: socket.assigns.current_account.id
+           ),
+         {:ok, _updated} <-
+           GroceryPlanner.Recipes.update_recipe(
+             recipe,
+             %{is_favorite: !recipe.is_favorite},
+             actor: socket.assigns.current_user,
+             tenant: socket.assigns.current_account.id
+           ) do
+      socket =
+        socket
+        |> load_explorer_recipes()
+        |> put_flash(
+          :info,
+          if(recipe.is_favorite, do: "Removed from favorites", else: "Added to favorites")
+        )
+
+      {:noreply, socket}
+    else
+      _ ->
+        {:noreply, put_flash(socket, :error, "Failed to update favorite")}
+    end
+  end
+
   def handle_event("explorer_filter", %{"filter" => filter}, socket) do
     socket =
       socket
@@ -276,19 +316,46 @@ defmodule GroceryPlannerWeb.MealPlannerLive do
     {:noreply, socket}
   end
 
-  def handle_event("explorer_open_slot_picker", %{"recipe_id" => recipe_id}, socket) do
-    recipe = Enum.find(socket.assigns.explorer_recipes, &(&1.id == recipe_id))
-
+  def handle_event("explorer_clear_filters", _params, socket) do
     socket =
       socket
-      |> assign(:show_explorer_slot_picker, true)
-      |> assign(:explorer_picking_recipe, recipe)
-      |> assign(:explorer_selected_slot, %{
-        "date" => Date.to_iso8601(Date.utc_today()),
-        "meal_type" => "dinner"
-      })
+      |> assign(:explorer_search, "")
+      |> assign(:explorer_filter, "")
+      |> assign(:explorer_difficulty, "")
+      |> load_explorer_recipes()
 
     {:noreply, socket}
+  end
+
+  def handle_event("explorer_open_slot_picker", %{"recipe_id" => recipe_id} = params, socket) do
+    recipe =
+      Enum.find(socket.assigns.explorer_recipes, &(&1.id == recipe_id)) ||
+        Enum.find(socket.assigns.explorer_recent_recipes, &(&1.id == recipe_id)) ||
+        Enum.find(socket.assigns.explorer_favorite_recipes, &(&1.id == recipe_id))
+
+    if is_nil(recipe) do
+      {:noreply, put_flash(socket, :error, "Recipe not available")}
+    else
+      selected_slot =
+        cond do
+          Map.has_key?(params, "date") and Map.has_key?(params, "meal_type") ->
+            %{"date" => params["date"], "meal_type" => params["meal_type"]}
+
+          is_map(socket.assigns.explorer_selected_slot) ->
+            socket.assigns.explorer_selected_slot
+
+          true ->
+            %{"date" => Date.to_iso8601(Date.utc_today()), "meal_type" => "dinner"}
+        end
+
+      socket =
+        socket
+        |> assign(:show_explorer_slot_picker, true)
+        |> assign(:explorer_picking_recipe, recipe)
+        |> assign(:explorer_selected_slot, selected_slot)
+
+      {:noreply, socket}
+    end
   end
 
   def handle_event("explorer_close_slot_picker", _params, socket) do
@@ -297,6 +364,33 @@ defmodule GroceryPlannerWeb.MealPlannerLive do
       |> assign(:show_explorer_slot_picker, false)
       |> assign(:explorer_picking_recipe, nil)
       |> assign(:explorer_selected_slot, nil)
+
+    {:noreply, socket}
+  end
+
+  def handle_event(
+        "explorer_open_recipe_picker",
+        %{"date" => date_str, "meal_type" => meal_type},
+        socket
+      ) do
+    date = Date.from_iso8601!(date_str)
+    meal_type_atom = String.to_existing_atom(meal_type)
+
+    {:ok, recipes} =
+      GroceryPlanner.Recipes.list_recipes_for_meal_planner(
+        actor: socket.assigns.current_user,
+        tenant: socket.assigns.current_account.id
+      )
+
+    socket =
+      socket
+      |> assign(:explorer_selected_slot, %{date: date, meal_type: meal_type_atom})
+      |> assign(:explorer_slot_prompt_open, true)
+      |> assign(:explorer_slot_prompt_slot, %{date: date, meal_type: meal_type_atom})
+      |> assign(:show_add_meal_modal, true)
+      |> assign(:selected_date, date)
+      |> assign(:selected_meal_type, meal_type_atom)
+      |> assign(:available_recipes, recipes)
 
     {:noreply, socket}
   end
@@ -701,6 +795,8 @@ defmodule GroceryPlannerWeb.MealPlannerLive do
         actor: socket.assigns.current_user,
         tenant: socket.assigns.current_account.id
       )
+
+    socket = assign(socket, :available_recipes, all_recipes)
 
     search_term = String.trim(socket.assigns.explorer_search || "")
     filter = socket.assigns.explorer_filter || ""

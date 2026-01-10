@@ -149,10 +149,16 @@
                         <%= case get_meal_plan(day, meal_type, @meal_plans) do %>
                           <% nil -> %>
                             <button
-                              phx-click="add_meal"
+                              phx-click="explorer_open_recipe_picker"
                               phx-value-date={day}
                               phx-value-meal_type={meal_type}
-                              class="group rounded-xl border border-dashed border-base-300 bg-base-100 hover:bg-primary/5 hover:border-primary/40 transition-all px-3 py-3 text-left"
+                              class={[
+                                "group rounded-xl border border-dashed bg-base-100 transition-all px-3 py-3 text-left",
+                                @explorer_selected_slot == %{date: day, meal_type: meal_type} &&
+                                  "border-primary/50 bg-primary/5 shadow-sm",
+                                @explorer_selected_slot != %{date: day, meal_type: meal_type} &&
+                                  "border-base-300 hover:bg-primary/5 hover:border-primary/40"
+                              ]}
                               id={"explorer-slot-#{day}-#{meal_type}"}
                             >
                               <div class="flex items-center justify-between gap-2">
@@ -213,21 +219,37 @@
               </div>
 
               <div class="mt-4">
-                <div class="relative">
-                  <.icon
-                    name="hero-magnifying-glass"
-                    class="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-base-content/40"
-                  />
-                  <input
-                    id="explorer-recipe-search"
-                    type="text"
-                    name="explorer_search"
-                    value={@explorer_search}
-                    placeholder="Search recipes..."
-                    phx-keyup="explorer_search"
-                    phx-debounce="250"
-                    class="input w-full pl-10"
-                  />
+                <div class="flex items-center gap-2">
+                  <div class="relative flex-1">
+                    <.icon
+                      name="hero-magnifying-glass"
+                      class="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-base-content/40"
+                    />
+                    <input
+                      id="explorer-recipe-search"
+                      type="text"
+                      name="explorer_search"
+                      value={@explorer_search}
+                      placeholder="Search recipes..."
+                      phx-keyup="explorer_search"
+                      phx-debounce="250"
+                      class="input w-full pl-10"
+                    />
+                  </div>
+
+                  <button
+                    :if={
+                      @explorer_search != "" || @explorer_filter not in [nil, ""] ||
+                        @explorer_difficulty not in [nil, ""]
+                    }
+                    phx-click="explorer_clear_filters"
+                    class="btn btn-ghost btn-sm whitespace-nowrap"
+                    id="explorer-clear-filters-top"
+                    title="Clear Explorer filters"
+                  >
+                    <span class="sm:hidden">Clear</span>
+                    <span class="hidden sm:inline">Clear filters</span>
+                  </button>
                 </div>
               </div>
 
@@ -348,9 +370,30 @@
                         </div>
 
                         <div class="p-4">
-                          <h4 class="font-bold text-base-content leading-tight truncate">
-                            {recipe.name}
-                          </h4>
+                          <div class="flex items-start justify-between gap-3">
+                            <h4 class="font-bold text-base-content leading-tight truncate">
+                              {recipe.name}
+                            </h4>
+
+                            <button
+                              phx-click="explorer_toggle_favorite"
+                              phx-value-recipe_id={recipe.id}
+                              class={[
+                                "p-2 -mr-2 -mt-2 rounded-lg transition-colors",
+                                recipe.is_favorite && "text-warning hover:bg-warning/10",
+                                !recipe.is_favorite &&
+                                  "text-base-content/30 hover:text-warning hover:bg-warning/10"
+                              ]}
+                              title={if recipe.is_favorite, do: "Unfavorite", else: "Favorite"}
+                              aria-label={
+                                if recipe.is_favorite, do: "Unfavorite", else: "Favorite"
+                              }
+                              aria-pressed={recipe.is_favorite}
+                              id={"explorer-favorite-toggle-#{recipe.id}"}
+                            >
+                              <.icon name="hero-star" class="w-5 h-5" />
+                            </button>
+                          </div>
 
                           <div class="mt-3 flex gap-2">
                             <button
@@ -404,9 +447,30 @@
                         </div>
 
                         <div class="p-4">
-                          <h4 class="font-bold text-base-content leading-tight truncate">
-                            {recipe.name}
-                          </h4>
+                          <div class="flex items-start justify-between gap-3">
+                            <h4 class="font-bold text-base-content leading-tight truncate">
+                              {recipe.name}
+                            </h4>
+
+                            <button
+                              phx-click="explorer_toggle_favorite"
+                              phx-value-recipe_id={recipe.id}
+                              class={[
+                                "p-2 -mr-2 -mt-2 rounded-lg transition-colors",
+                                recipe.is_favorite && "text-warning hover:bg-warning/10",
+                                !recipe.is_favorite &&
+                                  "text-base-content/30 hover:text-warning hover:bg-warning/10"
+                              ]}
+                              title={if recipe.is_favorite, do: "Unfavorite", else: "Favorite"}
+                              aria-label={
+                                if recipe.is_favorite, do: "Unfavorite", else: "Favorite"
+                              }
+                              aria-pressed={recipe.is_favorite}
+                              id={"explorer-favorite-toggle-#{recipe.id}"}
+                            >
+                              <.icon name="hero-star" class="w-5 h-5" />
+                            </button>
+                          </div>
 
                           <div class="mt-3 flex gap-2">
                             <button
@@ -443,78 +507,119 @@
                   </div>
                 </div>
 
-                <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-3" id="explorer-feed">
-                  <%= for recipe <- @explorer_recipes do %>
-                    <div class="group rounded-2xl border border-base-200 bg-base-100 overflow-hidden hover:shadow-md hover:border-primary/30 transition-all">
-                      <div class="aspect-[4/3] bg-base-200/50 overflow-hidden">
-                        <%= if recipe.image_url do %>
-                          <img
-                            src={recipe.image_url}
-                            alt={recipe.name}
-                            class="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-300"
-                          />
-                        <% else %>
-                          <div class="w-full h-full flex items-center justify-center">
-                            <.icon name="hero-photo" class="w-10 h-10 text-base-content/20" />
-                          </div>
-                        <% end %>
-                      </div>
-
-                      <div class="p-4">
-                        <div class="flex items-start justify-between gap-3">
-                          <div class="min-w-0">
-                            <h4 class="font-bold text-base-content leading-tight truncate">
-                              {recipe.name}
-                            </h4>
-                            <%= if recipe.description do %>
-                              <p class="text-sm text-base-content/60 mt-1 line-clamp-2">
-                                {recipe.description}
-                              </p>
-                            <% end %>
-                          </div>
-                        </div>
-
-                        <div class="mt-3 flex flex-wrap gap-2">
-                          <span class="badge badge-sm badge-ghost capitalize">
-                            {recipe.difficulty}
-                          </span>
-                          <span
-                            :if={recipe.is_base_recipe && recipe.follow_up_recipes != []}
-                            class="badge badge-sm bg-success/10 text-success border border-success/20"
-                          >
-                            Chain
-                          </span>
-                          <span
-                            :if={recipe.is_follow_up}
-                            class="badge badge-sm bg-primary/10 text-primary border border-primary/20"
-                          >
-                            Follow-up
-                          </span>
-                        </div>
-
-                        <div class="mt-4 flex gap-2">
-                          <button
-                            phx-click="explorer_open_slot_picker"
-                            phx-value-recipe_id={recipe.id}
-                            class="btn btn-primary btn-sm flex-1"
-                            id={"explorer-quick-add-#{recipe.id}"}
-                          >
-                            <.icon name="hero-plus" class="w-4 h-4" /> Add to plan
-                          </button>
-                          <.link navigate={~p"/recipes/#{recipe.id}"} class="btn btn-ghost btn-sm">
-                            Details
-                          </.link>
-                        </div>
-                      </div>
+                <%= if @explorer_recipes == [] do %>
+                  <div class="py-12 text-center">
+                    <div class="mx-auto w-12 h-12 rounded-2xl bg-base-200 flex items-center justify-center">
+                      <.icon name="hero-magnifying-glass" class="w-6 h-6 text-base-content/30" />
                     </div>
-                  <% end %>
-                </div>
+                    <div class="mt-4 font-semibold text-base-content">No recipes found</div>
+                    <div class="mt-1 text-sm text-base-content/60">
+                      Try a different keyword or clear filters.
+                    </div>
+                    <button
+                      :if={
+                        @explorer_search != "" || @explorer_filter not in [nil, ""] ||
+                          @explorer_difficulty not in [nil, ""]
+                      }
+                      phx-click="explorer_clear_filters"
+                      class="btn btn-ghost btn-sm mt-4"
+                      id="explorer-clear-filters"
+                    >
+                      Clear filters
+                    </button>
+                  </div>
+                <% else %>
+                  <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-3" id="explorer-feed">
+                    <%= for recipe <- @explorer_recipes do %>
+                      <div class="group rounded-2xl border border-base-200 bg-base-100 overflow-hidden hover:shadow-md hover:border-primary/30 transition-all">
+                        <div class="aspect-[4/3] bg-base-200/50 overflow-hidden">
+                          <%= if recipe.image_url do %>
+                            <img
+                              src={recipe.image_url}
+                              alt={recipe.name}
+                              class="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-300"
+                            />
+                          <% else %>
+                            <div class="w-full h-full flex items-center justify-center">
+                              <.icon name="hero-photo" class="w-10 h-10 text-base-content/20" />
+                            </div>
+                          <% end %>
+                        </div>
 
-                <%= if @explorer_recipes == [] and @explorer_favorite_recipes == [] and @explorer_recent_recipes == [] do %>
-                  <div class="py-16 text-center text-base-content/50">
-                    <.icon name="hero-magnifying-glass" class="w-10 h-10 mx-auto mb-3 opacity-30" />
-                    <div class="font-semibold">No recipes match your search</div>
-                    <div class="text-sm mt-1">Try a different keyword or clear filters.</div>
+                        <div class="p-4">
+                          <div class="flex items-start justify-between gap-3">
+                            <div class="min-w-0">
+                              <h4 class="font-bold text-base-content leading-tight truncate">
+                                {recipe.name}
+                              </h4>
+                              <%= if recipe.description do %>
+                                <p class="text-sm text-base-content/60 mt-1 line-clamp-2">
+                                  {recipe.description}
+                                </p>
+                              <% end %>
+                            </div>
+                          </div>
+
+                          <div class="mt-3 flex flex-wrap gap-2">
+                            <span class="badge badge-sm badge-ghost capitalize">
+                              {recipe.difficulty}
+                            </span>
+                            <span
+                              :if={recipe.is_base_recipe && recipe.follow_up_recipes != []}
+                              class="badge badge-sm bg-success/10 text-success border border-success/20"
+                            >
+                              Chain
+                            </span>
+                            <span
+                              :if={recipe.is_follow_up}
+                              class="badge badge-sm bg-primary/10 text-primary border border-primary/20"
+                            >
+                              Follow-up
+                            </span>
+                          </div>
+
+                          <div class="mt-4 flex gap-2">
+                            <button
+                              phx-click="explorer_open_slot_picker"
+                              phx-value-recipe_id={recipe.id}
+                              class="btn btn-primary btn-sm flex-1 min-w-0"
+                              id={"explorer-quick-add-#{recipe.id}"}
+                            >
+                              <span class="inline-flex items-center gap-1.5 min-w-0">
+                                <.icon name="hero-plus" class="w-4 h-4 shrink-0" />
+                                <span class="truncate">Add to plan</span>
+                              </span>
+                            </button>
+
+                            <button
+                              phx-click="explorer_toggle_favorite"
+                              phx-value-recipe_id={recipe.id}
+                              class={[
+                                "btn btn-ghost btn-sm px-3 transition-colors",
+                                recipe.is_favorite && "text-warning hover:bg-warning/10",
+                                !recipe.is_favorite &&
+                                  "text-base-content/50 hover:text-warning hover:bg-warning/10"
+                              ]}
+                              title={if recipe.is_favorite, do: "Unfavorite", else: "Favorite"}
+                              aria-label={
+                                if recipe.is_favorite, do: "Unfavorite", else: "Favorite"
+                              }
+                              aria-pressed={recipe.is_favorite}
+                              id={"explorer-feed-favorite-toggle-#{recipe.id}"}
+                            >
+                              <.icon name="hero-star" class="w-4 h-4" />
+                            </button>
+
+                            <.link
+                              navigate={~p"/recipes/#{recipe.id}"}
+                              class="btn btn-ghost btn-sm"
+                            >
+                              Details
+                            </.link>
+                          </div>
+                        </div>
+                      </div>
+                    <% end %>
                   </div>
                 <% end %>
               </section>
@@ -620,7 +725,7 @@
                   <%= case get_meal_plan(@selected_day, meal_type, @meal_plans) do %>
                     <% nil -> %>
                       <button
-                        phx-click="add_meal"
+                        phx-click="explorer_open_recipe_picker"
                         phx-value-date={@selected_day}
                         phx-value-meal_type={meal_type}
                         class="w-full py-8 px-4 border-2 border-dashed border-base-300 rounded-xl text-base-content/40 hover:border-primary/50 hover:bg-primary/5 hover:text-primary transition-all duration-200 flex flex-col items-center justify-center gap-2 group"
@@ -782,10 +887,15 @@
           <div class="flex items-center justify-between">
             <div>
               <h2 id="add-meal-title" class="text-2xl font-bold">Add Meal</h2>
-              <p class="opacity-80 mt-1 text-sm">
-                {Calendar.strftime(@selected_date, "%A, %B %d")} · {String.capitalize(
-                  to_string(@selected_meal_type)
-                )}
+              <p class="opacity-80 mt-1 text-sm" id="add-meal-subtitle">
+                {Calendar.strftime(@selected_date, "%A, %B %d")} ·
+                <%= if @explorer_slot_prompt_open && @explorer_slot_prompt_slot do %>
+                  Pick a recipe for {String.capitalize(
+                    to_string(@explorer_slot_prompt_slot.meal_type)
+                  )}.
+                <% else %>
+                  {String.capitalize(to_string(@selected_meal_type))}
+                <% end %>
               </p>
             </div>
             <button
