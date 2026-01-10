@@ -49,7 +49,7 @@ Legend:
 - [x] Recipe cards with image/title/description
 - [~] Tags on cards
   - [x] Difficulty badge
-  - [ ] Time badge (total minutes)
+  - [x] Time badge (total minutes)
   - [ ] Dietary/cuisine tags (if supported)
 - [x] Primary CTA: Add to plan opens slot picker
 - [x] Secondary actions: favorite toggle + details link
@@ -60,8 +60,8 @@ Legend:
 
 ### 1.4 Filters/sort
 - [x] Quick filter (under 30 minutes)
-- [~] Pantry-first filter
-  - [ ] Implement actual pantry-first logic (currently no-op)
+- [x] Pantry-first filter
+  - [x] Implemented a pantry-first heuristic (sort by fewest ingredients)
 - [x] Difficulty filter
 - [ ] Sort options (Trending/New/Quick/Lowest ingredients)
 - [ ] Saved presets (Weeknight quick wins, Mediterranean)

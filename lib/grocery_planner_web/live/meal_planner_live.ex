@@ -847,7 +847,13 @@ defmodule GroceryPlannerWeb.MealPlannerLive do
     end)
   end
 
-  defp maybe_apply_explorer_filter(recipes, "pantry"), do: recipes
+  defp maybe_apply_explorer_filter(recipes, "pantry") do
+    # Pantry-first: bias toward recipes with fewer ingredients.
+    # This is a pragmatic interpretation until we wire in inventory-aware availability.
+    recipes
+    |> Enum.sort_by(&length(&1.recipe_ingredients))
+    |> Enum.take(24)
+  end
 
   defp maybe_apply_explorer_filter(recipes, _), do: recipes
 
