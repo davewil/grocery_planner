@@ -8,6 +8,8 @@ defmodule GroceryPlannerWeb.ShoppingLive do
 
   alias GroceryPlanner.MealPlanning.Voting
 
+  @per_page 12
+
   def mount(_params, _session, socket) do
     voting_active =
       Voting.voting_active?(socket.assigns.current_account.id, socket.assigns.current_user)
@@ -30,6 +32,10 @@ defmodule GroceryPlannerWeb.ShoppingLive do
       |> assign(:new_item_unit, "")
       |> assign(:storage_locations, [])
       |> assign(:transferable_items, [])
+      |> assign(:page, 1)
+      |> assign(:per_page, @per_page)
+      |> assign(:total_count, 0)
+      |> assign(:total_pages, 1)
       |> load_shopping_lists()
 
     {:ok, socket}
@@ -37,6 +43,17 @@ defmodule GroceryPlannerWeb.ShoppingLive do
 
   def handle_event("show_create_modal", _params, socket) do
     {:noreply, assign(socket, :show_create_modal, true)}
+  end
+
+  def handle_event("page", %{"page" => page}, socket) do
+    page = String.to_integer(page)
+
+    socket =
+      socket
+      |> assign(:page, page)
+      |> load_shopping_lists()
+
+    {:noreply, socket}
   end
 
   def handle_event("hide_create_modal", _params, socket) do
@@ -458,7 +475,7 @@ defmodule GroceryPlannerWeb.ShoppingLive do
   end
 
   defp load_shopping_lists(socket) do
-    {:ok, lists} =
+    {:ok, all_lists} =
       GroceryPlanner.Shopping.list_shopping_lists(
         actor: socket.assigns.current_user,
         tenant: socket.assigns.current_account.id,
@@ -469,6 +486,20 @@ defmodule GroceryPlannerWeb.ShoppingLive do
           |> Ash.Query.load([:total_items, :checked_items, :progress_percentage])
       )
 
-    assign(socket, :shopping_lists, lists)
+    # Paginate the lists
+    page = socket.assigns[:page] || 1
+    per_page = socket.assigns[:per_page] || @per_page
+    total_count = length(all_lists)
+    total_pages = max(1, ceil(total_count / per_page))
+
+    lists =
+      all_lists
+      |> Enum.drop((page - 1) * per_page)
+      |> Enum.take(per_page)
+
+    socket
+    |> assign(:shopping_lists, lists)
+    |> assign(:total_count, total_count)
+    |> assign(:total_pages, total_pages)
   end
 end

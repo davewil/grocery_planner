@@ -7,6 +7,8 @@ defmodule GroceryPlannerWeb.InventoryLive do
 
   require Ash.Query
 
+  @inventory_per_page 12
+
   def render(assigns) do
     ~H"""
     <Layouts.app
@@ -75,6 +77,10 @@ defmodule GroceryPlannerWeb.InventoryLive do
                   form={@form}
                   items={@items}
                   storage_locations={@storage_locations}
+                  page={@inventory_page}
+                  per_page={@inventory_per_page}
+                  total_count={@inventory_total_count}
+                  total_pages={@inventory_total_pages}
                 />
               <% "categories" -> %>
                 <.categories_tab
@@ -566,6 +572,10 @@ defmodule GroceryPlannerWeb.InventoryLive do
   attr(:form, :any, default: nil)
   attr(:items, :list, required: true)
   attr(:storage_locations, :list, required: true)
+  attr(:page, :integer, default: 1)
+  attr(:per_page, :integer, default: 12)
+  attr(:total_count, :integer, default: 0)
+  attr(:total_pages, :integer, default: 1)
 
   defp inventory_tab(assigns) do
     # Calculate counts for bulk actions
@@ -806,6 +816,50 @@ defmodule GroceryPlannerWeb.InventoryLive do
         <p class="text-base-content/50 font-medium">No inventory entries yet</p>
       </div>
     </div>
+
+    <%= if @total_pages > 1 do %>
+      <div class="mt-8 flex items-center justify-between">
+        <p class="text-sm text-base-content/60">
+          Showing {(@page - 1) * @per_page + 1}-{min(@page * @per_page, @total_count)} of {@total_count} entries
+        </p>
+        <div class="join">
+          <button
+            class="join-item btn btn-sm"
+            phx-click="inventory_page"
+            phx-value-page={@page - 1}
+            disabled={@page <= 1}
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M15 19l-7-7 7-7"
+              />
+            </svg>
+          </button>
+          <%= for page_num <- max(1, @page - 2)..min(@total_pages, @page + 2) do %>
+            <button
+              class={"join-item btn btn-sm #{if page_num == @page, do: "btn-primary", else: ""}"}
+              phx-click="inventory_page"
+              phx-value-page={page_num}
+            >
+              {page_num}
+            </button>
+          <% end %>
+          <button
+            class="join-item btn btn-sm"
+            phx-click="inventory_page"
+            phx-value-page={@page + 1}
+            disabled={@page >= @total_pages}
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
+        </div>
+      </div>
+    <% end %>
     """
   end
 
@@ -1214,6 +1268,10 @@ defmodule GroceryPlannerWeb.InventoryLive do
       |> assign(:filter_tag_ids, [])
       |> assign(:selected_tag_ids, [])
       |> assign(:expiring_filter, nil)
+      |> assign(:inventory_page, 1)
+      |> assign(:inventory_per_page, @inventory_per_page)
+      |> assign(:inventory_total_count, 0)
+      |> assign(:inventory_total_pages, 1)
 
     {:ok, socket}
   end
@@ -1233,6 +1291,7 @@ defmodule GroceryPlannerWeb.InventoryLive do
       socket
       |> assign(:expiring_filter, expiring_filter)
       |> assign(:active_tab, active_tab)
+      |> assign(:inventory_page, 1)
       |> load_data()
 
     {:noreply, socket}
@@ -1240,6 +1299,17 @@ defmodule GroceryPlannerWeb.InventoryLive do
 
   def handle_event("change_tab", %{"tab" => tab}, socket) do
     {:noreply, assign(socket, :active_tab, tab)}
+  end
+
+  def handle_event("inventory_page", %{"page" => page}, socket) do
+    page = String.to_integer(page)
+
+    socket =
+      socket
+      |> assign(:inventory_page, page)
+      |> load_data()
+
+    {:noreply, socket}
   end
 
   def handle_event("new_item", _, socket) do
@@ -1285,6 +1355,7 @@ defmodule GroceryPlannerWeb.InventoryLive do
     socket =
       socket
       |> assign(:filter_tag_ids, new_filters)
+      |> assign(:inventory_page, 1)
       |> load_data()
 
     {:noreply, socket}
@@ -1294,6 +1365,7 @@ defmodule GroceryPlannerWeb.InventoryLive do
     socket =
       socket
       |> assign(:filter_tag_ids, [])
+      |> assign(:inventory_page, 1)
       |> load_data()
 
     {:noreply, socket}
@@ -2110,18 +2182,31 @@ defmodule GroceryPlannerWeb.InventoryLive do
           entries_query
       end
 
-    {:ok, entries} =
+    {:ok, all_entries} =
       GroceryPlanner.Inventory.list_inventory_entries(
         actor: user,
         tenant: account_id,
         query: entries_query
       )
 
+    # Paginate inventory entries
+    page = socket.assigns[:inventory_page] || 1
+    per_page = socket.assigns[:inventory_per_page] || @inventory_per_page
+    total_count = length(all_entries)
+    total_pages = max(1, ceil(total_count / per_page))
+
+    entries =
+      all_entries
+      |> Enum.drop((page - 1) * per_page)
+      |> Enum.take(per_page)
+
     socket
     |> assign(:items, items)
     |> assign(:categories, categories)
     |> assign(:storage_locations, locations)
     |> assign(:inventory_entries, entries)
+    |> assign(:inventory_total_count, total_count)
+    |> assign(:inventory_total_pages, total_pages)
     |> assign(:tags, tags)
   end
 end

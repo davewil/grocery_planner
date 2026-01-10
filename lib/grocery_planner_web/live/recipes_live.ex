@@ -245,7 +245,7 @@ defmodule GroceryPlannerWeb.RecipesLive do
   defp sort_recipes(recipes, "name"), do: Enum.sort_by(recipes, & &1.name)
 
   defp sort_recipes(recipes, "newest"),
-    do: Enum.sort_by(recipes, & &1.inserted_at, {:desc, DateTime})
+    do: Enum.sort_by(recipes, & &1.created_at, {:desc, DateTime})
 
   defp sort_recipes(recipes, "prep_time") do
     Enum.sort_by(recipes, fn r -> (r.prep_time_minutes || 0) + (r.cook_time_minutes || 0) end)
