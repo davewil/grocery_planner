@@ -237,8 +237,12 @@
     <div
       id="create-list-modal"
       class="fixed inset-0 bg-neutral/50 backdrop-blur-sm flex items-center justify-center z-50"
+      phx-click="hide_create_modal"
     >
-      <div class="bg-base-100 rounded-box p-8 max-w-md w-full mx-4 shadow-2xl border border-base-200">
+      <div
+        class="bg-base-100 rounded-2xl p-8 max-w-md w-full mx-4 shadow-2xl border border-base-200"
+        phx-click="prevent_close"
+      >
         <h3 class="text-2xl font-bold text-base-content mb-4">Create Shopping List</h3>
         <form phx-submit="create_list" id="create-list-form">
           <div class="mb-6">
@@ -276,8 +280,12 @@
     <div
       id="generate-list-modal"
       class="fixed inset-0 bg-neutral/50 backdrop-blur-sm flex items-center justify-center z-50"
+      phx-click="hide_generate_modal"
     >
-      <div class="bg-base-100 rounded-box p-8 max-w-md w-full mx-4 shadow-2xl border border-base-200">
+      <div
+        class="bg-base-100 rounded-2xl p-8 max-w-md w-full mx-4 shadow-2xl border border-base-200"
+        phx-click="prevent_close"
+      >
         <h3 class="text-2xl font-bold text-base-content mb-4">Generate from Meal Plans</h3>
         <form phx-submit="generate_list" id="generate-list-form">
           <div class="space-y-4 mb-6">
@@ -338,8 +346,12 @@
     <div
       id="add-item-modal"
       class="fixed inset-0 bg-neutral/50 backdrop-blur-sm flex items-center justify-center z-50"
+      phx-click="hide_add_item_modal"
     >
-      <div class="bg-base-100 rounded-box p-8 max-w-md w-full mx-4 shadow-2xl border border-base-200">
+      <div
+        class="bg-base-100 rounded-2xl p-8 max-w-md w-full mx-4 shadow-2xl border border-base-200"
+        phx-click="prevent_close"
+      >
         <h3 class="text-2xl font-bold text-base-content mb-4">Add Item</h3>
         <form phx-submit="add_item" id="add-item-form">
           <div class="space-y-4 mb-6">

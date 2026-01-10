@@ -205,6 +205,10 @@ defmodule GroceryPlannerWeb.ShoppingLive do
     {:noreply, assign(socket, :show_add_item_modal, false)}
   end
 
+  def handle_event("prevent_close", _params, socket) do
+    {:noreply, socket}
+  end
+
   def handle_event(
         "add_item",
         %{"name" => name, "quantity" => quantity_str, "unit" => unit} = params,
