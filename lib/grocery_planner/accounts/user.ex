@@ -46,7 +46,7 @@ defmodule GroceryPlanner.Accounts.User do
     end
 
     update :update do
-      accept [:name, :email, :theme]
+      accept [:name, :email, :theme, :meal_planner_layout]
     end
 
     update :confirm do
@@ -146,6 +146,12 @@ defmodule GroceryPlanner.Accounts.User do
     attribute :theme, :string do
       allow_nil? false
       default "light"
+      public? true
+    end
+
+    attribute :meal_planner_layout, :string do
+      allow_nil? false
+      default "explorer"
       public? true
     end
 

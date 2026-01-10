@@ -96,4 +96,26 @@ defmodule GroceryPlannerWeb.SettingsLiveTest do
       assert pref.expiration_alert_days == 3
     end
   end
+
+  describe "User Profile" do
+    test "updates meal planner layout preference", %{conn: conn, user: user} do
+      {:ok, view, _html} = live(conn, "/settings")
+
+      view
+      |> form("#user-form",
+        user: %{
+          name: user.name,
+          email: to_string(user.email),
+          theme: user.theme,
+          meal_planner_layout: "explorer"
+        }
+      )
+      |> render_submit()
+
+      assert render(view) =~ "Profile updated successfully"
+
+      {:ok, updated_user} = GroceryPlanner.Accounts.User.by_id(user.id)
+      assert updated_user.meal_planner_layout == "explorer"
+    end
+  end
 end

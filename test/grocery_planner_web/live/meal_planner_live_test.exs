@@ -29,6 +29,9 @@ defmodule GroceryPlannerWeb.MealPlannerLiveTest do
 
       assert html =~ "Meal Planner"
       assert html =~ "Plan your weekly meals with ease"
+      assert html =~ "Layout"
+      assert html =~ "Explorer"
+      assert has_element?(view, "a[href='/settings']", "Change")
       assert has_element?(view, "button[phx-click='prev_week']")
       assert has_element?(view, "button[phx-click='today']", "Today")
       assert has_element?(view, "button[phx-click='next_week']")

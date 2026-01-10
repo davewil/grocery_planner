@@ -33,7 +33,8 @@ defmodule GroceryPlannerWeb.SettingsLive do
         %{
           "name" => socket.assigns.current_user.name,
           "email" => to_string(socket.assigns.current_user.email),
-          "theme" => socket.assigns.current_user.theme
+          "theme" => socket.assigns.current_user.theme,
+          "meal_planner_layout" => socket.assigns.current_user.meal_planner_layout
         },
         as: :user
       )
@@ -173,7 +174,8 @@ defmodule GroceryPlannerWeb.SettingsLive do
     case Accounts.User.update(socket.assigns.current_user, %{
            name: params["name"],
            email: params["email"],
-           theme: params["theme"]
+           theme: params["theme"],
+           meal_planner_layout: params["meal_planner_layout"]
          }) do
       {:ok, user} ->
         {:noreply,

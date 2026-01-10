@@ -18,6 +18,7 @@ defmodule GroceryPlannerWeb.MealPlannerLive do
     socket =
       socket
       |> assign(:voting_active, voting_active)
+      |> assign(:meal_planner_layout, resolve_meal_planner_layout(socket.assigns.current_user))
       |> assign(:week_start, week_start)
       |> assign(:days, get_week_days(week_start))
       |> assign(:selected_day, nil)
@@ -568,6 +569,14 @@ defmodule GroceryPlannerWeb.MealPlannerLive do
     |> assign(:chain_suggestion_follow_ups, [])
     |> assign(:chain_suggestion_slot, nil)
     |> assign(:selected_follow_up_id, nil)
+  end
+
+  defp resolve_meal_planner_layout(user) do
+    case Map.get(user, :meal_planner_layout) do
+      "focus" -> "focus"
+      "power" -> "power"
+      _ -> "explorer"
+    end
   end
 
   defp get_week_start(date) do
