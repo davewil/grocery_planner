@@ -445,6 +445,156 @@ defmodule GroceryPlannerWeb.MealPlannerLiveTest do
     end
   end
 
+  describe "chain suggestion" do
+    test "shows chain suggestion modal after adding a base recipe", %{
+      conn: conn,
+      account: account,
+      user: user
+    } do
+      base = create_recipe(account, user, %{name: "Roast Chicken", is_base_recipe: true})
+
+      _follow_up =
+        create_recipe(account, user, %{
+          name: "Chicken Fried Rice",
+          is_follow_up: true,
+          parent_recipe_id: base.id
+        })
+
+      today = Date.utc_today()
+      week_start = Date.add(today, -(Date.day_of_week(today) - 1))
+      tuesday = Date.add(week_start, 1)
+
+      {:ok, view, _html} = live(conn, "/meal-planner")
+
+      view
+      |> element("button[phx-click='select_day'][phx-value-date='#{tuesday}']")
+      |> render_click()
+
+      view
+      |> element(
+        "button[phx-click='add_meal'][phx-value-date='#{tuesday}'][phx-value-meal_type='lunch']"
+      )
+      |> render_click()
+
+      html =
+        view
+        |> element("button[phx-click='select_recipe'][phx-value-id='#{base.id}']")
+        |> render_click()
+
+      assert html =~ "Use Those Leftovers!"
+      assert html =~ "Roast Chicken"
+      assert html =~ "Chicken Fried Rice"
+      assert has_element?(view, "#chain-suggestion-modal-backdrop")
+    end
+
+    test "does not show chain suggestion modal if all candidate slots are occupied", %{
+      conn: conn,
+      account: account,
+      user: user
+    } do
+      base = create_recipe(account, user, %{name: "Roast Chicken", is_base_recipe: true})
+
+      _follow_up =
+        create_recipe(account, user, %{
+          name: "Chicken Soup",
+          is_follow_up: true,
+          parent_recipe_id: base.id
+        })
+
+      today = Date.utc_today()
+      week_start = Date.add(today, -(Date.day_of_week(today) - 1))
+      tuesday = Date.add(week_start, 1)
+
+      occupy_recipe = create_recipe(account, user, %{name: "Other"})
+
+      create_meal_plan(account, user, occupy_recipe, %{
+        scheduled_date: tuesday,
+        meal_type: :dinner,
+        servings: 2
+      })
+
+      create_meal_plan(account, user, occupy_recipe, %{
+        scheduled_date: Date.add(tuesday, 1),
+        meal_type: :lunch,
+        servings: 2
+      })
+
+      create_meal_plan(account, user, occupy_recipe, %{
+        scheduled_date: Date.add(tuesday, 1),
+        meal_type: :dinner,
+        servings: 2
+      })
+
+      {:ok, view, _html} = live(conn, "/meal-planner")
+
+      view
+      |> element("button[phx-click='select_day'][phx-value-date='#{tuesday}']")
+      |> render_click()
+
+      view
+      |> element(
+        "button[phx-click='add_meal'][phx-value-date='#{tuesday}'][phx-value-meal_type='lunch']"
+      )
+      |> render_click()
+
+      html =
+        view
+        |> element("button[phx-click='select_recipe'][phx-value-id='#{base.id}']")
+        |> render_click()
+
+      refute html =~ "Use Those Leftovers!"
+      refute has_element?(view, "#chain-suggestion-modal-backdrop")
+    end
+
+    test "accepting chain suggestion creates follow-up meal plan", %{
+      conn: conn,
+      account: account,
+      user: user
+    } do
+      base = create_recipe(account, user, %{name: "Roast Chicken", is_base_recipe: true})
+
+      follow_up =
+        create_recipe(account, user, %{
+          name: "Chicken Soup",
+          is_follow_up: true,
+          parent_recipe_id: base.id
+        })
+
+      today = Date.utc_today()
+      week_start = Date.add(today, -(Date.day_of_week(today) - 1))
+      tuesday = Date.add(week_start, 1)
+
+      {:ok, view, _html} = live(conn, "/meal-planner")
+
+      view
+      |> element("button[phx-click='select_day'][phx-value-date='#{tuesday}']")
+      |> render_click()
+
+      view
+      |> element(
+        "button[phx-click='add_meal'][phx-value-date='#{tuesday}'][phx-value-meal_type='lunch']"
+      )
+      |> render_click()
+
+      view
+      |> element("button[phx-click='select_recipe'][phx-value-id='#{base.id}']")
+      |> render_click()
+
+      view
+      |> element("button[phx-click='accept_chain_suggestion']")
+      |> render_click()
+
+      {:ok, meal_plans} =
+        GroceryPlanner.MealPlanning.list_meal_plans(
+          actor: user,
+          tenant: account.id,
+          query: GroceryPlanner.MealPlanning.MealPlan |> Ash.Query.sort(scheduled_date: :asc)
+        )
+
+      assert Enum.any?(meal_plans, fn mp -> mp.recipe_id == follow_up.id end)
+    end
+  end
+
   describe "week navigation" do
     test "navigates to next week", %{conn: conn} do
       {:ok, view, _html} = live(conn, "/meal-planner")

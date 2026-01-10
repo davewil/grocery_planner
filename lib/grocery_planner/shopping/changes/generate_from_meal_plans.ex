@@ -21,7 +21,6 @@ defmodule GroceryPlanner.Shopping.Changes.GenerateFromMealPlans do
   end
 
   defp generate_items(shopping_list, start_date, end_date, account_id, context) do
-    # Get all meal plans in the date range
     {:ok, all_meal_plans} =
       GroceryPlanner.MealPlanning.list_meal_plans(
         actor: context.actor,
@@ -34,7 +33,6 @@ defmodule GroceryPlanner.Shopping.Changes.GenerateFromMealPlans do
 
     meal_plans = Enum.filter(all_meal_plans, fn mp -> mp.status == :planned end)
 
-    # Aggregate ingredients from all meal plans
     ingredient_map = aggregate_ingredients(meal_plans, account_id)
 
     # Get current inventory
@@ -52,10 +50,8 @@ defmodule GroceryPlanner.Shopping.Changes.GenerateFromMealPlans do
       end)
       |> Enum.group_by(& &1.grocery_item_id)
 
-    # Create shopping list items for missing ingredients
     Enum.each(ingredient_map, fn {grocery_item_id,
                                   %{quantity: needed_qty, unit: unit, name: name}} ->
-      # Check if we have enough in inventory
       available_qty =
         case Map.get(inventory, grocery_item_id) do
           nil ->
@@ -67,14 +63,13 @@ defmodule GroceryPlanner.Shopping.Changes.GenerateFromMealPlans do
             |> Enum.reduce(Decimal.new(0), &Decimal.add/2)
         end
 
-      # If we need more than we have, add to shopping list
       shortage = Decimal.sub(needed_qty, available_qty)
 
       if Decimal.compare(shortage, Decimal.new(0)) == :gt do
-        GroceryPlanner.Shopping.create_shopping_list_item(
-          account_id,
+        GroceryPlanner.Shopping.ShoppingListItem.create(
           %{
             shopping_list_id: shopping_list.id,
+            account_id: account_id,
             grocery_item_id: grocery_item_id,
             name: name,
             quantity: shortage,
@@ -96,13 +91,17 @@ defmodule GroceryPlanner.Shopping.Changes.GenerateFromMealPlans do
         Decimal.div(Decimal.new(meal_plan.servings), Decimal.new(recipe.servings))
 
       Enum.map(recipe.recipe_ingredients, fn ingredient ->
-        # Skip optional ingredients
-        unless ingredient.is_optional do
-          adjusted_quantity = Decimal.mult(ingredient.quantity, servings_multiplier)
+        if !ingredient.is_optional && ingredient.usage_type != :leftover do
+          quantity =
+            if is_nil(ingredient.quantity) do
+              Decimal.new(1)
+            else
+              Decimal.mult(ingredient.quantity, servings_multiplier)
+            end
 
           %{
             grocery_item_id: ingredient.grocery_item_id,
-            quantity: adjusted_quantity,
+            quantity: quantity,
             unit: ingredient.unit,
             name: ingredient.grocery_item.name
           }
@@ -112,13 +111,11 @@ defmodule GroceryPlanner.Shopping.Changes.GenerateFromMealPlans do
     end)
     |> Enum.group_by(& &1.grocery_item_id)
     |> Enum.map(fn {grocery_item_id, ingredients} ->
-      # Sum quantities for the same ingredient (assumes same unit)
       total_quantity =
         ingredients
         |> Enum.map(& &1.quantity)
         |> Enum.reduce(Decimal.new(0), &Decimal.add/2)
 
-      # Use the first ingredient's unit and name
       first = List.first(ingredients)
 
       {grocery_item_id,

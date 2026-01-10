@@ -9,14 +9,24 @@ defmodule GroceryPlannerWeb.RecipeFormLive do
     voting_active =
       Voting.voting_active?(socket.assigns.current_account.id, socket.assigns.current_user)
 
+    parent_recipe = load_parent_recipe(socket, params["parent_recipe_id"])
+
     socket =
       socket
       |> assign(:current_scope, socket.assigns.current_account)
       |> assign(:voting_active, voting_active)
+      |> assign(:parent_recipe, parent_recipe)
 
     case socket.assigns.live_action do
       :new ->
-        form = to_form(%{}, as: :recipe)
+        initial_data =
+          if parent_recipe do
+            %{"is_follow_up" => true, "parent_recipe_id" => parent_recipe.id}
+          else
+            %{}
+          end
+
+        form = to_form(initial_data, as: :recipe)
         {:ok, assign(socket, form: form, recipe: nil)}
 
       :edit ->
@@ -56,6 +66,16 @@ defmodule GroceryPlannerWeb.RecipeFormLive do
       recipe_params
       |> Map.put("is_favorite", Map.has_key?(recipe_params, "is_favorite"))
       |> convert_empty_to_nil(["prep_time_minutes", "cook_time_minutes", "image_url", "source"])
+
+    # Include chain fields if creating a follow-up
+    recipe_params =
+      if socket.assigns.parent_recipe && socket.assigns.live_action == :new do
+        recipe_params
+        |> Map.put("is_follow_up", true)
+        |> Map.put("parent_recipe_id", socket.assigns.parent_recipe.id)
+      else
+        recipe_params
+      end
 
     result =
       case socket.assigns.live_action do
@@ -123,6 +143,18 @@ defmodule GroceryPlannerWeb.RecipeFormLive do
     case GroceryPlanner.Recipes.get_recipe(id, actor: user, tenant: account_id) do
       {:ok, recipe} -> {:ok, recipe}
       {:error, _} -> {:error, :not_found}
+    end
+  end
+
+  defp load_parent_recipe(_socket, nil), do: nil
+
+  defp load_parent_recipe(socket, parent_id) do
+    case GroceryPlanner.Recipes.get_recipe(parent_id,
+           actor: socket.assigns.current_user,
+           tenant: socket.assigns.current_account.id
+         ) do
+      {:ok, recipe} -> recipe
+      {:error, _} -> nil
     end
   end
 

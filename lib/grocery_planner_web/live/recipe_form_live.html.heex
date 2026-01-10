@@ -29,6 +29,19 @@
           {if @live_action == :new, do: "New Recipe", else: "Edit Recipe"}
         </h1>
 
+        <div
+          :if={@parent_recipe}
+          class="mb-6 p-4 bg-success/10 border border-success/20 rounded-xl flex items-center gap-3"
+        >
+          <.icon name="hero-arrow-uturn-left" class="w-6 h-6 text-success" />
+          <div>
+            <div class="font-semibold text-success">Creating Follow-up Recipe</div>
+            <div class="text-sm text-base-content/70">
+              This recipe will be linked to "{@parent_recipe.name}"
+            </div>
+          </div>
+        </div>
+
         <.form for={@form} id="recipe-form" phx-submit="save">
           <div class="space-y-6">
             <div>

@@ -27,6 +27,11 @@ defmodule GroceryPlannerWeb.MealPlannerLive do
       |> assign(:selected_date, nil)
       |> assign(:selected_meal_type, nil)
       |> assign(:available_recipes, [])
+      |> assign(:show_chain_suggestion_modal, false)
+      |> assign(:chain_suggestion_base_recipe, nil)
+      |> assign(:chain_suggestion_follow_ups, [])
+      |> assign(:chain_suggestion_slot, nil)
+      |> assign(:selected_follow_up_id, nil)
       |> load_meal_plans()
 
     {:ok, socket}
@@ -86,13 +91,9 @@ defmodule GroceryPlannerWeb.MealPlannerLive do
     meal_type_atom = String.to_existing_atom(meal_type)
 
     {:ok, recipes} =
-      GroceryPlanner.Recipes.list_recipes(
+      GroceryPlanner.Recipes.list_recipes_for_meal_planner(
         actor: socket.assigns.current_user,
-        tenant: socket.assigns.current_account.id,
-        query:
-          GroceryPlanner.Recipes.Recipe
-          |> Ash.Query.load(:recipe_ingredients)
-          |> Ash.Query.sort(name: :asc)
+        tenant: socket.assigns.current_account.id
       )
 
     socket =
@@ -121,13 +122,17 @@ defmodule GroceryPlannerWeb.MealPlannerLive do
   end
 
   def handle_event("select_recipe", %{"id" => recipe_id}, socket) do
+    recipe = Enum.find(socket.assigns.available_recipes, &(&1.id == recipe_id))
+    selected_date = socket.assigns.selected_date
+    selected_meal_type = socket.assigns.selected_meal_type
+
     result =
       GroceryPlanner.MealPlanning.create_meal_plan(
         socket.assigns.current_account.id,
         %{
           recipe_id: recipe_id,
-          scheduled_date: socket.assigns.selected_date,
-          meal_type: socket.assigns.selected_meal_type,
+          scheduled_date: selected_date,
+          meal_type: selected_meal_type,
           servings: 4
         },
         actor: socket.assigns.current_user,
@@ -143,6 +148,7 @@ defmodule GroceryPlannerWeb.MealPlannerLive do
           |> assign(:selected_meal_type, nil)
           |> assign(:available_recipes, [])
           |> load_meal_plans()
+          |> maybe_show_chain_suggestion(recipe, selected_date, selected_meal_type)
           |> put_flash(:info, "Meal added successfully")
 
         {:noreply, socket}
@@ -234,13 +240,9 @@ defmodule GroceryPlannerWeb.MealPlannerLive do
 
   def handle_event("search_recipes", %{"value" => search_term}, socket) do
     {:ok, all_recipes} =
-      GroceryPlanner.Recipes.list_recipes(
+      GroceryPlanner.Recipes.list_recipes_for_meal_planner(
         actor: socket.assigns.current_user,
-        tenant: socket.assigns.current_account.id,
-        query:
-          GroceryPlanner.Recipes.Recipe
-          |> Ash.Query.load(:recipe_ingredients)
-          |> Ash.Query.sort(name: :asc)
+        tenant: socket.assigns.current_account.id
       )
 
     recipes =
@@ -267,7 +269,7 @@ defmodule GroceryPlannerWeb.MealPlannerLive do
       GroceryPlanner.MealPlanning.list_meal_plans(
         actor: socket.assigns.current_user,
         tenant: socket.assigns.current_account.id,
-        query: GroceryPlanner.MealPlanning.MealPlan |> Ash.Query.load(:recipe)
+        load: [:recipe]
       )
 
     prev_week_plans =
@@ -313,7 +315,6 @@ defmodule GroceryPlannerWeb.MealPlannerLive do
   end
 
   def handle_event("clear_week", _params, socket) do
-    # Delete all meal plans for the current week
     results =
       Enum.map(socket.assigns.meal_plans, fn mp ->
         GroceryPlanner.MealPlanning.destroy_meal_plan(mp,
@@ -332,6 +333,93 @@ defmodule GroceryPlannerWeb.MealPlannerLive do
     {:noreply, socket}
   end
 
+  def handle_event("generate_shopping_list", _params, socket) do
+    week_start = socket.assigns.week_start
+    week_end = Date.add(week_start, 6)
+
+    planned_meals =
+      Enum.filter(socket.assigns.meal_plans, fn mp -> mp.status == :planned end)
+
+    if Enum.empty?(planned_meals) do
+      {:noreply, put_flash(socket, :error, "No planned meals found for this week")}
+    else
+      list_name = "Shopping List - Week of #{Calendar.strftime(week_start, "%B %d, %Y")}"
+
+      case GroceryPlanner.Shopping.generate_shopping_list_from_meal_plans(
+             socket.assigns.current_account.id,
+             week_start,
+             week_end,
+             %{
+               name: list_name,
+               notes: "Auto-generated from meal plan"
+             },
+             actor: socket.assigns.current_user,
+             tenant: socket.assigns.current_account.id
+           ) do
+        {:ok, _shopping_list} ->
+          socket =
+            socket
+            |> put_flash(
+              :info,
+              "Shopping list created successfully with smart inventory checking!"
+            )
+            |> push_navigate(to: ~p"/shopping")
+
+          {:noreply, socket}
+
+        {:error, _changeset} ->
+          {:noreply, put_flash(socket, :error, "Failed to generate shopping list")}
+      end
+    end
+  end
+
+  def handle_event("select_follow_up", %{"id" => follow_up_id}, socket) do
+    {:noreply, assign(socket, selected_follow_up_id: follow_up_id)}
+  end
+
+  def handle_event("accept_chain_suggestion", _params, socket) do
+    %{date: date, meal_type: meal_type} = socket.assigns.chain_suggestion_slot
+
+    follow_up_id =
+      socket.assigns.selected_follow_up_id ||
+        case socket.assigns.chain_suggestion_follow_ups do
+          [%{id: id} | _] -> id
+          _ -> nil
+        end
+
+    if is_nil(follow_up_id) do
+      {:noreply, close_chain_suggestion_modal(socket)}
+    else
+      case GroceryPlanner.MealPlanning.create_meal_plan(
+             socket.assigns.current_account.id,
+             %{
+               recipe_id: follow_up_id,
+               scheduled_date: date,
+               meal_type: meal_type,
+               servings: 4
+             },
+             actor: socket.assigns.current_user,
+             tenant: socket.assigns.current_account.id
+           ) do
+        {:ok, _} ->
+          socket =
+            socket
+            |> close_chain_suggestion_modal()
+            |> load_meal_plans()
+            |> put_flash(:info, "Follow-up meal added")
+
+          {:noreply, socket}
+
+        {:error, _} ->
+          {:noreply, put_flash(socket, :error, "Failed to add follow-up meal")}
+      end
+    end
+  end
+
+  def handle_event("dismiss_chain_suggestion", _params, socket) do
+    {:noreply, close_chain_suggestion_modal(socket)}
+  end
+
   defp load_meal_plans(socket) do
     week_start = socket.assigns.week_start
     week_end = Date.add(week_start, 6)
@@ -340,7 +428,7 @@ defmodule GroceryPlannerWeb.MealPlannerLive do
       GroceryPlanner.MealPlanning.list_meal_plans(
         actor: socket.assigns.current_user,
         tenant: socket.assigns.current_account.id,
-        query: GroceryPlanner.MealPlanning.MealPlan |> Ash.Query.load(:recipe)
+        load: [:recipe]
       )
 
     meal_plans =
@@ -350,6 +438,136 @@ defmodule GroceryPlannerWeb.MealPlannerLive do
       end)
 
     assign(socket, :meal_plans, meal_plans)
+  end
+
+  defp maybe_show_chain_suggestion(socket, nil, _date, _meal_type), do: socket
+
+  defp maybe_show_chain_suggestion(socket, recipe, date, meal_type) do
+    follow_ups = chain_follow_up_candidates(recipe)
+
+    if follow_ups == [] do
+      socket
+    else
+      case calculate_suggested_slot(socket, date, meal_type) do
+        nil ->
+          socket
+
+        slot ->
+          socket
+          |> assign(:show_chain_suggestion_modal, true)
+          |> assign(:chain_suggestion_base_recipe, chain_base_recipe(recipe))
+          |> assign(:chain_suggestion_follow_ups, follow_ups)
+          |> assign(:chain_suggestion_slot, slot)
+          |> assign(:selected_follow_up_id, hd(follow_ups).id)
+      end
+    end
+  end
+
+  defp chain_base_recipe(%{is_follow_up: true, parent_recipe: parent}) when is_map(parent),
+    do: parent
+
+  defp chain_base_recipe(recipe), do: recipe
+
+  defp chain_follow_up_candidates(%{is_base_recipe: true, follow_up_recipes: follow_ups})
+       when is_list(follow_ups),
+       do: follow_ups
+
+  defp chain_follow_up_candidates(%{
+         is_follow_up: true,
+         parent_recipe: %{follow_up_recipes: follow_ups}
+       })
+       when is_list(follow_ups),
+       do: follow_ups
+
+  defp chain_follow_up_candidates(
+         %{recipe_ingredients: ingredients, parent_recipe: parent} = recipe
+       )
+       when is_list(ingredients) do
+    if Enum.any?(ingredients, &(&1.usage_type == :leftover)) do
+      cond do
+        recipe.is_base_recipe && is_list(recipe.follow_up_recipes) ->
+          recipe.follow_up_recipes
+
+        recipe.is_follow_up && is_map(parent) && is_list(parent.follow_up_recipes) ->
+          parent.follow_up_recipes
+
+        true ->
+          []
+      end
+    else
+      []
+    end
+  end
+
+  defp chain_follow_up_candidates(%{recipe_ingredients: ingredients} = recipe)
+       when is_list(ingredients) do
+    if Enum.any?(ingredients, &(&1.usage_type == :leftover)) do
+      cond do
+        recipe.is_base_recipe && is_list(recipe.follow_up_recipes) ->
+          recipe.follow_up_recipes
+
+        recipe.is_follow_up && is_map(recipe.parent_recipe) &&
+            is_list(recipe.parent_recipe.follow_up_recipes) ->
+          recipe.parent_recipe.follow_up_recipes
+
+        true ->
+          []
+      end
+    else
+      []
+    end
+  end
+
+  defp chain_follow_up_candidates(_recipe), do: []
+
+  defp calculate_suggested_slot(socket, base_date, base_meal_type) do
+    candidates = get_slot_candidates(base_date, base_meal_type)
+
+    Enum.find(candidates, fn {date, meal_type} ->
+      not slot_occupied?(socket.assigns.meal_plans, date, meal_type)
+    end)
+    |> case do
+      nil -> nil
+      {date, meal_type} -> %{date: date, meal_type: meal_type}
+    end
+  end
+
+  defp get_slot_candidates(base_date, :breakfast) do
+    [
+      {base_date, :lunch},
+      {base_date, :dinner},
+      {Date.add(base_date, 1), :lunch}
+    ]
+  end
+
+  defp get_slot_candidates(base_date, :lunch) do
+    [
+      {base_date, :dinner},
+      {Date.add(base_date, 1), :lunch},
+      {Date.add(base_date, 1), :dinner}
+    ]
+  end
+
+  defp get_slot_candidates(base_date, :dinner) do
+    [
+      {Date.add(base_date, 1), :lunch},
+      {Date.add(base_date, 1), :dinner}
+    ]
+  end
+
+  defp get_slot_candidates(base_date, :snack), do: get_slot_candidates(base_date, :lunch)
+
+  defp slot_occupied?(meal_plans, date, meal_type) do
+    Enum.any?(meal_plans, fn mp -> mp.scheduled_date == date && mp.meal_type == meal_type end)
+  end
+
+  defp close_chain_suggestion_modal(socket) do
+    socket
+    |> assign(:show_chain_suggestion_modal, false)
+    |> assign(:chain_suggestion_base_recipe, nil)
+    |> assign(:chain_suggestion_follow_ups, [])
+    |> assign(:chain_suggestion_slot, nil)
+    |> assign(:selected_follow_up_id, nil)
   end
 
   defp get_week_start(date) do

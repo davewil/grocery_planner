@@ -175,56 +175,116 @@
             </div>
           </div>
           
-<!-- Chained Meal Sequence UI -->
-          <div
-            :if={@recipe.is_base_recipe || @recipe.is_follow_up}
-            class="mb-8 p-6 bg-primary/5 rounded-2xl border border-primary/20"
-          >
-            <h3 class="flex items-center gap-2 font-bold text-base-content mb-4">
-              <.icon name="hero-arrow-path" class="w-5 h-5 text-primary" />
-              Part of a Chained Meal Sequence
-            </h3>
+<!-- Recipe Chain Management Section -->
+          <div class="mb-8 p-6 bg-primary/5 rounded-2xl border border-primary/20">
+            <div class="flex items-center justify-between mb-4">
+              <h3 class="flex items-center gap-2 font-bold text-base-content">
+                <.icon name="hero-arrow-path" class="w-5 h-5 text-primary" /> Recipe Chain
+              </h3>
+
+              <button
+                :if={!@recipe.is_follow_up}
+                phx-click="toggle_base_recipe"
+                class={[
+                  "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition border",
+                  @recipe.is_base_recipe && "bg-primary text-primary-content border-primary",
+                  !@recipe.is_base_recipe &&
+                    "bg-base-100 text-base-content/70 border-base-300 hover:border-primary"
+                ]}
+              >
+                <.icon name="hero-home" class="w-4 h-4" />
+                {if @recipe.is_base_recipe, do: "Base Recipe", else: "Mark as Base Recipe"}
+              </button>
+            </div>
 
             <div class="flex flex-col gap-4">
-              <!-- If this is a follow-up, show the parent -->
-              <div :if={@recipe.parent_recipe} class="flex items-center gap-3">
-                <span class="text-sm text-base-content/70 font-medium">Derived from:</span>
-                <.link
-                  navigate={~p"/recipes/#{@recipe.parent_recipe.id}"}
-                  class="flex items-center gap-2 px-3 py-1.5 bg-base-100 rounded-lg border border-base-300 shadow-sm hover:border-primary text-sm font-semibold transition"
-                >
-                  <img
-                    :if={@recipe.parent_recipe.image_url}
-                    src={@recipe.parent_recipe.image_url}
-                    class="w-6 h-6 rounded-md object-cover"
-                  />
-                  {@recipe.parent_recipe.name}
-                </.link>
-              </div>
-              
-<!-- if this is a base recipe, show follow-ups -->
-              <div :if={@recipe.follow_up_recipes != []} class="flex flex-col gap-2">
-                <span class="text-sm text-base-content/70 font-medium">
-                  Recommended Follow-ups:
-                </span>
-                <div class="flex flex-wrap gap-2">
+              <!-- If this is a follow-up, show the parent with unlink option -->
+              <div
+                :if={@recipe.parent_recipe}
+                class="flex items-center justify-between gap-3 p-3 bg-base-100 rounded-lg border border-base-200"
+              >
+                <div class="flex items-center gap-3">
+                  <span class="text-sm text-base-content/70 font-medium">Derived from:</span>
                   <.link
-                    :for={follow <- @recipe.follow_up_recipes}
-                    navigate={~p"/recipes/#{follow.id}"}
-                    class="flex items-center gap-2 px-3 py-1.5 bg-base-100 rounded-lg border border-base-300 shadow-sm hover:border-primary text-sm font-semibold transition"
+                    navigate={~p"/recipes/#{@recipe.parent_recipe.id}"}
+                    class="flex items-center gap-2 px-3 py-1.5 bg-base-200 rounded-lg border border-base-300 shadow-sm hover:border-primary text-sm font-semibold transition"
                   >
                     <img
-                      :if={follow.image_url}
-                      src={follow.image_url}
+                      :if={@recipe.parent_recipe.image_url}
+                      src={@recipe.parent_recipe.image_url}
                       class="w-6 h-6 rounded-md object-cover"
                     />
-                    {follow.name}
+                    {@recipe.parent_recipe.name}
                   </.link>
                 </div>
+                <button
+                  phx-click="unlink_from_parent"
+                  class="btn btn-ghost btn-sm text-error"
+                  data-confirm="Unlink this recipe from its parent?"
+                >
+                  <.icon name="hero-x-mark" class="w-4 h-4" /> Unlink
+                </button>
+              </div>
+              
+<!-- If this is a base recipe, show follow-ups with management options -->
+              <div :if={@recipe.is_base_recipe} class="flex flex-col gap-3">
+                <div class="flex items-center justify-between">
+                  <span class="text-sm text-base-content/70 font-medium">Follow-up Recipes:</span>
+                  <div class="flex gap-2">
+                    <button phx-click="open_link_modal" class="btn btn-ghost btn-sm">
+                      <.icon name="hero-link" class="w-4 h-4" /> Link Existing
+                    </button>
+                    <button phx-click="create_follow_up" class="btn btn-primary btn-sm">
+                      <.icon name="hero-plus" class="w-4 h-4" /> Create New
+                    </button>
+                  </div>
+                </div>
+
+                <div :if={@recipe.follow_up_recipes != []} class="flex flex-col gap-2">
+                  <div
+                    :for={follow <- @recipe.follow_up_recipes}
+                    class="flex items-center justify-between p-3 bg-base-100 rounded-lg border border-base-200"
+                  >
+                    <.link
+                      navigate={~p"/recipes/#{follow.id}"}
+                      class="flex items-center gap-2 hover:text-primary transition"
+                    >
+                      <img
+                        :if={follow.image_url}
+                        src={follow.image_url}
+                        class="w-8 h-8 rounded-md object-cover"
+                      />
+                      <span class="font-semibold">{follow.name}</span>
+                    </.link>
+                    <button
+                      phx-click="unlink_follow_up"
+                      phx-value-id={follow.id}
+                      class="btn btn-ghost btn-xs text-error"
+                      data-confirm="Remove this recipe from the chain?"
+                    >
+                      <.icon name="hero-x-mark" class="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+
+                <div
+                  :if={@recipe.follow_up_recipes == []}
+                  class="text-sm text-base-content/50 italic py-4 text-center"
+                >
+                  No follow-up recipes yet. Link existing recipes or create new ones.
+                </div>
+              </div>
+              
+<!-- Show hint if not a base recipe and not a follow-up -->
+              <div
+                :if={!@recipe.is_base_recipe && !@recipe.is_follow_up}
+                class="text-sm text-base-content/50 italic py-2 text-center"
+              >
+                Mark this recipe as a base recipe to link follow-up recipes that use its leftovers.
               </div>
 
               <div class="text-xs text-base-content/50 italic mt-2">
-                This strategy helps you use ingredients across multiple meals to reduce waste and save money.
+                Chain recipes together to plan meals that use leftovers efficiently.
               </div>
             </div>
           </div>
@@ -286,6 +346,16 @@
                     </div>
                   </div>
                 </div>
+                <!-- Edit usage type button (only for follow-up recipes) -->
+                <button
+                  :if={@recipe.is_follow_up}
+                  phx-click="edit_ingredient_usage"
+                  phx-value-id={ingredient.id}
+                  class="btn btn-ghost btn-xs"
+                  title="Toggle leftover status"
+                >
+                  <.icon name="hero-pencil" class="w-4 h-4" />
+                </button>
               </div>
             </div>
           </div>
@@ -297,6 +367,161 @@
             </div>
           </div>
         </div>
+      </div>
+    </div>
+  </div>
+  
+<!-- Link Existing Recipe Modal -->
+  <div
+    :if={@show_link_modal}
+    class="fixed inset-0 bg-neutral/50 backdrop-blur-sm flex items-center justify-center p-4 z-50"
+    phx-click="close_link_modal"
+    phx-window-keydown="close_link_modal"
+    phx-key="Escape"
+  >
+    <div
+      class="bg-base-100 rounded-2xl shadow-2xl max-w-2xl w-full max-h-[80vh] overflow-hidden"
+      phx-click="prevent_close"
+    >
+      <div class="bg-primary p-6 text-primary-content">
+        <div class="flex items-center justify-between">
+          <div>
+            <h2 class="text-2xl font-bold">Link Follow-up Recipe</h2>
+            <p class="opacity-80 mt-1 text-sm">
+              Choose an existing recipe to link as a follow-up to "{@recipe.name}"
+            </p>
+          </div>
+          <button phx-click="close_link_modal" class="p-2 hover:bg-black/10 rounded-lg">
+            <.icon name="hero-x-mark" class="w-6 h-6" />
+          </button>
+        </div>
+      </div>
+
+      <div class="p-6">
+        <div class="mb-4">
+          <div class="relative">
+            <.icon
+              name="hero-magnifying-glass"
+              class="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-base-content/40"
+            />
+            <input
+              type="text"
+              placeholder="Search recipes..."
+              phx-keyup="search_linkable_recipes"
+              phx-debounce="300"
+              value={@link_search_query}
+              class="input w-full pl-10"
+            />
+          </div>
+        </div>
+
+        <div class="space-y-2 max-h-[50vh] overflow-y-auto">
+          <div
+            :if={@available_recipes_for_linking == []}
+            class="text-center py-12 text-base-content/40"
+          >
+            <.icon name="hero-document" class="w-12 h-12 mx-auto mb-3 opacity-20" />
+            <p>No available recipes to link</p>
+            <p class="text-sm mt-1">All recipes are either already linked or are follow-ups</p>
+          </div>
+
+          <button
+            :for={recipe <- @available_recipes_for_linking}
+            phx-click="link_recipe"
+            phx-value-id={recipe.id}
+            class="w-full p-4 border-2 border-base-200 rounded-xl hover:border-primary/50 hover:bg-primary/5 transition text-left"
+          >
+            <div class="flex items-start gap-4">
+              <img
+                :if={recipe.image_url}
+                src={recipe.image_url}
+                alt={recipe.name}
+                class="w-16 h-16 rounded-xl object-cover"
+              />
+              <div
+                :if={!recipe.image_url}
+                class="w-16 h-16 rounded-xl bg-base-200 flex items-center justify-center"
+              >
+                <.icon name="hero-book-open" class="w-8 h-8 text-base-content/20" />
+              </div>
+              <div class="flex-1">
+                <h3 class="font-bold text-base-content">{recipe.name}</h3>
+                <p :if={recipe.description} class="text-sm text-base-content/60 mt-1 line-clamp-2">
+                  {recipe.description}
+                </p>
+              </div>
+            </div>
+          </button>
+        </div>
+      </div>
+
+      <div class="p-6 border-t border-base-200 bg-base-200/50 flex justify-end">
+        <button phx-click="close_link_modal" class="btn btn-ghost">
+          Cancel
+        </button>
+      </div>
+    </div>
+  </div>
+  
+<!-- Edit Ingredient Usage Type Modal -->
+  <div
+    :if={@show_ingredient_modal && @editing_ingredient}
+    class="fixed inset-0 bg-neutral/50 backdrop-blur-sm flex items-center justify-center p-4 z-50"
+    phx-click="close_ingredient_modal"
+    phx-window-keydown="close_ingredient_modal"
+    phx-key="Escape"
+  >
+    <div
+      class="bg-base-100 rounded-2xl shadow-2xl max-w-md w-full overflow-hidden"
+      phx-click="prevent_close"
+    >
+      <div class="bg-success p-6 text-success-content">
+        <h2 class="text-xl font-bold">Edit Ingredient Source</h2>
+        <p class="opacity-80 mt-1 text-sm">{@editing_ingredient.grocery_item.name}</p>
+      </div>
+
+      <div class="p-6 space-y-4">
+        <p class="text-sm text-base-content/70">
+          Is this ingredient from a previous meal (leftover) or fresh?
+        </p>
+
+        <div class="flex gap-4">
+          <button
+            phx-click="update_usage_type"
+            phx-value-usage_type="fresh"
+            class={[
+              "flex-1 p-4 rounded-xl border-2 transition text-center",
+              @editing_ingredient.usage_type == :fresh && "border-primary bg-primary/10",
+              @editing_ingredient.usage_type != :fresh &&
+                "border-base-200 hover:border-primary/50"
+            ]}
+          >
+            <.icon name="hero-shopping-bag" class="w-8 h-8 mx-auto mb-2 text-primary" />
+            <div class="font-semibold">Fresh</div>
+            <div class="text-xs text-base-content/60">Buy new</div>
+          </button>
+
+          <button
+            phx-click="update_usage_type"
+            phx-value-usage_type="leftover"
+            class={[
+              "flex-1 p-4 rounded-xl border-2 transition text-center",
+              @editing_ingredient.usage_type == :leftover && "border-success bg-success/10",
+              @editing_ingredient.usage_type != :leftover &&
+                "border-base-200 hover:border-success/50"
+            ]}
+          >
+            <.icon name="hero-arrow-uturn-left" class="w-8 h-8 mx-auto mb-2 text-success" />
+            <div class="font-semibold">Leftover</div>
+            <div class="text-xs text-base-content/60">From previous meal</div>
+          </button>
+        </div>
+      </div>
+
+      <div class="p-6 border-t border-base-200 bg-base-200/50 flex justify-end">
+        <button phx-click="close_ingredient_modal" class="btn btn-ghost">
+          Done
+        </button>
       </div>
     </div>
   </div>

@@ -19,9 +19,13 @@ defmodule GroceryPlanner.Recipes do
     resource GroceryPlanner.Recipes.Recipe do
       define :create_recipe, action: :create, args: [:account_id]
       define :list_recipes, action: :read
+      define :list_recipes_for_meal_planner, action: :meal_planner_recipes
       define :get_recipe, action: :read, get_by: [:id]
       define :update_recipe, action: :update
       define :destroy_recipe, action: :destroy
+      define :toggle_base_recipe, action: :toggle_base_recipe
+      define :link_as_follow_up, action: :link_as_follow_up, args: [:parent_recipe_id]
+      define :unlink_from_parent, action: :unlink_from_parent
     end
 
     resource GroceryPlanner.Recipes.RecipeIngredient do

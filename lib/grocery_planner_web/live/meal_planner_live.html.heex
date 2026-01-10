@@ -50,6 +50,15 @@
 <!-- Bulk Actions (only show on week view) -->
     <%= if is_nil(@selected_day) do %>
       <div class="mb-6 flex flex-wrap gap-2 justify-center">
+        <%= if length(@meal_plans) > 0 do %>
+          <button
+            phx-click="generate_shopping_list"
+            class="btn btn-primary btn-sm"
+            title="Generate shopping list from this week's meals"
+          >
+            <.icon name="hero-shopping-cart" class="w-4 h-4" /> Generate Shopping List
+          </button>
+        <% end %>
         <button
           phx-click="copy_from_last_week"
           class="btn btn-ghost btn-sm"
@@ -352,6 +361,26 @@
                         <span class="badge badge-sm badge-ghost capitalize">
                           {recipe.difficulty}
                         </span>
+                        <span
+                          :if={recipe.is_base_recipe && recipe.follow_up_recipes != []}
+                          class="badge badge-sm bg-success/10 text-success border border-success/20"
+                        >
+                          Chain
+                        </span>
+                        <span
+                          :if={recipe.is_follow_up}
+                          class="badge badge-sm bg-primary/10 text-primary border border-primary/20"
+                        >
+                          Follow-up
+                        </span>
+                        <span
+                          :if={
+                            Enum.any?(recipe.recipe_ingredients, &(&1.usage_type == :leftover))
+                          }
+                          class="badge badge-sm bg-warning/10 text-warning border border-warning/20"
+                        >
+                          Uses leftovers
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -367,6 +396,130 @@
             class="btn btn-ghost"
           >
             Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+  <% end %>
+
+  <%= if @show_chain_suggestion_modal && @chain_suggestion_base_recipe && @chain_suggestion_slot do %>
+    <div
+      class="fixed inset-0 bg-neutral/50 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-in fade-in duration-200"
+      phx-click="dismiss_chain_suggestion"
+      phx-window-keydown="dismiss_chain_suggestion"
+      phx-key="Escape"
+      id="chain-suggestion-modal-backdrop"
+      aria-hidden="true"
+    >
+      <div
+        class="bg-base-100 rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden animate-in zoom-in-95 duration-200 border border-base-200"
+        phx-click="prevent_close"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="chain-suggestion-title"
+      >
+        <div class="bg-success p-6 text-success-content">
+          <div class="flex items-center justify-between">
+            <div>
+              <h2 id="chain-suggestion-title" class="text-2xl font-bold">
+                Use Those Leftovers!
+              </h2>
+              <p class="opacity-90 mt-1 text-sm">
+                You added "{@chain_suggestion_base_recipe.name}" — want to plan the next meal too?
+              </p>
+            </div>
+            <button
+              phx-click="dismiss_chain_suggestion"
+              class="p-2 hover:bg-black/10 rounded-lg transition-colors"
+              aria-label="Close"
+            >
+              <.icon name="hero-x-mark" class="w-6 h-6" />
+            </button>
+          </div>
+        </div>
+
+        <div class="p-6 space-y-5">
+          <div class="bg-base-200/60 border border-base-200 rounded-xl p-4">
+            <div class="text-sm text-base-content/60">Suggested slot</div>
+            <div class="mt-1 font-semibold text-base-content">
+              {Calendar.strftime(@chain_suggestion_slot.date, "%A, %B %d")} · {String.capitalize(
+                to_string(@chain_suggestion_slot.meal_type)
+              )}
+            </div>
+          </div>
+
+          <div>
+            <div class="text-sm font-semibold text-base-content mb-3">
+              Choose a follow-up recipe
+            </div>
+
+            <div class="space-y-2">
+              <button
+                :for={recipe <- @chain_suggestion_follow_ups}
+                phx-click="select_follow_up"
+                phx-value-id={recipe.id}
+                class={[
+                  "w-full flex items-start gap-4 p-4 rounded-xl border-2 transition text-left",
+                  @selected_follow_up_id == recipe.id && "border-success bg-success/5",
+                  @selected_follow_up_id != recipe.id &&
+                    "border-base-200 hover:border-success/40 hover:bg-success/5"
+                ]}
+              >
+                <div class={[
+                  "mt-1 rounded-full w-5 h-5 border-2 flex items-center justify-center",
+                  @selected_follow_up_id == recipe.id && "border-success bg-success",
+                  @selected_follow_up_id != recipe.id && "border-base-content/20"
+                ]}>
+                  <div
+                    :if={@selected_follow_up_id == recipe.id}
+                    class="w-2.5 h-2.5 rounded-full bg-success-content"
+                  >
+                  </div>
+                </div>
+
+                <div class="flex items-start gap-4 flex-1">
+                  <img
+                    :if={recipe.image_url}
+                    src={recipe.image_url}
+                    alt={recipe.name}
+                    class="w-16 h-16 rounded-xl object-cover"
+                  />
+                  <div
+                    :if={!recipe.image_url}
+                    class="w-16 h-16 rounded-xl bg-base-200 flex items-center justify-center"
+                  >
+                    <.icon name="hero-book-open" class="w-8 h-8 text-base-content/20" />
+                  </div>
+
+                  <div class="flex-1 min-w-0">
+                    <div class="font-bold text-base-content">{recipe.name}</div>
+                    <p
+                      :if={recipe.description}
+                      class="text-sm text-base-content/60 mt-1 line-clamp-2"
+                    >
+                      {recipe.description}
+                    </p>
+                    <div class="flex flex-wrap gap-2 mt-2">
+                      <span
+                        :if={Enum.any?(recipe.recipe_ingredients, &(&1.usage_type == :leftover))}
+                        class="badge badge-sm bg-warning/10 text-warning border border-warning/20"
+                      >
+                        Uses leftovers
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="p-6 border-t border-base-200 bg-base-200/50 flex justify-end gap-2">
+          <button phx-click="dismiss_chain_suggestion" class="btn btn-ghost">Skip</button>
+          <button phx-click="accept_chain_suggestion" class="btn btn-success">
+            Add to {Calendar.strftime(@chain_suggestion_slot.date, "%a")} {String.capitalize(
+              to_string(@chain_suggestion_slot.meal_type)
+            )}
           </button>
         </div>
       </div>

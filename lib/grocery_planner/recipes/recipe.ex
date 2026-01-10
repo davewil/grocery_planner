@@ -27,6 +27,18 @@ defmodule GroceryPlanner.Recipes.Recipe do
   actions do
     defaults [:read, :destroy]
 
+    read :meal_planner_recipes do
+      prepare build(
+                load: [
+                  :recipe_ingredients,
+                  follow_up_recipes: [:recipe_ingredients],
+                  parent_recipe: [follow_up_recipes: [:recipe_ingredients]]
+                ]
+              )
+
+      prepare build(sort: [name: :asc])
+    end
+
     create :create do
       accept [
         :name,
@@ -71,6 +83,43 @@ defmodule GroceryPlanner.Recipes.Recipe do
         :preservation_tip,
         :waste_reduction_tip
       ]
+
+      require_atomic? false
+    end
+
+    update :toggle_base_recipe do
+      accept []
+
+      change fn changeset, _ ->
+        current = Ash.Changeset.get_attribute(changeset, :is_base_recipe)
+        Ash.Changeset.change_attribute(changeset, :is_base_recipe, !current)
+      end
+
+      require_atomic? false
+    end
+
+    update :link_as_follow_up do
+      argument :parent_recipe_id, :uuid, allow_nil?: false
+
+      change fn changeset, _ ->
+        parent_id = Ash.Changeset.get_argument(changeset, :parent_recipe_id)
+
+        changeset
+        |> Ash.Changeset.change_attribute(:is_follow_up, true)
+        |> Ash.Changeset.change_attribute(:parent_recipe_id, parent_id)
+      end
+
+      require_atomic? false
+    end
+
+    update :unlink_from_parent do
+      accept []
+
+      change fn changeset, _ ->
+        changeset
+        |> Ash.Changeset.change_attribute(:is_follow_up, false)
+        |> Ash.Changeset.change_attribute(:parent_recipe_id, nil)
+      end
 
       require_atomic? false
     end
