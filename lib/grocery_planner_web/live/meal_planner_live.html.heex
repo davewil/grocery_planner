@@ -243,16 +243,22 @@
     <div
       class="fixed inset-0 bg-neutral/50 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-in fade-in duration-200"
       phx-click="close_modal"
+      phx-window-keydown="close_modal"
+      phx-key="Escape"
       id="meal-modal-backdrop"
+      aria-hidden="true"
     >
       <div
         class="bg-base-100 rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-hidden animate-in zoom-in-95 duration-200 border border-base-200"
         phx-click="prevent_close"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="add-meal-title"
       >
         <div class="bg-primary p-6 text-primary-content">
           <div class="flex items-center justify-between">
             <div>
-              <h2 class="text-2xl font-bold">Add Meal</h2>
+              <h2 id="add-meal-title" class="text-2xl font-bold">Add Meal</h2>
               <p class="opacity-80 mt-1 text-sm">
                 {Calendar.strftime(@selected_date, "%A, %B %d")} · {String.capitalize(
                   to_string(@selected_meal_type)
@@ -348,16 +354,22 @@
     <div
       class="fixed inset-0 bg-neutral/50 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-in fade-in duration-200"
       phx-click="close_edit_modal"
+      phx-window-keydown="close_edit_modal"
+      phx-key="Escape"
       id="edit-meal-modal-backdrop"
+      aria-hidden="true"
     >
       <div
         class="bg-base-100 rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden animate-in zoom-in-95 duration-200 border border-base-200"
         phx-click="prevent_close"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="edit-meal-title"
       >
         <div class="bg-primary p-6 text-primary-content">
           <div class="flex items-center justify-between">
             <div>
-              <h2 class="text-2xl font-bold">Edit Meal</h2>
+              <h2 id="edit-meal-title" class="text-2xl font-bold">Edit Meal</h2>
               <p class="opacity-80 mt-1 text-sm">
                 {@editing_meal_plan.recipe.name}
               </p>
