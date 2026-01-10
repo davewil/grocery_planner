@@ -32,8 +32,11 @@ defmodule GroceryPlannerWeb.MealPlannerLiveTest do
       assert html =~ "Meal Planner"
       assert html =~ "Plan your weekly meals with ease"
       assert html =~ "Layout"
-      assert html =~ "Focus"
-      assert has_element?(view, "a[href='/settings']", "Change")
+      assert has_element?(view, "#meal-planner-layout-switcher")
+      assert has_element?(view, "#meal-planner-layout-focus")
+      assert has_element?(view, "#meal-planner-layout-explorer")
+      assert has_element?(view, "#meal-planner-layout-power")
+      assert has_element?(view, "a[href='/settings']", "Settings")
       assert has_element?(view, "button[phx-click='prev_week']")
       assert has_element?(view, "button[phx-click='today']", "Today")
       assert has_element?(view, "button[phx-click='next_week']")
@@ -48,6 +51,24 @@ defmodule GroceryPlannerWeb.MealPlannerLiveTest do
 
       assert html =~ Calendar.strftime(week_start, "%B %d")
       assert html =~ Calendar.strftime(week_end, "%B %d, %Y")
+    end
+  end
+
+  describe "layout switcher" do
+    test "switching layout persists on the user and updates the UI", %{conn: conn, user: user} do
+      {:ok, view, _html} = live(conn, "/meal-planner")
+
+      assert has_element?(view, "#meal-planner-layout-focus")
+
+      view
+      |> element("#meal-planner-layout-explorer")
+      |> render_click()
+
+      assert has_element?(view, "#explorer-timeline")
+      assert has_element?(view, "#meal-planner-layout-explorer")
+
+      updated_user = Ash.get!(GroceryPlanner.Accounts.User, user.id)
+      assert updated_user.meal_planner_layout == "explorer"
     end
   end
 

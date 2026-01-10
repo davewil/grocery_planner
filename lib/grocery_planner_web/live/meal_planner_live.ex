@@ -51,6 +51,25 @@ defmodule GroceryPlannerWeb.MealPlannerLive do
     {:ok, socket}
   end
 
+  def handle_event("meal_planner_set_layout", %{"layout" => layout}, socket)
+      when layout in ["explorer", "focus", "power"] do
+    case GroceryPlanner.Accounts.User.update(socket.assigns.current_user, %{
+           meal_planner_layout: layout
+         }) do
+      {:ok, user} ->
+        socket =
+          socket
+          |> assign(:current_user, user)
+          |> assign(:meal_planner_layout, layout)
+          |> maybe_load_explorer_recipes()
+
+        {:noreply, socket}
+
+      {:error, _} ->
+        {:noreply, put_flash(socket, :error, "Failed to update layout")}
+    end
+  end
+
   def handle_event("select_day", %{"date" => date_str}, socket) do
     date = Date.from_iso8601!(date_str)
     {:noreply, assign(socket, :selected_day, date)}
