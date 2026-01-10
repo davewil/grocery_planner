@@ -10,7 +10,7 @@
       <div class="mb-6">
         <.link
           navigate="/recipes"
-          class="text-purple-600 hover:text-purple-700 flex items-center gap-2"
+          class="text-primary hover:text-primary-focus flex items-center gap-2"
         >
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
@@ -24,9 +24,9 @@
         </.link>
       </div>
 
-      <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
-        <h1 class="text-3xl font-bold text-gray-900 mb-2">Search TheMealDB</h1>
-        <p class="text-gray-600 mb-8">
+      <div class="bg-base-100 rounded-2xl shadow-sm border border-base-200 p-8">
+        <h1 class="text-3xl font-bold text-base-content mb-2">Search TheMealDB</h1>
+        <p class="text-base-content/70 mb-8">
           Browse thousands of free recipes from TheMealDB and import them to your collection
         </p>
 
@@ -37,41 +37,30 @@
               name="query"
               value={@search_query}
               placeholder="Search for recipes..."
-              class="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-900"
+              class="input input-bordered flex-1"
               required
             />
-            <.button
-              type="submit"
-              class="px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition font-medium"
-            >
+            <.button type="submit" class="btn btn-primary">
               Search
             </.button>
-            <.button
-              type="button"
-              phx-click="random"
-              class="px-6 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition font-medium"
-            >
+            <.button type="button" phx-click="random" class="btn btn-secondary">
               Random
             </.button>
           </div>
         </form>
 
         <div :if={@loading} class="text-center py-12">
-          <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600">
-          </div>
-          <p class="mt-4 text-gray-600">Searching...</p>
+          <span class="loading loading-spinner loading-lg text-primary"></span>
+          <p class="mt-4 text-base-content/70">Searching...</p>
         </div>
 
-        <div
-          :if={@error}
-          class="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg mb-6"
-        >
+        <div :if={@error} class="alert alert-error mb-6">
           {@error}
         </div>
 
         <div :if={@searched && !@loading && @results == []} class="text-center py-12">
           <svg
-            class="w-16 h-16 text-gray-300 mx-auto mb-4"
+            class="w-16 h-16 text-base-content/30 mx-auto mb-4"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -83,8 +72,8 @@
               d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
             />
           </svg>
-          <p class="text-gray-500 font-medium">No recipes found</p>
-          <p class="text-gray-400 text-sm mt-1">Try a different search term</p>
+          <p class="text-base-content/70 font-medium">No recipes found</p>
+          <p class="text-base-content/50 text-sm mt-1">Try a different search term</p>
         </div>
 
         <div
@@ -93,20 +82,20 @@
         >
           <div
             :for={meal <- @results}
-            class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition"
+            class="card bg-base-100 shadow-sm border border-base-200 hover:shadow-md transition"
           >
-            <div class="h-48 bg-gray-100">
+            <figure class="h-48 bg-base-200">
               <img src={meal.image_url} alt={meal.name} class="w-full h-full object-cover" />
-            </div>
+            </figure>
 
-            <div class="p-5">
-              <h3 class="text-lg font-semibold text-gray-900 mb-2">{meal.name}</h3>
+            <div class="card-body p-5">
+              <h3 class="card-title text-lg">{meal.name}</h3>
 
-              <p :if={meal.category || meal.area} class="text-sm text-gray-600 mb-3">
+              <p :if={meal.category || meal.area} class="text-sm text-base-content/70">
                 {Enum.join(Enum.filter([meal.category, meal.area], & &1), " · ")}
               </p>
 
-              <div class="flex items-center gap-2 text-sm text-gray-500 mb-4">
+              <div class="flex items-center gap-2 text-sm text-base-content/60">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path
                     stroke-linecap="round"
@@ -118,13 +107,15 @@
                 <span>{length(meal.ingredients)} ingredients</span>
               </div>
 
-              <.button
-                phx-click="import"
-                phx-value-id={meal.external_id}
-                class="w-full px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition font-medium"
-              >
-                Import Recipe
-              </.button>
+              <div class="card-actions mt-4">
+                <.button
+                  phx-click="import"
+                  phx-value-id={meal.external_id}
+                  class="btn btn-primary w-full"
+                >
+                  Import Recipe
+                </.button>
+              </div>
             </div>
           </div>
         </div>

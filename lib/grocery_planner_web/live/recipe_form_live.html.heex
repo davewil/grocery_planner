@@ -10,7 +10,7 @@
       <div class="mb-6">
         <.link
           navigate="/recipes"
-          class="text-purple-600 hover:text-purple-700 flex items-center gap-2"
+          class="text-primary hover:text-primary-focus flex items-center gap-2"
         >
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
@@ -24,55 +24,55 @@
         </.link>
       </div>
 
-      <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
-        <h1 class="text-3xl font-bold text-gray-900 mb-8">
+      <div class="bg-base-100 rounded-2xl shadow-sm border border-base-200 p-8">
+        <h1 class="text-3xl font-bold text-base-content mb-8">
           {if @live_action == :new, do: "New Recipe", else: "Edit Recipe"}
         </h1>
 
         <.form for={@form} id="recipe-form" phx-submit="save">
           <div class="space-y-6">
             <div>
-              <label class="block text-sm font-semibold text-gray-900 mb-2">
-                Recipe Name <span class="text-red-500">*</span>
+              <label class="block text-sm font-semibold text-base-content mb-2">
+                Recipe Name <span class="text-error">*</span>
               </label>
-              <.input field={@form[:name]} type="text" required class="text-gray-900" />
+              <.input field={@form[:name]} type="text" required />
             </div>
 
             <div>
-              <label class="block text-sm font-semibold text-gray-900 mb-2">
+              <label class="block text-sm font-semibold text-base-content mb-2">
                 Description
               </label>
               <.input
                 field={@form[:description]}
                 type="textarea"
                 rows="3"
-                class="w-full text-gray-900"
+                class="w-full"
               />
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <label class="block text-sm font-semibold text-gray-900 mb-2">
+                <label class="block text-sm font-semibold text-base-content mb-2">
                   Prep Time (minutes)
                 </label>
-                <.input field={@form[:prep_time_minutes]} type="number" class="text-gray-900" />
+                <.input field={@form[:prep_time_minutes]} type="number" />
               </div>
               <div>
-                <label class="block text-sm font-semibold text-gray-900 mb-2">
+                <label class="block text-sm font-semibold text-base-content mb-2">
                   Cook Time (minutes)
                 </label>
-                <.input field={@form[:cook_time_minutes]} type="number" class="text-gray-900" />
+                <.input field={@form[:cook_time_minutes]} type="number" />
               </div>
               <div>
-                <label class="block text-sm font-semibold text-gray-900 mb-2">
-                  Servings <span class="text-red-500">*</span>
+                <label class="block text-sm font-semibold text-base-content mb-2">
+                  Servings <span class="text-error">*</span>
                 </label>
-                <.input field={@form[:servings]} type="number" required class="text-gray-900" />
+                <.input field={@form[:servings]} type="number" required />
               </div>
             </div>
 
             <div>
-              <label class="block text-sm font-semibold text-gray-900 mb-2">
+              <label class="block text-sm font-semibold text-base-content mb-2">
                 Difficulty
               </label>
               <.input
@@ -83,34 +83,33 @@
                   {"Medium", "medium"},
                   {"Hard", "hard"}
                 ]}
-                class="text-gray-900"
               />
             </div>
 
             <div>
-              <label class="block text-sm font-semibold text-gray-900 mb-2">
+              <label class="block text-sm font-semibold text-base-content mb-2">
                 Instructions
               </label>
               <.input
                 field={@form[:instructions]}
                 type="textarea"
                 rows="12"
-                class="w-full text-gray-900 min-h-[200px]"
+                class="w-full min-h-[200px]"
               />
             </div>
 
             <div>
-              <label class="block text-sm font-semibold text-gray-900 mb-2">
+              <label class="block text-sm font-semibold text-base-content mb-2">
                 Image URL (optional)
               </label>
-              <.input field={@form[:image_url]} type="text" class="text-gray-900" />
+              <.input field={@form[:image_url]} type="text" />
             </div>
 
             <div>
-              <label class="block text-sm font-semibold text-gray-900 mb-2">
+              <label class="block text-sm font-semibold text-base-content mb-2">
                 Source (optional)
               </label>
-              <.input field={@form[:source]} type="text" class="text-gray-900" />
+              <.input field={@form[:source]} type="text" />
             </div>
 
             <div class="flex items-center gap-3">
@@ -128,9 +127,9 @@
                 class={[
                   "flex items-center gap-2 px-4 py-2 rounded-full border text-sm font-semibold transition",
                   @form[:is_favorite].value &&
-                    "bg-yellow-100 border-yellow-300 text-yellow-700 hover:bg-yellow-200",
+                    "bg-warning/20 border-warning text-warning-content hover:bg-warning/30",
                   !@form[:is_favorite].value &&
-                    "bg-gray-50 border-gray-300 text-gray-600 hover:bg-gray-100"
+                    "bg-base-200 border-base-300 text-base-content/70 hover:bg-base-300"
                 ]}
               >
                 <svg
@@ -150,18 +149,11 @@
               </button>
             </div>
 
-            <div class="flex gap-4 pt-6 border-t border-gray-200">
-              <.button
-                type="submit"
-                class="flex-1 px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition font-medium"
-              >
+            <div class="flex gap-4 pt-6 border-t border-base-200">
+              <.button type="submit" class="btn btn-primary flex-1">
                 {if @live_action == :new, do: "Create Recipe", else: "Update Recipe"}
               </.button>
-              <.button
-                type="button"
-                phx-click="cancel"
-                class="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition font-medium"
-              >
+              <.button type="button" phx-click="cancel" class="btn btn-ghost">
                 Cancel
               </.button>
             </div>
