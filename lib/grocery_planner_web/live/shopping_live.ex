@@ -349,8 +349,8 @@ defmodule GroceryPlannerWeb.ShoppingLive do
           account_id,
           item.grocery_item_id,
           attrs,
-          tenant: account_id,
-          actor: user
+          authorize?: false,
+          tenant: account_id
         )
       end)
 
