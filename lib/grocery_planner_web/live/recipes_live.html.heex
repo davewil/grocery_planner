@@ -36,35 +36,54 @@
       </:actions>
     </.page_header>
 
-    <div class="mb-6 flex gap-4">
-      <form class="flex-1" phx-change="search">
-        <input
-          type="text"
-          name="query"
-          placeholder="Search recipes..."
-          value={@search_query}
-          class="input w-full"
-        />
-      </form>
-      <div class="flex gap-2">
+    <div class="mb-6 space-y-4">
+      <!-- Search and Sort Row -->
+      <div class="flex gap-4">
+        <form class="flex-1" phx-change="search">
+          <input
+            type="text"
+            name="query"
+            placeholder="Search recipes..."
+            value={@search_query}
+            class="input w-full"
+          />
+        </form>
+        <form phx-change="sort_by">
+          <select name="value" value={@sort_by} class="select">
+            <option value="name">Sort by Name</option>
+            <option value="newest">Newest First</option>
+            <option value="prep_time">Quickest First</option>
+            <option value="difficulty">Easiest First</option>
+          </select>
+        </form>
+      </div>
+      <!-- Filters Row -->
+      <div class="flex flex-wrap gap-2 items-center">
+        <span class="text-sm text-base-content/60">Filters:</span>
         <form phx-change="filter_difficulty">
-          <select
-            name="value"
-            value={@difficulty_filter || ""}
-            class="select"
-          >
+          <select name="value" value={@difficulty_filter || ""} class="select select-sm">
             <option value="">All Difficulties</option>
             <option value="easy">Easy</option>
             <option value="medium">Medium</option>
             <option value="hard">Hard</option>
           </select>
         </form>
+        <form phx-change="filter_prep_time">
+          <select name="value" value={@prep_time_filter || ""} class="select select-sm">
+            <option value="">Any Time</option>
+            <option value="quick">Quick (≤30 min)</option>
+            <option value="medium">Medium (30-60 min)</option>
+            <option value="long">Long (60+ min)</option>
+          </select>
+        </form>
         <.button
           phx-click="toggle_favorites"
-          class={if(@show_favorites, do: "btn btn-secondary", else: "btn btn-ghost")}
+          class={
+            if(@show_favorites, do: "btn btn-secondary btn-sm", else: "btn btn-ghost btn-sm")
+          }
         >
           <svg
-            class="w-5 h-5 inline mr-1"
+            class="w-4 h-4 inline mr-1"
             fill={if @show_favorites, do: "currentColor", else: "none"}
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -80,9 +99,9 @@
         </.button>
         <.button
           phx-click="toggle_chains"
-          class={if(@show_chains, do: "btn btn-secondary", else: "btn btn-ghost")}
+          class={if(@show_chains, do: "btn btn-secondary btn-sm", else: "btn btn-ghost btn-sm")}
         >
-          <.icon name="hero-arrow-path" class="w-5 h-5 inline mr-1" /> Chains
+          <.icon name="hero-arrow-path" class="w-4 h-4 inline mr-1" /> Chains
         </.button>
       </div>
     </div>

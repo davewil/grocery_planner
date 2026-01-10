@@ -19,6 +19,8 @@ defmodule GroceryPlannerWeb.RecipesLive do
       |> assign(:show_favorites, false)
       |> assign(:show_chains, false)
       |> assign(:difficulty_filter, nil)
+      |> assign(:sort_by, "name")
+      |> assign(:prep_time_filter, nil)
       |> load_recipes()
 
     {:ok, socket}
@@ -106,6 +108,33 @@ defmodule GroceryPlannerWeb.RecipesLive do
     {:noreply, socket}
   end
 
+  def handle_event("sort_by", %{"value" => sort_by}, socket) do
+    socket =
+      socket
+      |> assign(:sort_by, sort_by)
+      |> load_recipes()
+
+    {:noreply, socket}
+  end
+
+  def handle_event("filter_prep_time", %{"value" => prep_time}, socket) do
+    prep_time_filter =
+      case prep_time do
+        "" -> nil
+        "quick" -> :quick
+        "medium" -> :medium
+        "long" -> :long
+        _ -> nil
+      end
+
+    socket =
+      socket
+      |> assign(:prep_time_filter, prep_time_filter)
+      |> load_recipes()
+
+    {:noreply, socket}
+  end
+
   defp load_recipes(socket) do
     account_id = socket.assigns.current_account.id
     user = socket.assigns.current_user
@@ -121,7 +150,9 @@ defmodule GroceryPlannerWeb.RecipesLive do
           |> filter_by_favorites(socket.assigns.show_favorites)
           |> filter_by_chains(socket.assigns.show_chains)
           |> filter_by_difficulty(socket.assigns.difficulty_filter)
+          |> filter_by_prep_time(socket.assigns.prep_time_filter)
           |> filter_by_search(socket.assigns.search_query)
+          |> sort_recipes(socket.assigns.sort_by)
 
         {:error, _} ->
           []
@@ -152,4 +183,43 @@ defmodule GroceryPlannerWeb.RecipesLive do
       String.contains?(String.downcase(recipe.name || ""), query_lower)
     end)
   end
+
+  defp filter_by_prep_time(recipes, nil), do: recipes
+
+  defp filter_by_prep_time(recipes, :quick) do
+    Enum.filter(recipes, fn recipe ->
+      total = (recipe.prep_time_minutes || 0) + (recipe.cook_time_minutes || 0)
+      total <= 30
+    end)
+  end
+
+  defp filter_by_prep_time(recipes, :medium) do
+    Enum.filter(recipes, fn recipe ->
+      total = (recipe.prep_time_minutes || 0) + (recipe.cook_time_minutes || 0)
+      total > 30 && total <= 60
+    end)
+  end
+
+  defp filter_by_prep_time(recipes, :long) do
+    Enum.filter(recipes, fn recipe ->
+      total = (recipe.prep_time_minutes || 0) + (recipe.cook_time_minutes || 0)
+      total > 60
+    end)
+  end
+
+  defp sort_recipes(recipes, "name"), do: Enum.sort_by(recipes, & &1.name)
+
+  defp sort_recipes(recipes, "newest"),
+    do: Enum.sort_by(recipes, & &1.inserted_at, {:desc, DateTime})
+
+  defp sort_recipes(recipes, "prep_time") do
+    Enum.sort_by(recipes, fn r -> (r.prep_time_minutes || 0) + (r.cook_time_minutes || 0) end)
+  end
+
+  defp sort_recipes(recipes, "difficulty") do
+    difficulty_order = %{easy: 1, medium: 2, hard: 3}
+    Enum.sort_by(recipes, fn r -> Map.get(difficulty_order, r.difficulty, 2) end)
+  end
+
+  defp sort_recipes(recipes, _), do: recipes
 end
