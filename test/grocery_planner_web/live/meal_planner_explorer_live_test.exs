@@ -35,7 +35,7 @@ defmodule GroceryPlannerWeb.MealPlannerExplorerLiveTest do
     assert html =~ "Explorer Test Recipe"
   end
 
-  test "quick add adds a meal plan", %{conn: conn, account: account, user: user} do
+  test "quick add opens slot picker", %{conn: conn, account: account, user: user} do
     recipe = create_recipe(account, user, %{name: "Quick Add Recipe"})
 
     {:ok, view, _html} = live(conn, "/meal-planner")
@@ -44,7 +44,7 @@ defmodule GroceryPlannerWeb.MealPlannerExplorerLiveTest do
     |> element("#explorer-quick-add-#{recipe.id}")
     |> render_click()
 
-    html = render(view)
-    assert html =~ "Added to plan"
+    assert has_element?(view, "#explorer-slot-picker")
+    assert has_element?(view, "#explorer-confirm-add")
   end
 end

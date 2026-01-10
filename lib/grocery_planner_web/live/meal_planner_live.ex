@@ -35,7 +35,11 @@ defmodule GroceryPlannerWeb.MealPlannerLive do
       |> assign(:selected_follow_up_id, nil)
       |> assign(:explorer_search, "")
       |> assign(:explorer_filter, "")
+      |> assign(:explorer_difficulty, "")
       |> assign(:explorer_recipes, [])
+      |> assign(:show_explorer_slot_picker, false)
+      |> assign(:explorer_picking_recipe, nil)
+      |> assign(:explorer_selected_slot, nil)
       |> load_meal_plans()
       |> maybe_load_explorer_recipes()
 
@@ -261,21 +265,57 @@ defmodule GroceryPlannerWeb.MealPlannerLive do
     {:noreply, socket}
   end
 
-  def handle_event("explorer_quick_add", %{"recipe_id" => recipe_id}, socket) do
-    today = Date.utc_today()
+  def handle_event("explorer_difficulty", %{"difficulty" => difficulty}, socket) do
+    socket =
+      socket
+      |> assign(:explorer_difficulty, difficulty)
+      |> load_explorer_recipes()
 
-    {scheduled_date, meal_type} =
-      case Enum.find(socket.assigns.days, fn d -> Date.compare(d, today) in [:eq, :gt] end) do
-        nil -> {List.last(socket.assigns.days), :dinner}
-        day -> {day, :dinner}
-      end
+    {:noreply, socket}
+  end
+
+  def handle_event("explorer_open_slot_picker", %{"recipe_id" => recipe_id}, socket) do
+    recipe = Enum.find(socket.assigns.explorer_recipes, &(&1.id == recipe_id))
+
+    socket =
+      socket
+      |> assign(:show_explorer_slot_picker, true)
+      |> assign(:explorer_picking_recipe, recipe)
+      |> assign(:explorer_selected_slot, %{
+        "date" => Date.to_iso8601(Date.utc_today()),
+        "meal_type" => "dinner"
+      })
+
+    {:noreply, socket}
+  end
+
+  def handle_event("explorer_close_slot_picker", _params, socket) do
+    socket =
+      socket
+      |> assign(:show_explorer_slot_picker, false)
+      |> assign(:explorer_picking_recipe, nil)
+      |> assign(:explorer_selected_slot, nil)
+
+    {:noreply, socket}
+  end
+
+  def handle_event("explorer_select_slot", %{"date" => date, "meal_type" => meal_type}, socket) do
+    {:noreply,
+     assign(socket, :explorer_selected_slot, %{"date" => date, "meal_type" => meal_type})}
+  end
+
+  def handle_event("explorer_confirm_add", _params, socket) do
+    %{"date" => date_str, "meal_type" => meal_type_str} = socket.assigns.explorer_selected_slot
+
+    date = Date.from_iso8601!(date_str)
+    meal_type = String.to_existing_atom(meal_type_str)
 
     result =
       GroceryPlanner.MealPlanning.create_meal_plan(
         socket.assigns.current_account.id,
         %{
-          recipe_id: recipe_id,
-          scheduled_date: scheduled_date,
+          recipe_id: socket.assigns.explorer_picking_recipe.id,
+          scheduled_date: date,
           meal_type: meal_type,
           servings: 4
         },
@@ -287,6 +327,9 @@ defmodule GroceryPlannerWeb.MealPlannerLive do
       {:ok, _meal_plan} ->
         socket =
           socket
+          |> assign(:show_explorer_slot_picker, false)
+          |> assign(:explorer_picking_recipe, nil)
+          |> assign(:explorer_selected_slot, nil)
           |> load_meal_plans()
           |> put_flash(:info, "Added to plan")
 
@@ -295,6 +338,11 @@ defmodule GroceryPlannerWeb.MealPlannerLive do
       {:error, _} ->
         {:noreply, put_flash(socket, :error, "Failed to add meal")}
     end
+  end
+
+  def handle_event("explorer_quick_add", %{"recipe_id" => recipe_id}, socket) do
+    # Backward compatibility: keep event name, but now open the slot picker.
+    handle_event("explorer_open_slot_picker", %{"recipe_id" => recipe_id}, socket)
   end
 
   def handle_event("search_recipes", %{"value" => search_term}, socket) do
@@ -654,11 +702,13 @@ defmodule GroceryPlannerWeb.MealPlannerLive do
 
     search_term = String.trim(socket.assigns.explorer_search || "")
     filter = socket.assigns.explorer_filter || ""
+    difficulty = socket.assigns.explorer_difficulty || ""
 
     recipes =
       all_recipes
       |> maybe_filter_by_search(search_term)
       |> maybe_apply_explorer_filter(filter)
+      |> maybe_filter_by_difficulty(difficulty)
       |> Enum.take(24)
 
     assign(socket, :explorer_recipes, recipes)
@@ -676,11 +726,25 @@ defmodule GroceryPlannerWeb.MealPlannerLive do
 
   defp maybe_apply_explorer_filter(recipes, ""), do: recipes
 
-  defp maybe_apply_explorer_filter(recipes, "quick"), do: recipes
+  defp maybe_apply_explorer_filter(recipes, "quick") do
+    Enum.filter(recipes, fn recipe ->
+      (recipe.prep_time_minutes || 0) + (recipe.cook_time_minutes || 0) <= 30
+    end)
+  end
 
   defp maybe_apply_explorer_filter(recipes, "pantry"), do: recipes
 
   defp maybe_apply_explorer_filter(recipes, _), do: recipes
+
+  defp maybe_filter_by_difficulty(recipes, ""), do: recipes
+
+  defp maybe_filter_by_difficulty(recipes, difficulty)
+       when difficulty in ["easy", "medium", "hard"] do
+    difficulty_atom = String.to_existing_atom(difficulty)
+    Enum.filter(recipes, fn recipe -> recipe.difficulty == difficulty_atom end)
+  end
+
+  defp maybe_filter_by_difficulty(recipes, _), do: recipes
 
   defp get_week_start(date) do
     day_of_week = Date.day_of_week(date)
