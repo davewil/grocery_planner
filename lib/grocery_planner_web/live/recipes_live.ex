@@ -7,6 +7,8 @@ defmodule GroceryPlannerWeb.RecipesLive do
   alias GroceryPlanner.Recipes.Recipe
   alias GroceryPlanner.MealPlanning.Voting
 
+  @per_page 12
+
   def mount(_params, _session, socket) do
     voting_active =
       Voting.voting_active?(socket.assigns.current_account.id, socket.assigns.current_user)
@@ -21,6 +23,8 @@ defmodule GroceryPlannerWeb.RecipesLive do
       |> assign(:difficulty_filter, nil)
       |> assign(:sort_by, "name")
       |> assign(:prep_time_filter, nil)
+      |> assign(:page, 1)
+      |> assign(:per_page, @per_page)
       |> load_recipes()
 
     {:ok, socket}
@@ -67,6 +71,7 @@ defmodule GroceryPlannerWeb.RecipesLive do
     socket =
       socket
       |> assign(:show_favorites, !socket.assigns.show_favorites)
+      |> assign(:page, 1)
       |> load_recipes()
 
     {:noreply, socket}
@@ -76,6 +81,7 @@ defmodule GroceryPlannerWeb.RecipesLive do
     socket =
       socket
       |> assign(:show_chains, !socket.assigns.show_chains)
+      |> assign(:page, 1)
       |> load_recipes()
 
     {:noreply, socket}
@@ -85,6 +91,7 @@ defmodule GroceryPlannerWeb.RecipesLive do
     socket =
       socket
       |> assign(:search_query, query)
+      |> assign(:page, 1)
       |> load_recipes()
 
     {:noreply, socket}
@@ -103,6 +110,7 @@ defmodule GroceryPlannerWeb.RecipesLive do
     socket =
       socket
       |> assign(:difficulty_filter, difficulty_atom)
+      |> assign(:page, 1)
       |> load_recipes()
 
     {:noreply, socket}
@@ -112,6 +120,7 @@ defmodule GroceryPlannerWeb.RecipesLive do
     socket =
       socket
       |> assign(:sort_by, sort_by)
+      |> assign(:page, 1)
       |> load_recipes()
 
     {:noreply, socket}
@@ -130,6 +139,18 @@ defmodule GroceryPlannerWeb.RecipesLive do
     socket =
       socket
       |> assign(:prep_time_filter, prep_time_filter)
+      |> assign(:page, 1)
+      |> load_recipes()
+
+    {:noreply, socket}
+  end
+
+  def handle_event("page", %{"page" => page}, socket) do
+    page = String.to_integer(page)
+
+    socket =
+      socket
+      |> assign(:page, page)
       |> load_recipes()
 
     {:noreply, socket}
@@ -138,8 +159,10 @@ defmodule GroceryPlannerWeb.RecipesLive do
   defp load_recipes(socket) do
     account_id = socket.assigns.current_account.id
     user = socket.assigns.current_user
+    page = socket.assigns.page
+    per_page = socket.assigns.per_page
 
-    recipes =
+    filtered_recipes =
       case GroceryPlanner.Recipes.list_recipes(
              actor: user,
              tenant: account_id,
@@ -158,7 +181,19 @@ defmodule GroceryPlannerWeb.RecipesLive do
           []
       end
 
-    assign(socket, :recipes, recipes)
+    total_count = length(filtered_recipes)
+    total_pages = max(1, ceil(total_count / per_page))
+
+    # Paginate
+    recipes =
+      filtered_recipes
+      |> Enum.drop((page - 1) * per_page)
+      |> Enum.take(per_page)
+
+    socket
+    |> assign(:recipes, recipes)
+    |> assign(:total_count, total_count)
+    |> assign(:total_pages, total_pages)
   end
 
   defp filter_by_favorites(recipes, false), do: recipes
