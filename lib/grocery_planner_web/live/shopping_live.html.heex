@@ -67,21 +67,77 @@
           </div>
         </div>
         
-<!-- Add Item Button -->
-        <button
-          phx-click="show_add_item_modal"
-          class="btn btn-primary w-full mb-6"
-        >
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M12 6v6m0 0v6m0-6h6m-6 0H6"
-            />
-          </svg>
-          Add Item
-        </button>
+<!-- Bulk Actions -->
+        <%= if @selected_list.total_items > 0 do %>
+          <div class="flex gap-2 mb-4">
+            <%= if @selected_list.checked_items < @selected_list.total_items do %>
+              <button
+                phx-click="check_all"
+                class="btn btn-ghost btn-sm"
+              >
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
+                Check All
+              </button>
+            <% end %>
+            <%= if @selected_list.checked_items > 0 do %>
+              <button
+                phx-click="uncheck_all"
+                class="btn btn-ghost btn-sm"
+              >
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
+                Uncheck All
+              </button>
+            <% end %>
+          </div>
+        <% end %>
+        
+<!-- Action Buttons -->
+        <div class="flex gap-3 mb-6">
+          <button
+            phx-click="show_add_item_modal"
+            class="btn btn-primary flex-1"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+              />
+            </svg>
+            Add Item
+          </button>
+          <%= if @selected_list.checked_items > 0 do %>
+            <button
+              phx-click="show_transfer_modal"
+              class="btn btn-secondary flex-1"
+            >
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"
+                />
+              </svg>
+              Transfer to Inventory
+            </button>
+          <% end %>
+        </div>
         
 <!-- Shopping List Items -->
         <div class="space-y-2">
@@ -442,6 +498,113 @@
             </button>
           </div>
         </form>
+      </div>
+    </div>
+  <% end %>
+  <!-- Transfer to Inventory Modal -->
+  <%= if @show_transfer_modal do %>
+    <div
+      id="transfer-modal"
+      class="fixed inset-0 bg-neutral/50 backdrop-blur-sm flex items-center justify-center z-50"
+      phx-click="hide_transfer_modal"
+      phx-window-keydown="hide_transfer_modal"
+      phx-key="Escape"
+      aria-hidden="true"
+    >
+      <div
+        class="bg-base-100 rounded-2xl p-8 max-w-md w-full mx-4 shadow-2xl border border-base-200"
+        phx-click="prevent_close"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="transfer-title"
+      >
+        <h3 id="transfer-title" class="text-2xl font-bold text-base-content mb-2">
+          Transfer to Inventory
+        </h3>
+        <p class="text-base-content/60 mb-6">
+          Add checked items to your inventory.
+        </p>
+
+        <%= if Enum.empty?(@transferable_items) do %>
+          <div class="alert alert-warning mb-6">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+              />
+            </svg>
+            <span>
+              No checked items can be transferred. Items need to be linked to grocery items in
+              your inventory to be transferred.
+            </span>
+          </div>
+          <button
+            type="button"
+            phx-click="hide_transfer_modal"
+            class="btn btn-ghost w-full"
+          >
+            Close
+          </button>
+        <% else %>
+          <div class="mb-4">
+            <p class="text-sm text-base-content/70 mb-2">
+              {length(@transferable_items)} item{if length(@transferable_items) > 1,
+                do: "s",
+                else: ""} will be added to inventory:
+            </p>
+            <ul class="text-sm space-y-1 max-h-32 overflow-y-auto">
+              <%= for item <- @transferable_items do %>
+                <li class="flex items-center gap-2 text-base-content/80">
+                  <svg
+                    class="w-4 h-4 text-success"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M5 13l4 4L19 7"
+                    />
+                  </svg>
+                  {item.name} ({Decimal.to_string(item.quantity)} {item.unit})
+                </li>
+              <% end %>
+            </ul>
+          </div>
+
+          <form phx-submit="transfer_to_inventory" id="transfer-form">
+            <div class="mb-6">
+              <label class="block text-sm font-medium text-base-content/80 mb-2">
+                Storage Location (Optional)
+              </label>
+              <select name="storage_location_id" class="select w-full">
+                <option value="">No specific location</option>
+                <%= for location <- @storage_locations do %>
+                  <option value={location.id}>{location.name}</option>
+                <% end %>
+              </select>
+            </div>
+            <div class="flex gap-3">
+              <button
+                type="button"
+                phx-click="hide_transfer_modal"
+                class="btn btn-ghost flex-1"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                class="btn btn-secondary flex-1"
+              >
+                Transfer
+              </button>
+            </div>
+          </form>
+        <% end %>
       </div>
     </div>
   <% end %>

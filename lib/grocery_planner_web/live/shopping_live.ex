@@ -20,6 +20,7 @@ defmodule GroceryPlannerWeb.ShoppingLive do
       |> assign(:show_create_modal, false)
       |> assign(:show_generate_modal, false)
       |> assign(:show_add_item_modal, false)
+      |> assign(:show_transfer_modal, false)
       |> assign(:selected_list, nil)
       |> assign(:start_date, Date.utc_today() |> Date.to_iso8601())
       |> assign(:end_date, Date.utc_today() |> Date.add(7) |> Date.to_iso8601())
@@ -27,6 +28,8 @@ defmodule GroceryPlannerWeb.ShoppingLive do
       |> assign(:new_item_name, "")
       |> assign(:new_item_quantity, "1")
       |> assign(:new_item_unit, "")
+      |> assign(:storage_locations, [])
+      |> assign(:transferable_items, [])
       |> load_shopping_lists()
 
     {:ok, socket}
@@ -206,6 +209,166 @@ defmodule GroceryPlannerWeb.ShoppingLive do
   end
 
   def handle_event("prevent_close", _params, socket) do
+    {:noreply, socket}
+  end
+
+  def handle_event("show_transfer_modal", _params, socket) do
+    # Get checked items that have a grocery_item_id (can be transferred)
+    checked_items = Enum.filter(socket.assigns.selected_list.items, & &1.checked)
+
+    transferable =
+      Enum.filter(checked_items, fn item -> item.grocery_item_id != nil end)
+
+    # Load storage locations for the dropdown
+    {:ok, locations} =
+      GroceryPlanner.Inventory.list_storage_locations(
+        actor: socket.assigns.current_user,
+        tenant: socket.assigns.current_account.id,
+        query: GroceryPlanner.Inventory.StorageLocation |> Ash.Query.sort(name: :asc)
+      )
+
+    socket =
+      socket
+      |> assign(:show_transfer_modal, true)
+      |> assign(:storage_locations, locations)
+      |> assign(:transferable_items, transferable)
+
+    {:noreply, socket}
+  end
+
+  def handle_event("hide_transfer_modal", _params, socket) do
+    {:noreply, assign(socket, :show_transfer_modal, false)}
+  end
+
+  def handle_event("check_all", _params, socket) do
+    results =
+      socket.assigns.selected_list.items
+      |> Enum.filter(fn item -> !item.checked end)
+      |> Enum.map(fn item ->
+        GroceryPlanner.Shopping.ShoppingListItem.check(item,
+          tenant: socket.assigns.current_account.id,
+          actor: socket.assigns.current_user
+        )
+      end)
+
+    {:ok, list} =
+      GroceryPlanner.Shopping.get_shopping_list(
+        socket.assigns.selected_list.id,
+        tenant: socket.assigns.current_account.id,
+        actor: socket.assigns.current_user,
+        load: [:items, :total_items, :checked_items, :progress_percentage]
+      )
+
+    checked_count = Enum.count(results, fn r -> match?({:ok, _}, r) end)
+
+    socket =
+      socket
+      |> assign(:selected_list, list)
+      |> put_flash(
+        :info,
+        "#{checked_count} item#{if checked_count != 1, do: "s", else: ""} checked"
+      )
+
+    {:noreply, socket}
+  end
+
+  def handle_event("uncheck_all", _params, socket) do
+    results =
+      socket.assigns.selected_list.items
+      |> Enum.filter(fn item -> item.checked end)
+      |> Enum.map(fn item ->
+        GroceryPlanner.Shopping.ShoppingListItem.uncheck(item,
+          tenant: socket.assigns.current_account.id,
+          actor: socket.assigns.current_user
+        )
+      end)
+
+    {:ok, list} =
+      GroceryPlanner.Shopping.get_shopping_list(
+        socket.assigns.selected_list.id,
+        tenant: socket.assigns.current_account.id,
+        actor: socket.assigns.current_user,
+        load: [:items, :total_items, :checked_items, :progress_percentage]
+      )
+
+    unchecked_count = Enum.count(results, fn r -> match?({:ok, _}, r) end)
+
+    socket =
+      socket
+      |> assign(:selected_list, list)
+      |> put_flash(
+        :info,
+        "#{unchecked_count} item#{if unchecked_count != 1, do: "s", else: ""} unchecked"
+      )
+
+    {:noreply, socket}
+  end
+
+  def handle_event("transfer_to_inventory", %{"storage_location_id" => location_id}, socket) do
+    location_id = if location_id == "", do: nil, else: location_id
+    transferable = socket.assigns.transferable_items
+    account_id = socket.assigns.current_account.id
+    user = socket.assigns.current_user
+
+    results =
+      Enum.map(transferable, fn item ->
+        attrs = %{
+          quantity: item.quantity,
+          unit: item.unit,
+          purchase_date: Date.utc_today(),
+          status: :available
+        }
+
+        attrs = if location_id, do: Map.put(attrs, :storage_location_id, location_id), else: attrs
+
+        attrs =
+          if item.price do
+            Map.put(attrs, :purchase_price, item.price)
+          else
+            attrs
+          end
+
+        GroceryPlanner.Inventory.create_inventory_entry(
+          account_id,
+          item.grocery_item_id,
+          attrs,
+          tenant: account_id,
+          actor: user
+        )
+      end)
+
+    successful = Enum.count(results, fn result -> match?({:ok, _}, result) end)
+    failed = length(results) - successful
+
+    # Reload the list to get updated state
+    {:ok, list} =
+      GroceryPlanner.Shopping.get_shopping_list(
+        socket.assigns.selected_list.id,
+        tenant: account_id,
+        actor: user,
+        load: [:items, :total_items, :checked_items, :progress_percentage]
+      )
+
+    message =
+      cond do
+        failed == 0 && successful > 0 ->
+          "#{successful} item#{if successful > 1, do: "s", else: ""} added to inventory"
+
+        successful > 0 && failed > 0 ->
+          "#{successful} item#{if successful > 1, do: "s", else: ""} added, #{failed} failed"
+
+        true ->
+          "Failed to add items to inventory"
+      end
+
+    flash_type = if failed == 0 && successful > 0, do: :info, else: :error
+
+    socket =
+      socket
+      |> put_flash(flash_type, message)
+      |> assign(:show_transfer_modal, false)
+      |> assign(:selected_list, list)
+
     {:noreply, socket}
   end
 
