@@ -31,33 +31,35 @@
             </.link>
           </div>
 
-          <div class="flex items-center gap-2 bg-base-100 rounded-xl shadow-sm p-1.5 border border-base-200">
-            <button
-              phx-click="prev_week"
-              class="p-2.5 hover:bg-base-200 rounded-lg transition-all duration-200 group"
-              title="Previous week"
-            >
-              <.icon
-                name="hero-chevron-left"
-                class="w-5 h-5 text-base-content/60 group-hover:text-primary transition-colors"
-              />
-            </button>
+          <%= if @meal_planner_layout != "explorer" do %>
+            <div class="flex items-center gap-2 bg-base-100 rounded-xl shadow-sm p-1.5 border border-base-200">
+              <button
+                phx-click="prev_week"
+                class="p-2.5 hover:bg-base-200 rounded-lg transition-all duration-200 group"
+                title="Previous week"
+              >
+                <.icon
+                  name="hero-chevron-left"
+                  class="w-5 h-5 text-base-content/60 group-hover:text-primary transition-colors"
+                />
+              </button>
 
-            <button phx-click="today" class="btn btn-primary px-6">
-              Today
-            </button>
+              <button phx-click="today" class="btn btn-primary px-6">
+                Today
+              </button>
 
-            <button
-              phx-click="next_week"
-              class="p-2.5 hover:bg-base-200 rounded-lg transition-all duration-200 group"
-              title="Next week"
-            >
-              <.icon
-                name="hero-chevron-right"
-                class="w-5 h-5 text-base-content/60 group-hover:text-primary transition-colors"
-              />
-            </button>
-          </div>
+              <button
+                phx-click="next_week"
+                class="p-2.5 hover:bg-base-200 rounded-lg transition-all duration-200 group"
+                title="Next week"
+              >
+                <.icon
+                  name="hero-chevron-right"
+                  class="w-5 h-5 text-base-content/60 group-hover:text-primary transition-colors"
+                />
+              </button>
+            </div>
+          <% end %>
         </div>
       </:actions>
     </.page_header>
@@ -70,228 +72,518 @@
         )}
       </p>
     </div>
-    
-<!-- Bulk Actions (only show on week view) -->
-    <%= if is_nil(@selected_day) do %>
-      <div class="mb-6 flex flex-wrap gap-2 justify-center">
-        <%= if length(@meal_plans) > 0 do %>
-          <button
-            phx-click="generate_shopping_list"
-            class="btn btn-primary btn-sm"
-            title="Generate shopping list from this week's meals"
-          >
-            <.icon name="hero-shopping-cart" class="w-4 h-4" /> Generate Shopping List
-          </button>
-        <% end %>
-        <button
-          phx-click="copy_from_last_week"
-          class="btn btn-ghost btn-sm"
-          title="Copy all meals from the previous week"
-        >
-          <.icon name="hero-document-duplicate" class="w-4 h-4" /> Copy from Last Week
-        </button>
-        <%= if length(@meal_plans) > 0 do %>
-          <button
-            phx-click="clear_week"
-            data-confirm="Are you sure you want to remove all meals from this week?"
-            class="btn btn-ghost btn-sm text-error"
-            title="Remove all meals from this week"
-          >
-            <.icon name="hero-trash" class="w-4 h-4" /> Clear Week
-          </button>
-        <% end %>
-      </div>
-    <% end %>
 
-    <%= if @selected_day do %>
-      <div class="mb-4">
-        <button
-          phx-click="back_to_week"
-          class="flex items-center gap-2 text-primary hover:text-primary/80 font-medium transition-colors"
-        >
-          <.icon name="hero-arrow-left" class="w-5 h-5" /> Back to week overview
-        </button>
-      </div>
-
-      <div class="bg-base-100 rounded-2xl shadow-lg border border-base-200 overflow-hidden">
-        <div class={[
-          "p-6 border-b transition-colors duration-200",
-          if(Date.compare(@selected_day, Date.utc_today()) == :eq,
-            do: "bg-primary text-primary-content border-transparent",
-            else: "bg-base-200 text-base-content border-base-300"
-          )
-        ]}>
-          <div class="flex items-center justify-between">
-            <div>
-              <h2 class="text-3xl font-bold">
-                {Calendar.strftime(@selected_day, "%A")}
-              </h2>
-              <p class={[
-                "text-lg mt-1",
-                if(Date.compare(@selected_day, Date.utc_today()) == :eq,
-                  do: "opacity-80",
-                  else: "text-base-content/60"
-                )
-              ]}>
-                {Calendar.strftime(@selected_day, "%B %d, %Y")}
-              </p>
-            </div>
-            <div class={[
-              "text-5xl font-bold",
-              if(Date.compare(@selected_day, Date.utc_today()) == :eq,
-                do: "opacity-50",
-                else: "opacity-10"
-              )
-            ]}>
-              {Calendar.strftime(@selected_day, "%d")}
-            </div>
-          </div>
-        </div>
-
-        <div class="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
-          <%= for meal_type <- [:breakfast, :lunch, :dinner, :snack] do %>
-            <div class="group">
-              <div class={[
-                "flex items-center gap-3 mb-3 px-4 py-2 rounded-lg transition-colors duration-200",
-                meal_type == :breakfast && "bg-warning/10 text-warning",
-                meal_type == :lunch && "bg-success/10 text-success",
-                meal_type == :dinner && "bg-primary/10 text-primary",
-                meal_type == :snack && "bg-secondary/10 text-secondary"
-              ]}>
-                <div class="text-2xl">
-                  {meal_icon(meal_type)}
+    <%= case @meal_planner_layout do %>
+      <% "explorer" -> %>
+        <div class="grid gap-6 lg:grid-cols-[380px_1fr]">
+          <div class="bg-base-100 rounded-2xl shadow-sm border border-base-200 overflow-hidden">
+            <div class="p-5 border-b border-base-200 bg-gradient-to-b from-base-100 to-base-200/40">
+              <div class="flex items-start justify-between gap-3">
+                <div>
+                  <h2 class="text-lg font-bold text-base-content">Your week</h2>
+                  <p class="text-sm text-base-content/60">
+                    Tap a slot, then add from the feed.
+                  </p>
                 </div>
-                <span class="text-lg font-bold capitalize">
-                  {meal_type}
-                </span>
+                <div class="flex items-center gap-2">
+                  <button phx-click="today" class="btn btn-primary btn-sm">Today</button>
+                </div>
               </div>
 
-              <%= case get_meal_plan(@selected_day, meal_type, @meal_plans) do %>
-                <% nil -> %>
-                  <button
-                    phx-click="add_meal"
-                    phx-value-date={@selected_day}
-                    phx-value-meal_type={meal_type}
-                    class="w-full py-8 px-4 border-2 border-dashed border-base-300 rounded-xl text-base-content/40 hover:border-primary/50 hover:bg-primary/5 hover:text-primary transition-all duration-200 flex flex-col items-center justify-center gap-2 group"
-                  >
-                    <.icon name="hero-plus-circle" class="w-8 h-8" />
-                    <span class="font-medium">Add meal</span>
-                  </button>
-                <% meal_plan -> %>
-                  <div class="bg-base-200/50 rounded-xl p-4 border-2 border-base-200 hover:border-primary/30 transition-all duration-200">
-                    <div class="flex items-start gap-4 mb-3">
-                      <%= if meal_plan.recipe.image_url do %>
-                        <img
-                          src={meal_plan.recipe.image_url}
-                          alt={meal_plan.recipe.name}
-                          class="w-24 h-24 rounded-xl object-cover shadow-sm"
-                        />
-                      <% else %>
-                        <div class="w-24 h-24 rounded-xl bg-base-300 flex items-center justify-center shadow-sm">
-                          <.icon name="hero-cake" class="w-12 h-12 text-base-content/20" />
-                        </div>
-                      <% end %>
-                      <div class="flex-1 min-w-0">
-                        <h4 class="font-bold text-base-content text-lg leading-tight">
-                          {meal_plan.recipe.name}
-                        </h4>
-                        <div class="flex items-center gap-2 mt-2 text-sm text-base-content/60">
-                          <.icon name="hero-user-group" class="w-4 h-4" />
-                          <span>{meal_plan.servings} servings</span>
-                        </div>
+              <div class="mt-4 flex items-center gap-2">
+                <button
+                  phx-click="prev_week"
+                  class="btn btn-ghost btn-sm"
+                  title="Previous week"
+                >
+                  <.icon name="hero-chevron-left" class="w-4 h-4" />
+                </button>
+                <div class="flex-1 text-center text-sm font-semibold text-base-content">
+                  {Calendar.strftime(@week_start, "%b %d")} – {Calendar.strftime(
+                    Date.add(@week_start, 6),
+                    "%b %d"
+                  )}
+                </div>
+                <button
+                  phx-click="next_week"
+                  class="btn btn-ghost btn-sm"
+                  title="Next week"
+                >
+                  <.icon name="hero-chevron-right" class="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+
+            <div class="p-4" id="explorer-timeline">
+              <div class="space-y-4">
+                <%= for day <- @days do %>
+                  <div class="rounded-xl border border-base-200/80 overflow-hidden">
+                    <div class={[
+                      "px-4 py-3 flex items-center justify-between",
+                      if(Date.compare(day, Date.utc_today()) == :eq,
+                        do: "bg-primary text-primary-content",
+                        else: "bg-base-200 text-base-content"
+                      )
+                    ]}>
+                      <div class="font-semibold">
+                        {Calendar.strftime(day, "%a")}
+                        <span class="opacity-70 font-normal">
+                          {Calendar.strftime(day, "%b %d")}
+                        </span>
+                      </div>
+                      <div class="text-xs font-semibold opacity-80">
+                        <% meal_count =
+                          Enum.count(@meal_plans, fn mp ->
+                            mp.scheduled_date == day
+                          end) %>
+                        <%= if meal_count == 0 do %>
+                          No meals
+                        <% else %>
+                          {meal_count} {if meal_count == 1, do: "meal", else: "meals"}
+                        <% end %>
                       </div>
                     </div>
 
-                    <div class="flex gap-2">
-                      <button
-                        phx-click="edit_meal"
-                        phx-value-id={meal_plan.id}
-                        class="flex-1 btn btn-ghost btn-sm border-base-300"
-                      >
-                        <.icon name="hero-pencil-square" class="w-4 h-4" /> Edit
-                      </button>
-                      <button
-                        phx-click="remove_meal"
-                        phx-value-id={meal_plan.id}
-                        data-confirm="Are you sure you want to remove this meal?"
-                        class="flex-1 btn btn-error btn-outline btn-sm"
-                      >
-                        <.icon name="hero-trash" class="w-4 h-4" /> Remove
-                      </button>
+                    <div class="p-3 grid grid-cols-2 gap-2">
+                      <%= for meal_type <- [:breakfast, :lunch, :dinner, :snack] do %>
+                        <%= case get_meal_plan(day, meal_type, @meal_plans) do %>
+                          <% nil -> %>
+                            <button
+                              phx-click="add_meal"
+                              phx-value-date={day}
+                              phx-value-meal_type={meal_type}
+                              class="group rounded-xl border border-dashed border-base-300 bg-base-100 hover:bg-primary/5 hover:border-primary/40 transition-all px-3 py-3 text-left"
+                              id={"explorer-slot-#{day}-#{meal_type}"}
+                            >
+                              <div class="flex items-center justify-between gap-2">
+                                <div class="text-sm font-semibold text-base-content capitalize flex items-center gap-2">
+                                  <span class="text-base">{meal_icon(meal_type)}</span>
+                                  <span>{meal_type}</span>
+                                </div>
+                                <.icon
+                                  name="hero-plus"
+                                  class="w-4 h-4 text-base-content/40 group-hover:text-primary"
+                                />
+                              </div>
+                              <div class="mt-1 text-xs text-base-content/50">Add something</div>
+                            </button>
+                          <% meal_plan -> %>
+                            <button
+                              phx-click="edit_meal"
+                              phx-value-id={meal_plan.id}
+                              class="group rounded-xl border border-base-200 bg-base-100 hover:border-primary/40 hover:shadow-sm transition-all px-3 py-3 text-left"
+                              id={"explorer-slot-#{day}-#{meal_type}"}
+                              title="Edit meal"
+                            >
+                              <div class="flex items-center justify-between gap-2">
+                                <div class="text-sm font-semibold text-base-content capitalize flex items-center gap-2">
+                                  <span class="text-base">{meal_icon(meal_type)}</span>
+                                  <span>{meal_type}</span>
+                                </div>
+                                <.icon
+                                  name="hero-pencil-square"
+                                  class="w-4 h-4 text-base-content/40 group-hover:text-primary"
+                                />
+                              </div>
+                              <div class="mt-1 text-xs font-semibold text-base-content truncate">
+                                {meal_plan.recipe.name}
+                              </div>
+                            </button>
+                        <% end %>
+                      <% end %>
                     </div>
                   </div>
+                <% end %>
+              </div>
+            </div>
+          </div>
+
+          <div class="bg-base-100 rounded-2xl shadow-sm border border-base-200 overflow-hidden">
+            <div class="p-5 border-b border-base-200 bg-gradient-to-b from-base-100 to-base-200/40">
+              <div class="flex items-start justify-between gap-4">
+                <div>
+                  <h2 class="text-lg font-bold text-base-content">Explore recipes</h2>
+                  <p class="text-sm text-base-content/60">
+                    Discover something new, then add it to your plan.
+                  </p>
+                </div>
+                <.link navigate={~p"/recipes/search"} class="btn btn-ghost btn-sm">
+                  Browse
+                </.link>
+              </div>
+
+              <div class="mt-4">
+                <div class="relative">
+                  <.icon
+                    name="hero-magnifying-glass"
+                    class="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-base-content/40"
+                  />
+                  <input
+                    id="explorer-recipe-search"
+                    type="text"
+                    name="explorer_search"
+                    value={@explorer_search}
+                    placeholder="Search recipes..."
+                    phx-keyup="explorer_search"
+                    phx-debounce="250"
+                    class="input w-full pl-10"
+                  />
+                </div>
+              </div>
+
+              <div class="mt-3 flex flex-wrap gap-2">
+                <button
+                  phx-click="explorer_filter"
+                  phx-value-filter="quick"
+                  class={[
+                    "btn btn-sm",
+                    if(@explorer_filter == "quick", do: "btn-primary", else: "btn-ghost")
+                  ]}
+                  id="explorer-filter-quick"
+                >
+                  Under 30 min
+                </button>
+                <button
+                  phx-click="explorer_filter"
+                  phx-value-filter="pantry"
+                  class={[
+                    "btn btn-sm",
+                    if(@explorer_filter == "pantry", do: "btn-primary", else: "btn-ghost")
+                  ]}
+                  id="explorer-filter-pantry"
+                >
+                  Pantry-first
+                </button>
+                <button
+                  phx-click="explorer_filter"
+                  phx-value-filter=""
+                  class={[
+                    "btn btn-sm",
+                    if(@explorer_filter in [nil, ""], do: "btn-primary", else: "btn-ghost")
+                  ]}
+                  id="explorer-filter-all"
+                >
+                  All
+                </button>
+              </div>
+            </div>
+
+            <div class="p-4">
+              <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-3" id="explorer-feed">
+                <%= for recipe <- @explorer_recipes do %>
+                  <div class="group rounded-2xl border border-base-200 bg-base-100 overflow-hidden hover:shadow-md hover:border-primary/30 transition-all">
+                    <div class="aspect-[4/3] bg-base-200/50 overflow-hidden">
+                      <%= if recipe.image_url do %>
+                        <img
+                          src={recipe.image_url}
+                          alt={recipe.name}
+                          class="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-300"
+                        />
+                      <% else %>
+                        <div class="w-full h-full flex items-center justify-center">
+                          <.icon name="hero-photo" class="w-10 h-10 text-base-content/20" />
+                        </div>
+                      <% end %>
+                    </div>
+
+                    <div class="p-4">
+                      <div class="flex items-start justify-between gap-3">
+                        <div class="min-w-0">
+                          <h3 class="font-bold text-base-content leading-tight truncate">
+                            {recipe.name}
+                          </h3>
+                          <%= if recipe.description do %>
+                            <p class="text-sm text-base-content/60 mt-1 line-clamp-2">
+                              {recipe.description}
+                            </p>
+                          <% end %>
+                        </div>
+                      </div>
+
+                      <div class="mt-3 flex flex-wrap gap-2">
+                        <span class="badge badge-sm badge-ghost capitalize">
+                          {recipe.difficulty}
+                        </span>
+                        <span
+                          :if={recipe.is_base_recipe && recipe.follow_up_recipes != []}
+                          class="badge badge-sm bg-success/10 text-success border border-success/20"
+                        >
+                          Chain
+                        </span>
+                        <span
+                          :if={recipe.is_follow_up}
+                          class="badge badge-sm bg-primary/10 text-primary border border-primary/20"
+                        >
+                          Follow-up
+                        </span>
+                      </div>
+
+                      <div class="mt-4 flex gap-2">
+                        <button
+                          phx-click="explorer_quick_add"
+                          phx-value-recipe_id={recipe.id}
+                          class="btn btn-primary btn-sm flex-1"
+                          id={"explorer-quick-add-#{recipe.id}"}
+                        >
+                          <.icon name="hero-plus" class="w-4 h-4" /> Add to plan
+                        </button>
+                        <.link navigate={~p"/recipes/#{recipe.id}"} class="btn btn-ghost btn-sm">
+                          Details
+                        </.link>
+                      </div>
+                    </div>
+                  </div>
+                <% end %>
+              </div>
+
+              <%= if @explorer_recipes == [] do %>
+                <div class="py-16 text-center text-base-content/50">
+                  <.icon name="hero-magnifying-glass" class="w-10 h-10 mx-auto mb-3 opacity-30" />
+                  <div class="font-semibold">No recipes match your search</div>
+                  <div class="text-sm mt-1">Try a different keyword or clear filters.</div>
+                </div>
               <% end %>
             </div>
-          <% end %>
+          </div>
         </div>
-      </div>
-    <% else %>
-      <div class="grid grid-cols-1 md:grid-cols-7 gap-4">
-        <%= for day <- @days do %>
-          <button
-            phx-click="select_day"
-            phx-value-date={day}
-            class="bg-base-100 rounded-xl shadow-sm border border-base-200 overflow-hidden hover:shadow-lg hover:border-primary/30 transition-all duration-200 text-left group"
-          >
+      <% "focus" -> %>
+        <!-- Bulk Actions (only show on week view) -->
+        <%= if is_nil(@selected_day) do %>
+          <div class="mb-6 flex flex-wrap gap-2 justify-center">
+            <%= if length(@meal_plans) > 0 do %>
+              <button
+                phx-click="generate_shopping_list"
+                class="btn btn-primary btn-sm"
+                title="Generate shopping list from this week's meals"
+              >
+                <.icon name="hero-shopping-cart" class="w-4 h-4" /> Generate Shopping List
+              </button>
+            <% end %>
+            <button
+              phx-click="copy_from_last_week"
+              class="btn btn-ghost btn-sm"
+              title="Copy all meals from the previous week"
+            >
+              <.icon name="hero-document-duplicate" class="w-4 h-4" /> Copy from Last Week
+            </button>
+            <%= if length(@meal_plans) > 0 do %>
+              <button
+                phx-click="clear_week"
+                data-confirm="Are you sure you want to remove all meals from this week?"
+                class="btn btn-ghost btn-sm text-error"
+                title="Remove all meals from this week"
+              >
+                <.icon name="hero-trash" class="w-4 h-4" /> Clear Week
+              </button>
+            <% end %>
+          </div>
+        <% end %>
+
+        <%= if @selected_day do %>
+          <div class="mb-4">
+            <button
+              phx-click="back_to_week"
+              class="flex items-center gap-2 text-primary hover:text-primary/80 font-medium transition-colors"
+            >
+              <.icon name="hero-arrow-left" class="w-5 h-5" /> Back to week overview
+            </button>
+          </div>
+
+          <div class="bg-base-100 rounded-2xl shadow-lg border border-base-200 overflow-hidden">
             <div class={[
-              "p-4 text-center font-semibold border-b transition-colors duration-200",
-              if(Date.compare(day, Date.utc_today()) == :eq,
+              "p-6 border-b transition-colors duration-200",
+              if(Date.compare(@selected_day, Date.utc_today()) == :eq,
                 do: "bg-primary text-primary-content border-transparent",
-                else: "bg-base-200 text-base-content border-base-300 group-hover:bg-base-100"
+                else: "bg-base-200 text-base-content border-base-300"
               )
             ]}>
-              <div class="text-xs font-medium uppercase tracking-wide opacity-70">
-                {Calendar.strftime(day, "%a")}
-              </div>
-              <div class="text-3xl font-bold mt-1">
-                {Calendar.strftime(day, "%d")}
-              </div>
-            </div>
-
-            <div class="p-3 space-y-2">
-              <%= for meal_type <- [:breakfast, :lunch, :dinner, :snack] do %>
-                <%= case get_meal_plan(day, meal_type, @meal_plans) do %>
-                  <% nil -> %>
-                    <div class="flex items-center gap-2 py-1.5 px-2 rounded-lg bg-base-200/50 text-base-content/30 text-xs">
-                      <div class="text-sm">{meal_icon(meal_type)}</div>
-                      <span class="flex-1 capitalize font-medium">{meal_type}</span>
-                      <.icon name="hero-plus" class="w-3 h-3" />
-                    </div>
-                  <% meal_plan -> %>
-                    <div class={[
-                      "flex items-center gap-2 py-1.5 px-2 rounded-lg text-xs border-2 transition-colors",
-                      meal_type == :breakfast && "bg-warning/10 border-warning/20 text-warning",
-                      meal_type == :lunch && "bg-success/10 border-success/20 text-success",
-                      meal_type == :dinner && "bg-primary/10 border-primary/20 text-primary",
-                      meal_type == :snack && "bg-secondary/10 border-secondary/20 text-secondary"
-                    ]}>
-                      <div class="text-sm">{meal_icon(meal_type)}</div>
-                      <span class="flex-1 font-semibold truncate">
-                        {meal_plan.recipe.name}
-                      </span>
-                    </div>
-                <% end %>
-              <% end %>
-
-              <div class="pt-2 border-t border-base-200">
-                <div class="text-xs text-base-content/50 text-center font-medium">
-                  <% meal_count =
-                    Enum.count(@meal_plans, fn mp ->
-                      mp.scheduled_date == day
-                    end) %>
-                  <%= if meal_count == 0 do %>
-                    No meals
-                  <% else %>
-                    {meal_count} {if meal_count == 1,
-                      do: "meal",
-                      else: "meals"}
-                  <% end %>
+              <div class="flex items-center justify-between">
+                <div>
+                  <h2 class="text-3xl font-bold">
+                    {Calendar.strftime(@selected_day, "%A")}
+                  </h2>
+                  <p class={[
+                    "text-lg mt-1",
+                    if(Date.compare(@selected_day, Date.utc_today()) == :eq,
+                      do: "opacity-80",
+                      else: "text-base-content/60"
+                    )
+                  ]}>
+                    {Calendar.strftime(@selected_day, "%B %d, %Y")}
+                  </p>
+                </div>
+                <div class={[
+                  "text-5xl font-bold",
+                  if(Date.compare(@selected_day, Date.utc_today()) == :eq,
+                    do: "opacity-50",
+                    else: "opacity-10"
+                  )
+                ]}>
+                  {Calendar.strftime(@selected_day, "%d")}
                 </div>
               </div>
             </div>
-          </button>
+
+            <div class="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+              <%= for meal_type <- [:breakfast, :lunch, :dinner, :snack] do %>
+                <div class="group">
+                  <div class={[
+                    "flex items-center gap-3 mb-3 px-4 py-2 rounded-lg transition-colors duration-200",
+                    meal_type == :breakfast && "bg-warning/10 text-warning",
+                    meal_type == :lunch && "bg-success/10 text-success",
+                    meal_type == :dinner && "bg-primary/10 text-primary",
+                    meal_type == :snack && "bg-secondary/10 text-secondary"
+                  ]}>
+                    <div class="text-2xl">
+                      {meal_icon(meal_type)}
+                    </div>
+                    <span class="text-lg font-bold capitalize">
+                      {meal_type}
+                    </span>
+                  </div>
+
+                  <%= case get_meal_plan(@selected_day, meal_type, @meal_plans) do %>
+                    <% nil -> %>
+                      <button
+                        phx-click="add_meal"
+                        phx-value-date={@selected_day}
+                        phx-value-meal_type={meal_type}
+                        class="w-full py-8 px-4 border-2 border-dashed border-base-300 rounded-xl text-base-content/40 hover:border-primary/50 hover:bg-primary/5 hover:text-primary transition-all duration-200 flex flex-col items-center justify-center gap-2 group"
+                      >
+                        <.icon name="hero-plus-circle" class="w-8 h-8" />
+                        <span class="font-medium">Add meal</span>
+                      </button>
+                    <% meal_plan -> %>
+                      <div class="bg-base-200/50 rounded-xl p-4 border-2 border-base-200 hover:border-primary/30 transition-all duration-200">
+                        <div class="flex items-start gap-4 mb-3">
+                          <%= if meal_plan.recipe.image_url do %>
+                            <img
+                              src={meal_plan.recipe.image_url}
+                              alt={meal_plan.recipe.name}
+                              class="w-24 h-24 rounded-xl object-cover shadow-sm"
+                            />
+                          <% else %>
+                            <div class="w-24 h-24 rounded-xl bg-base-300 flex items-center justify-center shadow-sm">
+                              <.icon name="hero-cake" class="w-12 h-12 text-base-content/20" />
+                            </div>
+                          <% end %>
+                          <div class="flex-1 min-w-0">
+                            <h4 class="font-bold text-base-content text-lg leading-tight">
+                              {meal_plan.recipe.name}
+                            </h4>
+                            <div class="flex items-center gap-2 mt-2 text-sm text-base-content/60">
+                              <.icon name="hero-user-group" class="w-4 h-4" />
+                              <span>{meal_plan.servings} servings</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div class="flex gap-2">
+                          <button
+                            phx-click="edit_meal"
+                            phx-value-id={meal_plan.id}
+                            class="flex-1 btn btn-ghost btn-sm border-base-300"
+                          >
+                            <.icon name="hero-pencil-square" class="w-4 h-4" /> Edit
+                          </button>
+                          <button
+                            phx-click="remove_meal"
+                            phx-value-id={meal_plan.id}
+                            data-confirm="Are you sure you want to remove this meal?"
+                            class="flex-1 btn btn-error btn-outline btn-sm"
+                          >
+                            <.icon name="hero-trash" class="w-4 h-4" /> Remove
+                          </button>
+                        </div>
+                      </div>
+                  <% end %>
+                </div>
+              <% end %>
+            </div>
+          </div>
+        <% else %>
+          <div class="grid grid-cols-1 md:grid-cols-7 gap-4">
+            <%= for day <- @days do %>
+              <button
+                phx-click="select_day"
+                phx-value-date={day}
+                class="bg-base-100 rounded-xl shadow-sm border border-base-200 overflow-hidden hover:shadow-lg hover:border-primary/30 transition-all duration-200 text-left group"
+              >
+                <div class={[
+                  "p-4 text-center font-semibold border-b transition-colors duration-200",
+                  if(Date.compare(day, Date.utc_today()) == :eq,
+                    do: "bg-primary text-primary-content border-transparent",
+                    else: "bg-base-200 text-base-content border-base-300 group-hover:bg-base-100"
+                  )
+                ]}>
+                  <div class="text-xs font-medium uppercase tracking-wide opacity-70">
+                    {Calendar.strftime(day, "%a")}
+                  </div>
+                  <div class="text-3xl font-bold mt-1">
+                    {Calendar.strftime(day, "%d")}
+                  </div>
+                </div>
+
+                <div class="p-3 space-y-2">
+                  <%= for meal_type <- [:breakfast, :lunch, :dinner, :snack] do %>
+                    <%= case get_meal_plan(day, meal_type, @meal_plans) do %>
+                      <% nil -> %>
+                        <div class="flex items-center gap-2 py-1.5 px-2 rounded-lg bg-base-200/50 text-base-content/30 text-xs">
+                          <div class="text-sm">{meal_icon(meal_type)}</div>
+                          <span class="flex-1 capitalize font-medium">{meal_type}</span>
+                          <.icon name="hero-plus" class="w-3 h-3" />
+                        </div>
+                      <% meal_plan -> %>
+                        <div class={[
+                          "flex items-center gap-2 py-1.5 px-2 rounded-lg text-xs border-2 transition-colors",
+                          meal_type == :breakfast &&
+                            "bg-warning/10 border-warning/20 text-warning",
+                          meal_type == :lunch && "bg-success/10 border-success/20 text-success",
+                          meal_type == :dinner && "bg-primary/10 border-primary/20 text-primary",
+                          meal_type == :snack &&
+                            "bg-secondary/10 border-secondary/20 text-secondary"
+                        ]}>
+                          <div class="text-sm">{meal_icon(meal_type)}</div>
+                          <span class="flex-1 font-semibold truncate">
+                            {meal_plan.recipe.name}
+                          </span>
+                        </div>
+                    <% end %>
+                  <% end %>
+
+                  <div class="pt-2 border-t border-base-200">
+                    <div class="text-xs text-base-content/50 text-center font-medium">
+                      <% meal_count =
+                        Enum.count(@meal_plans, fn mp ->
+                          mp.scheduled_date == day
+                        end) %>
+                      <%= if meal_count == 0 do %>
+                        No meals
+                      <% else %>
+                        {meal_count} {if meal_count == 1,
+                          do: "meal",
+                          else: "meals"}
+                      <% end %>
+                    </div>
+                  </div>
+                </div>
+              </button>
+            <% end %>
+          </div>
         <% end %>
-      </div>
+      <% "power" -> %>
+        <div class="bg-base-100 rounded-2xl shadow-sm border border-base-200 p-8 text-center">
+          <div class="mx-auto max-w-lg">
+            <div class="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto">
+              <.icon name="hero-squares-2x2" class="w-6 h-6 text-primary" />
+            </div>
+            <h2 class="mt-4 text-xl font-bold text-base-content">Power layout is coming soon</h2>
+            <p class="mt-2 text-base-content/60">
+              The Kanban week board is on the roadmap. For now, use Explorer or Focus.
+            </p>
+            <.link navigate={~p"/settings"} class="btn btn-primary mt-5">Change layout</.link>
+          </div>
+        </div>
     <% end %>
   </div>
 

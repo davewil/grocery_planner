@@ -33,7 +33,11 @@ defmodule GroceryPlannerWeb.MealPlannerLive do
       |> assign(:chain_suggestion_follow_ups, [])
       |> assign(:chain_suggestion_slot, nil)
       |> assign(:selected_follow_up_id, nil)
+      |> assign(:explorer_search, "")
+      |> assign(:explorer_filter, "")
+      |> assign(:explorer_recipes, [])
       |> load_meal_plans()
+      |> maybe_load_explorer_recipes()
 
     {:ok, socket}
   end
@@ -236,6 +240,60 @@ defmodule GroceryPlannerWeb.MealPlannerLive do
 
       {:error, _changeset} ->
         {:noreply, put_flash(socket, :error, "Failed to update meal")}
+    end
+  end
+
+  def handle_event("explorer_search", %{"value" => search_term}, socket) do
+    socket =
+      socket
+      |> assign(:explorer_search, search_term)
+      |> load_explorer_recipes()
+
+    {:noreply, socket}
+  end
+
+  def handle_event("explorer_filter", %{"filter" => filter}, socket) do
+    socket =
+      socket
+      |> assign(:explorer_filter, filter)
+      |> load_explorer_recipes()
+
+    {:noreply, socket}
+  end
+
+  def handle_event("explorer_quick_add", %{"recipe_id" => recipe_id}, socket) do
+    today = Date.utc_today()
+
+    {scheduled_date, meal_type} =
+      case Enum.find(socket.assigns.days, fn d -> Date.compare(d, today) in [:eq, :gt] end) do
+        nil -> {List.last(socket.assigns.days), :dinner}
+        day -> {day, :dinner}
+      end
+
+    result =
+      GroceryPlanner.MealPlanning.create_meal_plan(
+        socket.assigns.current_account.id,
+        %{
+          recipe_id: recipe_id,
+          scheduled_date: scheduled_date,
+          meal_type: meal_type,
+          servings: 4
+        },
+        actor: socket.assigns.current_user,
+        tenant: socket.assigns.current_account.id
+      )
+
+    case result do
+      {:ok, _meal_plan} ->
+        socket =
+          socket
+          |> load_meal_plans()
+          |> put_flash(:info, "Added to plan")
+
+        {:noreply, socket}
+
+      {:error, _} ->
+        {:noreply, put_flash(socket, :error, "Failed to add meal")}
     end
   end
 
@@ -578,6 +636,51 @@ defmodule GroceryPlannerWeb.MealPlannerLive do
       _ -> "explorer"
     end
   end
+
+  defp maybe_load_explorer_recipes(socket) do
+    if socket.assigns.meal_planner_layout == "explorer" do
+      load_explorer_recipes(socket)
+    else
+      socket
+    end
+  end
+
+  defp load_explorer_recipes(socket) do
+    {:ok, all_recipes} =
+      GroceryPlanner.Recipes.list_recipes_for_meal_planner(
+        actor: socket.assigns.current_user,
+        tenant: socket.assigns.current_account.id
+      )
+
+    search_term = String.trim(socket.assigns.explorer_search || "")
+    filter = socket.assigns.explorer_filter || ""
+
+    recipes =
+      all_recipes
+      |> maybe_filter_by_search(search_term)
+      |> maybe_apply_explorer_filter(filter)
+      |> Enum.take(24)
+
+    assign(socket, :explorer_recipes, recipes)
+  end
+
+  defp maybe_filter_by_search(recipes, ""), do: recipes
+
+  defp maybe_filter_by_search(recipes, search_term) do
+    search_lower = String.downcase(search_term)
+
+    Enum.filter(recipes, fn recipe ->
+      String.contains?(String.downcase(recipe.name), search_lower)
+    end)
+  end
+
+  defp maybe_apply_explorer_filter(recipes, ""), do: recipes
+
+  defp maybe_apply_explorer_filter(recipes, "quick"), do: recipes
+
+  defp maybe_apply_explorer_filter(recipes, "pantry"), do: recipes
+
+  defp maybe_apply_explorer_filter(recipes, _), do: recipes
 
   defp get_week_start(date) do
     day_of_week = Date.day_of_week(date)

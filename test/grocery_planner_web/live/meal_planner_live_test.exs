@@ -7,6 +7,8 @@ defmodule GroceryPlannerWeb.MealPlannerLiveTest do
     account = create_account()
     user = create_user(account)
 
+    {:ok, user} = GroceryPlanner.Accounts.User.update(user, %{meal_planner_layout: "focus"})
+
     conn =
       build_conn()
       |> init_test_session(%{
@@ -30,7 +32,7 @@ defmodule GroceryPlannerWeb.MealPlannerLiveTest do
       assert html =~ "Meal Planner"
       assert html =~ "Plan your weekly meals with ease"
       assert html =~ "Layout"
-      assert html =~ "Explorer"
+      assert html =~ "Focus"
       assert has_element?(view, "a[href='/settings']", "Change")
       assert has_element?(view, "button[phx-click='prev_week']")
       assert has_element?(view, "button[phx-click='today']", "Today")
