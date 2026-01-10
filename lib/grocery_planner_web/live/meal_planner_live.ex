@@ -257,6 +257,81 @@ defmodule GroceryPlannerWeb.MealPlannerLive do
     {:noreply, assign(socket, :available_recipes, recipes)}
   end
 
+  def handle_event("copy_from_last_week", _params, socket) do
+    week_start = socket.assigns.week_start
+    prev_week_start = Date.add(week_start, -7)
+    prev_week_end = Date.add(prev_week_start, 6)
+
+    # Get meal plans from previous week
+    {:ok, all_meal_plans} =
+      GroceryPlanner.MealPlanning.list_meal_plans(
+        actor: socket.assigns.current_user,
+        tenant: socket.assigns.current_account.id,
+        query: GroceryPlanner.MealPlanning.MealPlan |> Ash.Query.load(:recipe)
+      )
+
+    prev_week_plans =
+      Enum.filter(all_meal_plans, fn mp ->
+        Date.compare(mp.scheduled_date, prev_week_start) in [:eq, :gt] and
+          Date.compare(mp.scheduled_date, prev_week_end) in [:eq, :lt]
+      end)
+
+    if Enum.empty?(prev_week_plans) do
+      {:noreply, put_flash(socket, :error, "No meals found in previous week to copy")}
+    else
+      # Copy each meal plan to the current week (shift dates by 7 days)
+      results =
+        Enum.map(prev_week_plans, fn mp ->
+          new_date = Date.add(mp.scheduled_date, 7)
+
+          GroceryPlanner.MealPlanning.create_meal_plan(
+            socket.assigns.current_account.id,
+            %{
+              recipe_id: mp.recipe_id,
+              scheduled_date: new_date,
+              meal_type: mp.meal_type,
+              servings: mp.servings,
+              notes: mp.notes
+            },
+            actor: socket.assigns.current_user,
+            tenant: socket.assigns.current_account.id
+          )
+        end)
+
+      successful = Enum.count(results, fn r -> match?({:ok, _}, r) end)
+
+      socket =
+        socket
+        |> load_meal_plans()
+        |> put_flash(
+          :info,
+          "#{successful} meal#{if successful != 1, do: "s", else: ""} copied from last week"
+        )
+
+      {:noreply, socket}
+    end
+  end
+
+  def handle_event("clear_week", _params, socket) do
+    # Delete all meal plans for the current week
+    results =
+      Enum.map(socket.assigns.meal_plans, fn mp ->
+        GroceryPlanner.MealPlanning.destroy_meal_plan(mp,
+          actor: socket.assigns.current_user,
+          tenant: socket.assigns.current_account.id
+        )
+      end)
+
+    deleted = Enum.count(results, fn r -> r == :ok end)
+
+    socket =
+      socket
+      |> load_meal_plans()
+      |> put_flash(:info, "#{deleted} meal#{if deleted != 1, do: "s", else: ""} removed")
+
+    {:noreply, socket}
+  end
+
   defp load_meal_plans(socket) do
     week_start = socket.assigns.week_start
     week_end = Date.add(week_start, 6)

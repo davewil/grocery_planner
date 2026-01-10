@@ -46,6 +46,29 @@
         )}
       </p>
     </div>
+    
+<!-- Bulk Actions (only show on week view) -->
+    <%= if is_nil(@selected_day) do %>
+      <div class="mb-6 flex flex-wrap gap-2 justify-center">
+        <button
+          phx-click="copy_from_last_week"
+          class="btn btn-ghost btn-sm"
+          title="Copy all meals from the previous week"
+        >
+          <.icon name="hero-document-duplicate" class="w-4 h-4" /> Copy from Last Week
+        </button>
+        <%= if length(@meal_plans) > 0 do %>
+          <button
+            phx-click="clear_week"
+            data-confirm="Are you sure you want to remove all meals from this week?"
+            class="btn btn-ghost btn-sm text-error"
+            title="Remove all meals from this week"
+          >
+            <.icon name="hero-trash" class="w-4 h-4" /> Clear Week
+          </button>
+        <% end %>
+      </div>
+    <% end %>
 
     <%= if @selected_day do %>
       <div class="mb-4">
