@@ -9,6 +9,9 @@ defmodule GroceryPlannerWeb.MealPlannerLiveTest do
 
     {:ok, user} = GroceryPlanner.Accounts.User.update(user, %{meal_planner_layout: "focus"})
 
+    today = Date.utc_today()
+    week_start = Date.add(today, -(Date.day_of_week(today) - 1))
+
     conn =
       build_conn()
       |> init_test_session(%{
@@ -16,7 +19,7 @@ defmodule GroceryPlannerWeb.MealPlannerLiveTest do
         account_id: account.id
       })
 
-    %{conn: conn, account: account, user: user}
+    %{conn: conn, account: account, user: user, week_start: week_start}
   end
 
   describe "mount and navigation" do
@@ -73,11 +76,28 @@ defmodule GroceryPlannerWeb.MealPlannerLiveTest do
   end
 
   describe "viewing meals" do
-    test "displays meals for the week", %{conn: conn, account: account, user: user} do
+    setup %{conn: conn, week_start: week_start} do
+      {:ok, view, _html} = live(conn, "/meal-planner")
+
+      view
+      |> element("#meal-planner-layout-focus")
+      |> render_click()
+
+      view
+      |> element("#focus-day-#{week_start}")
+      |> render_click()
+
+      %{view: view}
+    end
+
+    test "displays meals for the week", %{
+      view: view,
+      account: account,
+      user: user,
+      week_start: week_start
+    } do
       recipe = create_recipe(account, user, %{name: "Test Meal"})
 
-      today = Date.utc_today()
-      week_start = Date.add(today, -(Date.day_of_week(today) - 1))
       tuesday = Date.add(week_start, 1)
 
       create_meal_plan(account, user, recipe, %{
@@ -86,17 +106,33 @@ defmodule GroceryPlannerWeb.MealPlannerLiveTest do
         servings: 4
       })
 
-      {:ok, view, html} = live(conn, "/meal-planner")
+      # create meal plan after LV mount; force a data refresh by navigating weeks back/forward
+      view
+      |> element("button[phx-click='next_week']")
+      |> render_click()
+
+      view
+      |> element("button[phx-click='prev_week']")
+      |> render_click()
+
+      view
+      |> element("#focus-day-#{tuesday}")
+      |> render_click()
+
+      html = render(view)
 
       assert html =~ "Test Meal"
-      assert has_element?(view, "button[phx-click='select_day'][phx-value-date='#{tuesday}']")
+      assert has_element?(view, "#focus-day-#{tuesday}")
     end
 
-    test "selecting a day shows meal details", %{conn: conn, account: account, user: user} do
+    test "selecting a day shows meal details", %{
+      view: view,
+      account: account,
+      user: user,
+      week_start: week_start
+    } do
       recipe = create_recipe(account, user, %{name: "Breakfast Delight"})
 
-      today = Date.utc_today()
-      week_start = Date.add(today, -(Date.day_of_week(today) - 1))
       tuesday = Date.add(week_start, 1)
 
       create_meal_plan(account, user, recipe, %{
@@ -105,14 +141,23 @@ defmodule GroceryPlannerWeb.MealPlannerLiveTest do
         servings: 6
       })
 
-      {:ok, view, _html} = live(conn, "/meal-planner")
+      view
+      |> element("#focus-day-#{tuesday}")
+      |> render_click()
+
+      view
+      |> element("button[phx-click='next_week']")
+      |> render_click()
+
+      view
+      |> element("button[phx-click='prev_week']")
+      |> render_click()
 
       html =
         view
-        |> element("button[phx-click='select_day'][phx-value-date='#{tuesday}']")
+        |> element("#focus-day-#{tuesday}")
         |> render_click()
 
-      assert html =~ "Tuesday"
       assert html =~ "Breakfast Delight"
       assert html =~ "6 servings"
       assert has_element?(view, "button[phx-click='edit_meal']")
@@ -121,11 +166,28 @@ defmodule GroceryPlannerWeb.MealPlannerLiveTest do
   end
 
   describe "editing meals" do
-    test "opens edit modal when clicking edit button", %{conn: conn, account: account, user: user} do
+    setup %{conn: conn, week_start: week_start} do
+      {:ok, view, _html} = live(conn, "/meal-planner")
+
+      view
+      |> element("#meal-planner-layout-focus")
+      |> render_click()
+
+      view
+      |> element("#focus-day-#{week_start}")
+      |> render_click()
+
+      %{view: view}
+    end
+
+    test "opens edit modal when clicking edit button", %{
+      view: view,
+      account: account,
+      user: user,
+      week_start: week_start
+    } do
       recipe = create_recipe(account, user, %{name: "Pasta Carbonara"})
 
-      today = Date.utc_today()
-      week_start = Date.add(today, -(Date.day_of_week(today) - 1))
       tuesday = Date.add(week_start, 1)
 
       meal_plan =
@@ -135,15 +197,25 @@ defmodule GroceryPlannerWeb.MealPlannerLiveTest do
           servings: 4
         })
 
-      {:ok, view, _html} = live(conn, "/meal-planner")
+      view
+      |> element("#focus-day-#{tuesday}")
+      |> render_click()
 
       view
-      |> element("button[phx-click='select_day'][phx-value-date='#{tuesday}']")
+      |> element("button[phx-click='next_week']")
+      |> render_click()
+
+      view
+      |> element("button[phx-click='prev_week']")
+      |> render_click()
+
+      view
+      |> element("#focus-day-#{tuesday}")
       |> render_click()
 
       html =
         view
-        |> element("button[phx-click='edit_meal'][phx-value-id='#{meal_plan.id}']")
+        |> element("#focus-meal-#{meal_plan.id} button[phx-click='edit_meal']")
         |> render_click()
 
       assert html =~ "Edit Meal"
@@ -155,14 +227,13 @@ defmodule GroceryPlannerWeb.MealPlannerLiveTest do
     end
 
     test "edit modal displays current servings value", %{
-      conn: conn,
+      view: view,
       account: account,
-      user: user
+      user: user,
+      week_start: week_start
     } do
       recipe = create_recipe(account, user, %{name: "Chicken Curry"})
 
-      today = Date.utc_today()
-      week_start = Date.add(today, -(Date.day_of_week(today) - 1))
       tuesday = Date.add(week_start, 1)
 
       meal_plan =
@@ -172,24 +243,49 @@ defmodule GroceryPlannerWeb.MealPlannerLiveTest do
           servings: 8
         })
 
-      {:ok, view, _html} = live(conn, "/meal-planner")
-
       view
-      |> element("button[phx-click='select_day'][phx-value-date='#{tuesday}']")
+      |> element("#focus-day-#{tuesday}")
       |> render_click()
 
       view
-      |> element("button[phx-click='edit_meal'][phx-value-id='#{meal_plan.id}']")
+      |> element("button[phx-click='next_week']")
+      |> render_click()
+
+      view
+      |> element("button[phx-click='prev_week']")
+      |> render_click()
+
+      view
+      |> element("#focus-day-#{tuesday}")
+      |> render_click()
+
+      view
+      |> element("button[phx-click='next_week']")
+      |> render_click()
+
+      view
+      |> element("button[phx-click='prev_week']")
+      |> render_click()
+
+      view
+      |> element("#focus-day-#{tuesday}")
+      |> render_click()
+
+      view
+      |> element("#focus-meal-#{meal_plan.id} button[phx-click='edit_meal']")
       |> render_click()
 
       assert has_element?(view, "#edit-servings[value='8']")
     end
 
-    test "edit modal displays current notes value", %{conn: conn, account: account, user: user} do
+    test "edit modal displays current notes value", %{
+      view: view,
+      account: account,
+      user: user,
+      week_start: week_start
+    } do
       recipe = create_recipe(account, user, %{name: "Vegetable Stir Fry"})
 
-      today = Date.utc_today()
-      week_start = Date.add(today, -(Date.day_of_week(today) - 1))
       tuesday = Date.add(week_start, 1)
 
       meal_plan =
@@ -200,25 +296,38 @@ defmodule GroceryPlannerWeb.MealPlannerLiveTest do
           notes: "Extra spicy please"
         })
 
-      {:ok, view, _html} = live(conn, "/meal-planner")
+      view
+      |> element("#focus-day-#{tuesday}")
+      |> render_click()
 
       view
-      |> element("button[phx-click='select_day'][phx-value-date='#{tuesday}']")
+      |> element("button[phx-click='next_week']")
+      |> render_click()
+
+      view
+      |> element("button[phx-click='prev_week']")
+      |> render_click()
+
+      view
+      |> element("#focus-day-#{tuesday}")
       |> render_click()
 
       html =
         view
-        |> element("button[phx-click='edit_meal'][phx-value-id='#{meal_plan.id}']")
+        |> element("#focus-meal-#{meal_plan.id} button[phx-click='edit_meal']")
         |> render_click()
 
       assert html =~ "Extra spicy please"
     end
 
-    test "updates meal servings successfully", %{conn: conn, account: account, user: user} do
+    test "updates meal servings successfully", %{
+      view: view,
+      account: account,
+      user: user,
+      week_start: week_start
+    } do
       recipe = create_recipe(account, user, %{name: "Salmon Teriyaki"})
 
-      today = Date.utc_today()
-      week_start = Date.add(today, -(Date.day_of_week(today) - 1))
       tuesday = Date.add(week_start, 1)
 
       meal_plan =
@@ -228,14 +337,24 @@ defmodule GroceryPlannerWeb.MealPlannerLiveTest do
           servings: 4
         })
 
-      {:ok, view, _html} = live(conn, "/meal-planner")
-
       view
-      |> element("button[phx-click='select_day'][phx-value-date='#{tuesday}']")
+      |> element("#focus-day-#{tuesday}")
       |> render_click()
 
       view
-      |> element("button[phx-click='edit_meal'][phx-value-id='#{meal_plan.id}']")
+      |> element("button[phx-click='next_week']")
+      |> render_click()
+
+      view
+      |> element("button[phx-click='prev_week']")
+      |> render_click()
+
+      view
+      |> element("#focus-day-#{tuesday}")
+      |> render_click()
+
+      view
+      |> element("#focus-meal-#{meal_plan.id} button[phx-click='edit_meal']")
       |> render_click()
 
       html =
@@ -255,11 +374,14 @@ defmodule GroceryPlannerWeb.MealPlannerLiveTest do
       assert updated_meal_plan.servings == 8
     end
 
-    test "updates meal notes successfully", %{conn: conn, account: account, user: user} do
+    test "updates meal notes successfully", %{
+      view: view,
+      account: account,
+      user: user,
+      week_start: week_start
+    } do
       recipe = create_recipe(account, user, %{name: "Beef Tacos"})
 
-      today = Date.utc_today()
-      week_start = Date.add(today, -(Date.day_of_week(today) - 1))
       tuesday = Date.add(week_start, 1)
 
       meal_plan =
@@ -269,14 +391,24 @@ defmodule GroceryPlannerWeb.MealPlannerLiveTest do
           servings: 4
         })
 
-      {:ok, view, _html} = live(conn, "/meal-planner")
-
       view
-      |> element("button[phx-click='select_day'][phx-value-date='#{tuesday}']")
+      |> element("#focus-day-#{tuesday}")
       |> render_click()
 
       view
-      |> element("button[phx-click='edit_meal'][phx-value-id='#{meal_plan.id}']")
+      |> element("button[phx-click='next_week']")
+      |> render_click()
+
+      view
+      |> element("button[phx-click='prev_week']")
+      |> render_click()
+
+      view
+      |> element("#focus-day-#{tuesday}")
+      |> render_click()
+
+      view
+      |> element("#focus-meal-#{meal_plan.id} button[phx-click='edit_meal']")
       |> render_click()
 
       html =
@@ -295,11 +427,14 @@ defmodule GroceryPlannerWeb.MealPlannerLiveTest do
       assert updated_meal_plan.notes == "Add extra cheese"
     end
 
-    test "updates both servings and notes together", %{conn: conn, account: account, user: user} do
+    test "updates both servings and notes together", %{
+      view: view,
+      account: account,
+      user: user,
+      week_start: week_start
+    } do
       recipe = create_recipe(account, user, %{name: "Greek Salad"})
 
-      today = Date.utc_today()
-      week_start = Date.add(today, -(Date.day_of_week(today) - 1))
       tuesday = Date.add(week_start, 1)
 
       meal_plan =
@@ -309,14 +444,24 @@ defmodule GroceryPlannerWeb.MealPlannerLiveTest do
           servings: 2
         })
 
-      {:ok, view, _html} = live(conn, "/meal-planner")
-
       view
-      |> element("button[phx-click='select_day'][phx-value-date='#{tuesday}']")
+      |> element("#focus-day-#{tuesday}")
       |> render_click()
 
       view
-      |> element("button[phx-click='edit_meal'][phx-value-id='#{meal_plan.id}']")
+      |> element("button[phx-click='next_week']")
+      |> render_click()
+
+      view
+      |> element("button[phx-click='prev_week']")
+      |> render_click()
+
+      view
+      |> element("#focus-day-#{tuesday}")
+      |> render_click()
+
+      view
+      |> element("#focus-meal-#{meal_plan.id} button[phx-click='edit_meal']")
       |> render_click()
 
       html =
@@ -337,11 +482,14 @@ defmodule GroceryPlannerWeb.MealPlannerLiveTest do
       assert updated_meal_plan.notes == "Make it large portions"
     end
 
-    test "closes modal after successful update", %{conn: conn, account: account, user: user} do
+    test "closes modal after successful update", %{
+      view: view,
+      account: account,
+      user: user,
+      week_start: week_start
+    } do
       recipe = create_recipe(account, user, %{name: "Pizza Margherita"})
 
-      today = Date.utc_today()
-      week_start = Date.add(today, -(Date.day_of_week(today) - 1))
       tuesday = Date.add(week_start, 1)
 
       meal_plan =
@@ -351,14 +499,24 @@ defmodule GroceryPlannerWeb.MealPlannerLiveTest do
           servings: 4
         })
 
-      {:ok, view, _html} = live(conn, "/meal-planner")
-
       view
-      |> element("button[phx-click='select_day'][phx-value-date='#{tuesday}']")
+      |> element("#focus-day-#{tuesday}")
       |> render_click()
 
       view
-      |> element("button[phx-click='edit_meal'][phx-value-id='#{meal_plan.id}']")
+      |> element("button[phx-click='next_week']")
+      |> render_click()
+
+      view
+      |> element("button[phx-click='prev_week']")
+      |> render_click()
+
+      view
+      |> element("#focus-day-#{tuesday}")
+      |> render_click()
+
+      view
+      |> element("#focus-meal-#{meal_plan.id} button[phx-click='edit_meal']")
       |> render_click()
 
       assert has_element?(view, "#edit-meal-modal-backdrop")
@@ -371,14 +529,13 @@ defmodule GroceryPlannerWeb.MealPlannerLiveTest do
     end
 
     test "closes modal when clicking cancel button", %{
-      conn: conn,
+      view: view,
       account: account,
-      user: user
+      user: user,
+      week_start: week_start
     } do
       recipe = create_recipe(account, user, %{name: "Mushroom Risotto"})
 
-      today = Date.utc_today()
-      week_start = Date.add(today, -(Date.day_of_week(today) - 1))
       tuesday = Date.add(week_start, 1)
 
       meal_plan =
@@ -388,14 +545,24 @@ defmodule GroceryPlannerWeb.MealPlannerLiveTest do
           servings: 4
         })
 
-      {:ok, view, _html} = live(conn, "/meal-planner")
-
       view
-      |> element("button[phx-click='select_day'][phx-value-date='#{tuesday}']")
+      |> element("#focus-day-#{tuesday}")
       |> render_click()
 
       view
-      |> element("button[phx-click='edit_meal'][phx-value-id='#{meal_plan.id}']")
+      |> element("button[phx-click='next_week']")
+      |> render_click()
+
+      view
+      |> element("button[phx-click='prev_week']")
+      |> render_click()
+
+      view
+      |> element("#focus-day-#{tuesday}")
+      |> render_click()
+
+      view
+      |> element("#focus-meal-#{meal_plan.id} button[phx-click='edit_meal']")
       |> render_click()
 
       assert has_element?(view, "#edit-meal-modal-backdrop")
@@ -408,31 +575,39 @@ defmodule GroceryPlannerWeb.MealPlannerLiveTest do
     end
 
     test "validates servings is a positive number", %{
-      conn: conn,
+      view: view,
       account: account,
-      user: user
+      user: user,
+      week_start: week_start
     } do
       recipe = create_recipe(account, user, %{name: "Chocolate Cake"})
 
-      today = Date.utc_today()
-      week_start = Date.add(today, -(Date.day_of_week(today) - 1))
       tuesday = Date.add(week_start, 1)
 
-      meal_plan =
-        create_meal_plan(account, user, recipe, %{
-          scheduled_date: tuesday,
-          meal_type: :snack,
-          servings: 4
-        })
-
-      {:ok, view, _html} = live(conn, "/meal-planner")
+      create_meal_plan(account, user, recipe, %{
+        scheduled_date: tuesday,
+        meal_type: :snack,
+        servings: 4
+      })
 
       view
-      |> element("button[phx-click='select_day'][phx-value-date='#{tuesday}']")
+      |> element("#focus-day-#{tuesday}")
       |> render_click()
 
       view
-      |> element("button[phx-click='edit_meal'][phx-value-id='#{meal_plan.id}']")
+      |> element("button[phx-click='next_week']")
+      |> render_click()
+
+      view
+      |> element("button[phx-click='prev_week']")
+      |> render_click()
+
+      view
+      |> element("#focus-day-#{tuesday}")
+      |> render_click()
+
+      view
+      |> element("button[phx-click='edit_meal']")
       |> render_click()
 
       assert has_element?(view, "#edit-servings[min='1']")
@@ -441,11 +616,28 @@ defmodule GroceryPlannerWeb.MealPlannerLiveTest do
   end
 
   describe "removing meals" do
-    test "removes meal when clicking remove button", %{conn: conn, account: account, user: user} do
+    setup %{conn: conn, week_start: week_start} do
+      {:ok, view, _html} = live(conn, "/meal-planner")
+
+      view
+      |> element("#meal-planner-layout-focus")
+      |> render_click()
+
+      view
+      |> element("#focus-day-#{week_start}")
+      |> render_click()
+
+      %{view: view}
+    end
+
+    test "removes meal when clicking remove button", %{
+      view: view,
+      account: account,
+      user: user,
+      week_start: week_start
+    } do
       recipe = create_recipe(account, user, %{name: "Burger and Fries"})
 
-      today = Date.utc_today()
-      week_start = Date.add(today, -(Date.day_of_week(today) - 1))
       tuesday = Date.add(week_start, 1)
 
       meal_plan =
@@ -455,15 +647,29 @@ defmodule GroceryPlannerWeb.MealPlannerLiveTest do
           servings: 2
         })
 
-      {:ok, view, _html} = live(conn, "/meal-planner")
+      view
+      |> element("#focus-day-#{tuesday}")
+      |> render_click()
 
       view
-      |> element("button[phx-click='select_day'][phx-value-date='#{tuesday}']")
+      |> element("#focus-day-#{tuesday}")
+      |> render_click()
+
+      view
+      |> element("button[phx-click='next_week']")
+      |> render_click()
+
+      view
+      |> element("button[phx-click='prev_week']")
+      |> render_click()
+
+      view
+      |> element("#focus-day-#{tuesday}")
       |> render_click()
 
       html =
         view
-        |> element("button[phx-click='remove_meal'][phx-value-id='#{meal_plan.id}']")
+        |> element("#focus-meal-#{meal_plan.id} button[phx-click='remove_meal']")
         |> render_click()
 
       assert html =~ "Meal removed"
@@ -472,8 +678,18 @@ defmodule GroceryPlannerWeb.MealPlannerLiveTest do
   end
 
   describe "chain suggestion" do
+    setup %{conn: conn} do
+      {:ok, view, _html} = live(conn, "/meal-planner")
+
+      view
+      |> element("#meal-planner-layout-explorer")
+      |> render_click()
+
+      %{view: view}
+    end
+
     test "shows chain suggestion modal after adding a base recipe", %{
-      conn: conn,
+      view: view,
       account: account,
       user: user
     } do
@@ -490,16 +706,8 @@ defmodule GroceryPlannerWeb.MealPlannerLiveTest do
       week_start = Date.add(today, -(Date.day_of_week(today) - 1))
       tuesday = Date.add(week_start, 1)
 
-      {:ok, view, _html} = live(conn, "/meal-planner")
-
       view
-      |> element("button[phx-click='select_day'][phx-value-date='#{tuesday}']")
-      |> render_click()
-
-      view
-      |> element(
-        "button[phx-click='explorer_open_recipe_picker'][phx-value-date='#{tuesday}'][phx-value-meal_type='lunch']"
-      )
+      |> element("#explorer-slot-#{tuesday}-lunch")
       |> render_click()
 
       html =
@@ -514,7 +722,7 @@ defmodule GroceryPlannerWeb.MealPlannerLiveTest do
     end
 
     test "does not show chain suggestion modal if all candidate slots are occupied", %{
-      conn: conn,
+      view: view,
       account: account,
       user: user
     } do
@@ -551,16 +759,8 @@ defmodule GroceryPlannerWeb.MealPlannerLiveTest do
         servings: 2
       })
 
-      {:ok, view, _html} = live(conn, "/meal-planner")
-
       view
-      |> element("button[phx-click='select_day'][phx-value-date='#{tuesday}']")
-      |> render_click()
-
-      view
-      |> element(
-        "button[phx-click='explorer_open_recipe_picker'][phx-value-date='#{tuesday}'][phx-value-meal_type='lunch']"
-      )
+      |> element("#explorer-slot-#{tuesday}-lunch")
       |> render_click()
 
       html =
@@ -573,7 +773,7 @@ defmodule GroceryPlannerWeb.MealPlannerLiveTest do
     end
 
     test "accepting chain suggestion creates follow-up meal plan", %{
-      conn: conn,
+      view: view,
       account: account,
       user: user
     } do
@@ -590,16 +790,8 @@ defmodule GroceryPlannerWeb.MealPlannerLiveTest do
       week_start = Date.add(today, -(Date.day_of_week(today) - 1))
       tuesday = Date.add(week_start, 1)
 
-      {:ok, view, _html} = live(conn, "/meal-planner")
-
       view
-      |> element("button[phx-click='select_day'][phx-value-date='#{tuesday}']")
-      |> render_click()
-
-      view
-      |> element(
-        "button[phx-click='explorer_open_recipe_picker'][phx-value-date='#{tuesday}'][phx-value-meal_type='lunch']"
-      )
+      |> element("#explorer-slot-#{tuesday}-lunch")
       |> render_click()
 
       view

@@ -57,10 +57,17 @@ defmodule GroceryPlannerWeb.MealPlannerLive do
            meal_planner_layout: layout
          }) do
       {:ok, user} ->
+        selected_day =
+          case layout do
+            "focus" -> socket.assigns.selected_day || Date.utc_today()
+            _ -> nil
+          end
+
         socket =
           socket
           |> assign(:current_user, user)
           |> assign(:meal_planner_layout, layout)
+          |> assign(:selected_day, selected_day)
           |> maybe_load_explorer_recipes()
 
         {:noreply, socket}
@@ -73,6 +80,25 @@ defmodule GroceryPlannerWeb.MealPlannerLive do
   def handle_event("select_day", %{"date" => date_str}, socket) do
     date = Date.from_iso8601!(date_str)
     {:noreply, assign(socket, :selected_day, date)}
+  end
+
+  def handle_event("focus_select_day", %{"date" => date_str}, socket) do
+    date = Date.from_iso8601!(date_str)
+    {:noreply, assign(socket, :selected_day, date)}
+  end
+
+  def handle_event("focus_prev_day", _params, socket) do
+    date = (socket.assigns.selected_day || Date.utc_today()) |> Date.add(-1)
+    {:noreply, assign(socket, :selected_day, date)}
+  end
+
+  def handle_event("focus_next_day", _params, socket) do
+    date = (socket.assigns.selected_day || Date.utc_today()) |> Date.add(1)
+    {:noreply, assign(socket, :selected_day, date)}
+  end
+
+  def handle_event("focus_today", _params, socket) do
+    {:noreply, assign(socket, :selected_day, Date.utc_today())}
   end
 
   def handle_event("back_to_week", _params, socket) do
