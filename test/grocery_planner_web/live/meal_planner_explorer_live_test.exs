@@ -21,7 +21,7 @@ defmodule GroceryPlannerWeb.MealPlannerExplorerLiveTest do
   end
 
   test "renders explorer timeline and recipe feed", %{conn: conn, account: account, user: user} do
-    create_recipe(account, user, %{name: "Explorer Test Recipe"})
+    recipe = create_recipe(account, user, %{name: "Explorer Test Recipe", is_favorite: true})
 
     {:ok, view, html} = live(conn, "/meal-planner")
 
@@ -32,7 +32,8 @@ defmodule GroceryPlannerWeb.MealPlannerExplorerLiveTest do
     assert has_element?(view, "#explorer-feed")
     assert has_element?(view, "#explorer-recipe-search")
 
-    assert html =~ "Explorer Test Recipe"
+    assert has_element?(view, "#explorer-favorites")
+    assert has_element?(view, "#explorer-favorite-add-#{recipe.id}")
   end
 
   test "quick add opens slot picker", %{conn: conn, account: account, user: user} do

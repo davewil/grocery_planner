@@ -37,6 +37,8 @@ defmodule GroceryPlannerWeb.MealPlannerLive do
       |> assign(:explorer_filter, "")
       |> assign(:explorer_difficulty, "")
       |> assign(:explorer_recipes, [])
+      |> assign(:explorer_favorite_recipes, [])
+      |> assign(:explorer_recent_recipes, [])
       |> assign(:show_explorer_slot_picker, false)
       |> assign(:explorer_picking_recipe, nil)
       |> assign(:explorer_selected_slot, nil)
@@ -709,9 +711,26 @@ defmodule GroceryPlannerWeb.MealPlannerLive do
       |> maybe_filter_by_search(search_term)
       |> maybe_apply_explorer_filter(filter)
       |> maybe_filter_by_difficulty(difficulty)
+
+    {favorite_recipes, other_recipes} =
+      Enum.split_with(recipes, & &1.is_favorite)
+
+    recent_ids = recent_recipe_ids_for_week(socket.assigns.meal_plans)
+
+    recent_recipes =
+      recipes
+      |> Enum.filter(&(&1.id in recent_ids))
+      |> Enum.sort_by(&Enum.find_index(recent_ids, fn id -> id == &1.id end))
+
+    other_recipes =
+      other_recipes
+      |> Enum.reject(&(&1.id in recent_ids))
       |> Enum.take(24)
 
-    assign(socket, :explorer_recipes, recipes)
+    socket
+    |> assign(:explorer_favorite_recipes, Enum.take(favorite_recipes, 12))
+    |> assign(:explorer_recent_recipes, Enum.take(recent_recipes, 12))
+    |> assign(:explorer_recipes, other_recipes)
   end
 
   defp maybe_filter_by_search(recipes, ""), do: recipes
@@ -745,6 +764,13 @@ defmodule GroceryPlannerWeb.MealPlannerLive do
   end
 
   defp maybe_filter_by_difficulty(recipes, _), do: recipes
+
+  defp recent_recipe_ids_for_week(meal_plans) do
+    meal_plans
+    |> Enum.sort_by(& &1.scheduled_date, Date)
+    |> Enum.map(& &1.recipe_id)
+    |> Enum.uniq()
+  end
 
   defp get_week_start(date) do
     day_of_week = Date.day_of_week(date)
