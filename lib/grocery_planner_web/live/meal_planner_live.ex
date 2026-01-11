@@ -684,6 +684,37 @@ defmodule GroceryPlannerWeb.MealPlannerLive do
     {:noreply, close_chain_suggestion_modal(socket)}
   end
 
+  def handle_event("move_meal", %{"id" => meal_plan_id, "direction" => direction}, socket)
+      when direction in ["prev", "next"] do
+    date_delta = if(direction == "prev", do: -1, else: 1)
+
+    with {:ok, meal_plan} <-
+           GroceryPlanner.MealPlanning.get_meal_plan(
+             meal_plan_id,
+             actor: socket.assigns.current_user,
+             tenant: socket.assigns.current_account.id,
+             load: [:recipe]
+           ),
+         {:ok, updated} <-
+           GroceryPlanner.MealPlanning.update_meal_plan(
+             meal_plan,
+             %{scheduled_date: Date.add(meal_plan.scheduled_date, date_delta)},
+             actor: socket.assigns.current_user,
+             tenant: socket.assigns.current_account.id
+           ) do
+      socket =
+        socket
+        |> assign(:explorer_undo, %{action: :add_meal, meal_plan_id: updated.id})
+        |> load_meal_plans()
+        |> put_flash(:info, "Meal moved")
+
+      {:noreply, socket}
+    else
+      _ ->
+        {:noreply, put_flash(socket, :error, "Failed to move meal")}
+    end
+  end
+
   def handle_event("explorer_undo", _params, socket) do
     case socket.assigns.explorer_undo do
       %{action: :add_meal, meal_plan_id: id} ->
