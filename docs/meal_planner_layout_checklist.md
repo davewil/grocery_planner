@@ -97,18 +97,28 @@ Legend:
 
 ### 3.1 Layout
 - [x] Desktop/tablet Kanban grid (columns=days, cards=meals)
-- [ ] Drag/drop meals across days + reorder within day
-- [ ] Mobile simplified pager (one day visible) with reorder
+- [x] Drag/drop meals across days + reorder within day
+- [~] Mobile simplified pager (one day visible) with reorder
+  - [x] Horizontal scroll kanban on mobile (alternative approach)
+  - [ ] Single-day pager view (deferred)
 
 ### 3.2 Components
-- [ ] Visible drop zones and highlights
-- [ ] Recipe picker drawer (desktop slide-over / mobile bottom sheet)
-- [ ] Command bar: auto-fill week / clear week / copy last week
+- [x] Visible drop zones and highlights
+- [x] Recipe picker drawer (desktop slide-over / mobile bottom sheet)
+  - [x] Collapsible sidebar with search, favorites, recent
+  - [x] Drag recipes from sidebar to board
+- [x] Command bar: auto-fill week / clear week / copy last week
+  - [x] Clear week with confirmation
+  - [x] Copy last week
+  - [x] Auto-fill week (pantry-optimized)
+  - [x] Multi-select meals + delete selected
 
 ### 3.3 Micro-interactions
-- [ ] Drag lift + drop highlight
+- [x] Drag lift + drop highlight (SortableJS)
+- [x] Swap confirmation modal when dropping on occupied slot
 - [ ] Grocery delta feedback when moving meals (+/- items)
 - [x] Undo toast after destructive actions
+- [x] Keyboard shortcuts (Ctrl+Z undo, Delete selected, etc.)
 
 ---
 

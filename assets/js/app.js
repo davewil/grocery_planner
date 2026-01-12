@@ -27,6 +27,7 @@ import { SwipeableMeal } from "./hooks/swipeable_meal"
 import { SwipeableWeek } from "./hooks/swipeable_week"
 import { FocusInput } from "./hooks/focus_input"
 import { LongPress } from "./hooks/long_press"
+import { KanbanBoard } from "./hooks/kanban_board"
 
 // Theme handling
 // ... (omitted same code)
@@ -41,7 +42,8 @@ let Hooks = {
   SwipeableMeal,
   SwipeableWeek,
   FocusInput,
-  LongPress
+  LongPress,
+  KanbanBoard
 };
 Hooks.ThemeChange = {
   mounted() {

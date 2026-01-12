@@ -381,6 +381,415 @@ defmodule GroceryPlannerWeb.MealPlannerLive do
     end
   end
 
+  # =============================================================================
+  # Power Mode: Drag and Drop Events
+  # =============================================================================
+
+  def handle_event("drag_start", _params, socket) do
+    # Track drag state if needed for visual feedback
+    {:noreply, socket}
+  end
+
+  def handle_event("drag_end", _params, socket) do
+    # Clear drag state
+    {:noreply, socket}
+  end
+
+  def handle_event("drop_meal", params, socket) do
+    %{
+      "meal_id" => meal_id,
+      "target_date" => target_date_str,
+      "target_meal_type" => target_type_str
+    } =
+      params
+
+    target_date = Date.from_iso8601!(target_date_str)
+    target_meal_type = String.to_existing_atom(target_type_str)
+
+    case GroceryPlanner.MealPlanning.get_meal_plan(meal_id,
+           actor: socket.assigns.current_user,
+           tenant: socket.assigns.current_account.id,
+           load: [:recipe]
+         ) do
+      {:ok, meal_plan} ->
+        old_state = %{
+          date: meal_plan.scheduled_date,
+          meal_type: meal_plan.meal_type
+        }
+
+        case GroceryPlanner.MealPlanning.update_meal_plan(
+               meal_plan,
+               %{scheduled_date: target_date, meal_type: target_meal_type},
+               actor: socket.assigns.current_user
+             ) do
+          {:ok, _updated} ->
+            undo_system =
+              UndoSystem.push_undo(
+                socket.assigns.undo_system,
+                UndoActions.move_meal(meal_id, old_state, %{
+                  date: target_date,
+                  meal_type: target_meal_type
+                }),
+                "Meal moved"
+              )
+
+            socket =
+              socket
+              |> assign(:undo_system, undo_system)
+              |> DataLoader.load_week_meals()
+              |> maybe_refresh_layout()
+
+            {:noreply, socket}
+
+          {:error, _} ->
+            {:noreply, put_flash(socket, :error, "Failed to move meal")}
+        end
+
+      {:error, _} ->
+        {:noreply, put_flash(socket, :error, "Meal not found")}
+    end
+  end
+
+  def handle_event("drop_recipe", params, socket) do
+    %{
+      "recipe_id" => recipe_id,
+      "target_date" => target_date_str,
+      "target_meal_type" => target_type_str
+    } =
+      params
+
+    target_date = Date.from_iso8601!(target_date_str)
+    target_meal_type = String.to_existing_atom(target_type_str)
+
+    # Create a new meal plan from the dropped recipe
+    result =
+      GroceryPlanner.MealPlanning.create_meal_plan(
+        socket.assigns.current_account.id,
+        %{
+          recipe_id: recipe_id,
+          scheduled_date: target_date,
+          meal_type: target_meal_type,
+          servings: 4
+        },
+        actor: socket.assigns.current_user,
+        tenant: socket.assigns.current_account.id
+      )
+
+    case result do
+      {:ok, meal_plan} ->
+        undo_system =
+          UndoSystem.push_undo(
+            socket.assigns.undo_system,
+            UndoActions.create_meal(meal_plan.id),
+            "Meal added from sidebar"
+          )
+
+        socket =
+          socket
+          |> assign(:undo_system, undo_system)
+          |> DataLoader.load_week_meals()
+          |> maybe_refresh_layout()
+
+        {:noreply, socket}
+
+      {:error, _} ->
+        {:noreply, put_flash(socket, :error, "Failed to add meal")}
+    end
+  end
+
+  def handle_event("request_swap_confirmation", params, socket) do
+    %{
+      "dragged_meal_id" => dragged_id,
+      "target_meal_id" => target_id,
+      "target_date" => target_date_str,
+      "target_meal_type" => target_type_str
+    } = params
+
+    pending_swap = %{
+      dragged_meal_id: dragged_id,
+      target_meal_id: target_id,
+      target_date: Date.from_iso8601!(target_date_str),
+      target_meal_type: String.to_existing_atom(target_type_str)
+    }
+
+    {:noreply, assign(socket, :pending_swap, pending_swap)}
+  end
+
+  def handle_event("confirm_swap", _params, socket) do
+    %{
+      dragged_meal_id: dragged_id,
+      target_meal_id: target_id
+    } = socket.assigns.pending_swap
+
+    # Get both meals
+    with {:ok, dragged_meal} <-
+           GroceryPlanner.MealPlanning.get_meal_plan(dragged_id,
+             actor: socket.assigns.current_user,
+             tenant: socket.assigns.current_account.id
+           ),
+         {:ok, target_meal} <-
+           GroceryPlanner.MealPlanning.get_meal_plan(target_id,
+             actor: socket.assigns.current_user,
+             tenant: socket.assigns.current_account.id
+           ) do
+      # Swap the positions
+      dragged_old = %{date: dragged_meal.scheduled_date, meal_type: dragged_meal.meal_type}
+      target_old = %{date: target_meal.scheduled_date, meal_type: target_meal.meal_type}
+
+      # Update dragged meal to target position
+      {:ok, _} =
+        GroceryPlanner.MealPlanning.update_meal_plan(
+          dragged_meal,
+          %{scheduled_date: target_old.date, meal_type: target_old.meal_type},
+          actor: socket.assigns.current_user
+        )
+
+      # Update target meal to dragged position
+      {:ok, _} =
+        GroceryPlanner.MealPlanning.update_meal_plan(
+          target_meal,
+          %{scheduled_date: dragged_old.date, meal_type: dragged_old.meal_type},
+          actor: socket.assigns.current_user
+        )
+
+      undo_system =
+        UndoSystem.push_undo(
+          socket.assigns.undo_system,
+          UndoActions.swap_meals(dragged_id, target_id, dragged_old, target_old),
+          "Meals swapped"
+        )
+
+      socket =
+        socket
+        |> assign(:undo_system, undo_system)
+        |> assign(:pending_swap, nil)
+        |> DataLoader.load_week_meals()
+        |> maybe_refresh_layout()
+
+      {:noreply, socket}
+    else
+      _ ->
+        socket =
+          socket
+          |> assign(:pending_swap, nil)
+          |> put_flash(:error, "Failed to swap meals")
+
+        {:noreply, socket}
+    end
+  end
+
+  def handle_event("cancel_swap", _params, socket) do
+    {:noreply, assign(socket, :pending_swap, nil)}
+  end
+
+  # =============================================================================
+  # Power Mode: Sidebar and Selection
+  # =============================================================================
+
+  def handle_event("toggle_sidebar", _params, socket) do
+    {:noreply, assign(socket, :sidebar_open, !socket.assigns[:sidebar_open])}
+  end
+
+  def handle_event("search_sidebar", %{"query" => query}, socket) do
+    {:noreply, assign(socket, :sidebar_search, query)}
+  end
+
+  def handle_event("toggle_meal_selection", %{"meal-id" => meal_id}, socket) do
+    selected = socket.assigns[:selected_meals] || MapSet.new()
+
+    selected =
+      if MapSet.member?(selected, meal_id) do
+        MapSet.delete(selected, meal_id)
+      else
+        MapSet.put(selected, meal_id)
+      end
+
+    {:noreply, assign(socket, :selected_meals, selected)}
+  end
+
+  def handle_event("select_all", _params, socket) do
+    # Select all meals in the current week
+    all_meal_ids =
+      socket.assigns.week_meals
+      |> Map.values()
+      |> Enum.flat_map(&Map.values/1)
+      |> Enum.filter(& &1)
+      |> Enum.map(& &1.id)
+      |> MapSet.new()
+
+    {:noreply, assign(socket, :selected_meals, all_meal_ids)}
+  end
+
+  def handle_event("clear_selection", _params, socket) do
+    {:noreply, assign(socket, :selected_meals, MapSet.new())}
+  end
+
+  def handle_event("delete_selected", _params, socket) do
+    selected = socket.assigns[:selected_meals] || MapSet.new()
+
+    if MapSet.size(selected) == 0 do
+      {:noreply, socket}
+    else
+      # Delete all selected meals
+      Enum.each(selected, fn meal_id ->
+        case GroceryPlanner.MealPlanning.get_meal_plan(meal_id,
+               actor: socket.assigns.current_user,
+               tenant: socket.assigns.current_account.id
+             ) do
+          {:ok, meal_plan} ->
+            GroceryPlanner.MealPlanning.destroy_meal_plan(meal_plan,
+              actor: socket.assigns.current_user
+            )
+
+          _ ->
+            :ok
+        end
+      end)
+
+      socket =
+        socket
+        |> assign(:selected_meals, MapSet.new())
+        |> DataLoader.load_week_meals()
+        |> maybe_refresh_layout()
+        |> put_flash(:info, "#{MapSet.size(selected)} meal(s) deleted")
+
+      {:noreply, socket}
+    end
+  end
+
+  # =============================================================================
+  # Power Mode: Bulk Operations
+  # =============================================================================
+
+  def handle_event("clear_week", _params, socket) do
+    # Get all meals in the week
+    meals =
+      socket.assigns.week_meals
+      |> Map.values()
+      |> Enum.flat_map(&Map.values/1)
+      |> Enum.filter(& &1)
+
+    # Delete all
+    Enum.each(meals, fn meal ->
+      GroceryPlanner.MealPlanning.destroy_meal_plan(meal,
+        actor: socket.assigns.current_user
+      )
+    end)
+
+    socket =
+      socket
+      |> DataLoader.load_week_meals()
+      |> maybe_refresh_layout()
+      |> put_flash(:info, "Week cleared (#{length(meals)} meals removed)")
+
+    {:noreply, socket}
+  end
+
+  def handle_event("copy_last_week", _params, socket) do
+    last_week_start = Date.add(socket.assigns.week_start, -7)
+    last_week_end = Date.add(last_week_start, 6)
+
+    # Load last week's meals
+    {:ok, last_week_meals} =
+      GroceryPlanner.MealPlanning.list_meal_plans_by_date_range(
+        last_week_start,
+        last_week_end,
+        actor: socket.assigns.current_user,
+        tenant: socket.assigns.current_account.id
+      )
+
+    # Create copies for this week
+    created_count =
+      Enum.reduce(last_week_meals, 0, fn meal, count ->
+        new_date = Date.add(meal.scheduled_date, 7)
+
+        case GroceryPlanner.MealPlanning.create_meal_plan(
+               socket.assigns.current_account.id,
+               %{
+                 recipe_id: meal.recipe_id,
+                 scheduled_date: new_date,
+                 meal_type: meal.meal_type,
+                 servings: meal.servings,
+                 notes: meal.notes
+               },
+               actor: socket.assigns.current_user,
+               tenant: socket.assigns.current_account.id
+             ) do
+          {:ok, _} -> count + 1
+          _ -> count
+        end
+      end)
+
+    socket =
+      socket
+      |> DataLoader.load_week_meals()
+      |> maybe_refresh_layout()
+      |> put_flash(:info, "Copied #{created_count} meals from last week")
+
+    {:noreply, socket}
+  end
+
+  def handle_event("auto_fill_week", _params, socket) do
+    # Get empty slots
+    empty_slots =
+      for day <- socket.assigns.days,
+          meal_type <- [:breakfast, :lunch, :dinner],
+          is_nil(get_in(socket.assigns.week_meals, [day, meal_type])),
+          do: {day, meal_type}
+
+    if empty_slots == [] do
+      {:noreply, put_flash(socket, :info, "No empty slots to fill")}
+    else
+      # Get recipes sorted by pantry availability (pantry-optimized)
+      {:ok, recipes} =
+        GroceryPlanner.Recipes.list_recipes_for_meal_planner(
+          actor: socket.assigns.current_user,
+          tenant: socket.assigns.current_account.id
+        )
+
+      # Sort by availability (can_make first, then by ingredient count)
+      sorted_recipes =
+        recipes
+        |> Enum.sort_by(fn r ->
+          {!Map.get(r, :can_make, false), -Map.get(r, :ingredient_availability, 0)}
+        end)
+
+      # Fill slots, avoiding repeats
+      {filled_count, _used_recipes} =
+        Enum.reduce(empty_slots, {0, MapSet.new()}, fn {day, meal_type}, {count, used} ->
+          # Find a recipe not used this week
+          recipe = Enum.find(sorted_recipes, fn r -> !MapSet.member?(used, r.id) end)
+
+          if recipe do
+            case GroceryPlanner.MealPlanning.create_meal_plan(
+                   socket.assigns.current_account.id,
+                   %{
+                     recipe_id: recipe.id,
+                     scheduled_date: day,
+                     meal_type: meal_type,
+                     servings: 4
+                   },
+                   actor: socket.assigns.current_user,
+                   tenant: socket.assigns.current_account.id
+                 ) do
+              {:ok, _} -> {count + 1, MapSet.put(used, recipe.id)}
+              _ -> {count, used}
+            end
+          else
+            {count, used}
+          end
+        end)
+
+      socket =
+        socket
+        |> DataLoader.load_week_meals()
+        |> maybe_refresh_layout()
+        |> put_flash(:info, "Auto-filled #{filled_count} meals (pantry-optimized)")
+
+      {:noreply, socket}
+    end
+  end
+
   def handle_event("generate_shopping_list", _params, socket) do
     start_date = socket.assigns.week_start
     end_date = Date.add(start_date, 6)

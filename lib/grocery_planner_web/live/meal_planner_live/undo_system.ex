@@ -64,6 +64,9 @@ defmodule GroceryPlannerWeb.MealPlannerLive.UndoActions do
   def delete_meal(meal_data), do: {:delete_meal, meal_data}
   def move_meal(meal_id, from, to), do: {:move_meal, meal_id, from, to}
 
+  def swap_meals(meal_a_id, meal_b_id, pos_a, pos_b),
+    do: {:swap_meals, meal_a_id, meal_b_id, pos_a, pos_b}
+
   def update_meal(meal_id, old_attrs, new_attrs),
     do: {:update_meal, meal_id, old_attrs, new_attrs}
 
@@ -97,6 +100,27 @@ defmodule GroceryPlannerWeb.MealPlannerLive.UndoActions do
   def apply_undo({:update_meal, meal_id, old_attrs, _new_attrs}, actor, tenant) do
     with {:ok, meal_plan} <- MealPlanning.get_meal_plan(meal_id, actor: actor, tenant: tenant) do
       MealPlanning.update_meal_plan(meal_plan, old_attrs, actor: actor)
+    end
+  end
+
+  def apply_undo({:swap_meals, meal_a_id, meal_b_id, pos_a, pos_b}, actor, tenant) do
+    # Undo swap by swapping them back to original positions
+    with {:ok, meal_a} <- MealPlanning.get_meal_plan(meal_a_id, actor: actor, tenant: tenant),
+         {:ok, meal_b} <- MealPlanning.get_meal_plan(meal_b_id, actor: actor, tenant: tenant) do
+      # Move meal_a back to pos_a
+      {:ok, _} =
+        MealPlanning.update_meal_plan(
+          meal_a,
+          %{scheduled_date: pos_a.date, meal_type: pos_a.meal_type},
+          actor: actor
+        )
+
+      # Move meal_b back to pos_b
+      MealPlanning.update_meal_plan(
+        meal_b,
+        %{scheduled_date: pos_b.date, meal_type: pos_b.meal_type},
+        actor: actor
+      )
     end
   end
 end
