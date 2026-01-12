@@ -32,16 +32,16 @@ Legend:
 ### 1.1 Layout + information architecture
 - [x] Planner context always present (timeline pane)
 - [x] Recipe discovery feed present (cards)
-- [~] Mobile-first explorer layout
-  - [~] Search available at top of Explorer panel
-  - [ ] Sticky top bar for Explorer on mobile (title + search)
-  - [ ] Collapsible week timeline strip on mobile (compact by default)
-  - [ ] Expands per day on tap
+- [x] Mobile-first explorer layout
+  - [x] Search available at top of Explorer panel
+  - [x] Sticky top bar for Explorer on mobile (title + search)
+  - [x] Collapsible week timeline strip on mobile (compact by default)
+  - [x] Expands per day on tap
 - [x] Desktop two-pane layout (timeline left, recipes right)
 
 ### 1.2 Week timeline strip
 - [ ] Day chips (Mon–Sun) with indicators (planned count/missing dinner dot)
-- [~] Mini agenda with meal slots (breakfast/lunch/dinner/snack)
+- [x] Mini agenda with meal slots (breakfast/lunch/dinner/snack)
 - [x] Empty slot interaction: click/tap selects slot and prompts recipe picking
 - [ ] “Missing dinner” dot indicator logic
 
@@ -78,7 +78,7 @@ Legend:
   - [x] “No recipes found” messaging
   - [x] Clear filters control (top + empty state)
   - [ ] Show “Relax filters” suggestions (suggested chips)
-- [ ] Empty planner slot: show 3 quick picks (inline suggestions)
+- [x] Empty planner slot: show 3 quick picks (inline suggestions)
 
 ---
 

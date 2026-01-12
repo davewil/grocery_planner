@@ -28,10 +28,10 @@ Current meal planning interfaces focus on the calendar grid, requiring users to 
 **So that** I can discover and plan in one flow
 
 **Acceptance Criteria:**
-- [ ] Recipe discovery feed visible alongside week timeline
-- [ ] Timeline shows current week's planned meals
-- [ ] Can scroll through recipes without losing plan context
-- [ ] Works on both mobile and desktop
+- [x] Recipe discovery feed visible alongside week timeline
+- [x] Timeline shows current week's planned meals
+- [x] Can scroll through recipes without losing plan context
+- [x] Works on both mobile and desktop
 
 ### US-002: Quick add from discovery feed
 **As a** user finding an interesting recipe
@@ -39,10 +39,10 @@ Current meal planning interfaces focus on the calendar grid, requiring users to 
 **So that** planning feels effortless
 
 **Acceptance Criteria:**
-- [ ] "Add to Plan" button on each recipe card
-- [ ] Opens slot picker (day + meal type)
-- [ ] Slot picker shows availability at a glance
-- [ ] Success confirmation with undo option
+- [x] "Add to Plan" button on each recipe card
+- [x] Opens slot picker (day + meal type)
+- [x] Slot picker shows availability at a glance
+- [x] Success confirmation with undo option
 - [ ] Animation feedback when recipe is added
 
 ### US-003: Filter recipes by time and availability
@@ -51,10 +51,10 @@ Current meal planning interfaces focus on the calendar grid, requiring users to 
 **So that** I find practical options quickly
 
 **Acceptance Criteria:**
-- [ ] Quick filter chips: "Under 30 min", "Pantry-first"
-- [ ] Difficulty filter
-- [ ] Filters persist during session
-- [ ] Clear all filters option
+- [x] Quick filter chips: "Under 30 min", "Pantry-first"
+- [x] Difficulty filter
+- [x] Filters persist during session
+- [x] Clear all filters option
 - [ ] Show count of matching recipes
 
 ### US-004: See favorites and recently planned
@@ -63,10 +63,10 @@ Current meal planning interfaces focus on the calendar grid, requiring users to 
 **So that** I can reuse tried-and-true meals
 
 **Acceptance Criteria:**
-- [ ] Favorites section at top of feed
-- [ ] Recently planned section (last 2 weeks)
-- [ ] Can collapse/expand these sections
-- [ ] Quick add from these sections
+- [x] Favorites section at top of feed
+- [x] Recently planned section (last 2 weeks)
+- [x] Can collapse/expand these sections
+- [x] Quick add from these sections
 
 ### US-005: Mobile-first timeline interaction
 **As a** mobile user
@@ -74,10 +74,10 @@ Current meal planning interfaces focus on the calendar grid, requiring users to 
 **So that** I have more space for recipe browsing
 
 **Acceptance Criteria:**
-- [ ] Collapsible week strip on mobile
-- [ ] Day chips show planned count/indicators
-- [ ] Tap day to expand and see meal slots
-- [ ] Empty slots are tappable to add meal
+- [x] Collapsible week strip on mobile
+- [x] Day chips show planned count/indicators
+- [x] Tap day to expand and see meal slots
+- [x] Empty slots are tappable to add meal
 
 ## Technical Specification
 
