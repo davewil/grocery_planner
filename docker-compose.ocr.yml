@@ -1,0 +1,147 @@
+# Docker Compose for OCR stack
+#
+# Usage:
+#   # NVIDIA GPU
+#   docker compose -f docker-compose.ocr.yml up
+#
+#   # AMD GPU (ROCm)
+#   docker compose -f docker-compose.ocr.yml --profile rocm up
+#
+#   # CPU only (slower)
+#   docker compose -f docker-compose.ocr.yml --profile cpu up
+#
+# Note: First run will download the model (~8GB for Nanonets-OCR-s)
+
+version: '3.8'
+
+services:
+  # vLLM server for NVIDIA GPUs
+  vllm-nvidia:
+    image: vllm/vllm-openai:latest
+    ports:
+      - "8001:8001"
+    volumes:
+      - huggingface-cache:/root/.cache/huggingface
+    environment:
+      - HUGGING_FACE_HUB_TOKEN=${HUGGING_FACE_HUB_TOKEN:-}
+    command: >
+      --model nanonets/Nanonets-OCR-s
+      --host 0.0.0.0
+      --port 8001
+      --max-model-len 4096
+      --trust-remote-code
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 120s
+    profiles:
+      - nvidia
+      - default
+
+  # vLLM server for AMD GPUs (ROCm)
+  vllm-rocm:
+    image: rocm/vllm:latest
+    ports:
+      - "8001:8001"
+    volumes:
+      - huggingface-cache:/root/.cache/huggingface
+    devices:
+      - /dev/kfd
+      - /dev/dri
+    group_add:
+      - video
+    ipc: host
+    cap_add:
+      - SYS_PTRACE
+    security_opt:
+      - seccomp:unconfined
+    shm_size: 8G
+    environment:
+      - HUGGING_FACE_HUB_TOKEN=${HUGGING_FACE_HUB_TOKEN:-}
+      - HIP_FORCE_DEV_KERNARG=1
+    command: >
+      --model nanonets/Nanonets-OCR-s
+      --host 0.0.0.0
+      --port 8001
+      --max-model-len 4096
+      --trust-remote-code
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 120s
+    profiles:
+      - rocm
+
+  # Python AI service
+  ai-service:
+    build:
+      context: ./python_service
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - VLLM_BASE_URL=http://vllm:8001/v1
+      - VLLM_MODEL=nanonets/Nanonets-OCR-s
+      - USE_VLLM_OCR=true
+      - AI_DATABASE_URL=sqlite:///./ai_data.db
+    depends_on:
+      vllm-nvidia:
+        condition: service_healthy
+        required: false
+      vllm-rocm:
+        condition: service_healthy
+        required: false
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    networks:
+      default:
+        aliases:
+          - ai-service
+
+  # CPU-only vLLM (slower, no GPU required)
+  vllm-cpu:
+    image: vllm/vllm-openai:latest
+    ports:
+      - "8001:8001"
+    volumes:
+      - huggingface-cache:/root/.cache/huggingface
+    environment:
+      - HUGGING_FACE_HUB_TOKEN=${HUGGING_FACE_HUB_TOKEN:-}
+    # Use smaller model for CPU
+    command: >
+      --model Qwen/Qwen2-VL-2B-Instruct
+      --host 0.0.0.0
+      --port 8001
+      --max-model-len 2048
+      --trust-remote-code
+      --device cpu
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 300s  # CPU is slower to load
+    profiles:
+      - cpu
+
+volumes:
+  huggingface-cache:
+    name: grocery-planner-hf-cache
+
+networks:
+  default:
+    name: grocery-planner-ocr

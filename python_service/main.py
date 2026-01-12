@@ -33,6 +33,7 @@ from middleware import (
     TenantValidationMiddleware,
     request_id_var,
 )
+from config import settings
 import logging
 
 # Setup structured logging
@@ -164,31 +165,63 @@ async def categorize_item(request: BaseRequest, db: Session = Depends(get_db)):
 
 
 @app.post("/api/v1/extract-receipt", response_model=BaseResponse)
-async def extract_receipt(request: BaseRequest, db: Session = Depends(get_db)):
+async def extract_receipt_endpoint(request: BaseRequest, db: Session = Depends(get_db)):
     """
     Extracts items from a receipt image.
 
     Uses OCR and layout analysis to identify line items, prices, and totals.
+    When USE_VLLM_OCR=true, uses vLLM-served VLM for real OCR.
+    Otherwise returns mock data for development.
     """
     start_time = time.time()
-    model_id = "mock-ocr"
-    model_version = "1.0.0"
 
     try:
-        _ = ExtractionRequestPayload(**request.payload)
+        payload = ExtractionRequestPayload(**request.payload)
 
-        # MOCK IMPLEMENTATION
-        mock_items = [
-            ExtractedItem(name="Bananas", quantity=1.0, unit="bunch", price=1.99, confidence=0.98),
-            ExtractedItem(name="Milk", quantity=1.0, unit="gallon", price=3.49, confidence=0.95)
-        ]
+        if settings.USE_VLLM_OCR:
+            # Real OCR via vLLM
+            from ocr_service import extract_receipt
 
-        response_payload = ExtractionResponsePayload(
-            items=mock_items,
-            total=5.48,
-            merchant="Mock Supermarket",
-            date="2024-01-01"
-        )
+            model_id = settings.VLLM_MODEL
+            model_version = "vllm"
+
+            # Get image data
+            if payload.image_base64:
+                image_b64 = payload.image_base64
+            elif payload.image_url:
+                # Fetch image from URL
+                import httpx
+                async with httpx.AsyncClient() as client:
+                    resp = await client.get(payload.image_url)
+                    import base64
+                    image_b64 = base64.b64encode(resp.content).decode()
+            else:
+                raise ValueError("Either image_base64 or image_url required")
+
+            result = await extract_receipt(image_b64)
+
+            response_payload = ExtractionResponsePayload(
+                items=[ExtractedItem(**item) for item in result["items"]],
+                total=result["total"],
+                merchant=result["merchant"],
+                date=result["date"]
+            )
+        else:
+            # MOCK IMPLEMENTATION for development
+            model_id = "mock-ocr"
+            model_version = "1.0.0"
+
+            mock_items = [
+                ExtractedItem(name="Bananas", quantity=1.0, unit="bunch", price=1.99, confidence=0.98),
+                ExtractedItem(name="Milk", quantity=1.0, unit="gallon", price=3.49, confidence=0.95)
+            ]
+
+            response_payload = ExtractionResponsePayload(
+                items=mock_items,
+                total=5.48,
+                merchant="Mock Supermarket",
+                date="2024-01-01"
+            )
 
         latency_ms = (time.time() - start_time) * 1000
 
@@ -225,8 +258,8 @@ async def extract_receipt(request: BaseRequest, db: Session = Depends(get_db)):
             input_payload=request.payload,
             status="error",
             error_message=str(e),
-            model_id=model_id,
-            model_version=model_version,
+            model_id="mock-ocr" if not settings.USE_VLLM_OCR else settings.VLLM_MODEL,
+            model_version="1.0.0" if not settings.USE_VLLM_OCR else "vllm",
             latency_ms=latency_ms,
         )
 
@@ -454,16 +487,25 @@ async def submit_feedback(request: FeedbackRequest, db: Session = Depends(get_db
 @register_job_handler("receipt_extraction")
 async def handle_receipt_extraction(input_payload: dict) -> dict:
     """Background handler for receipt extraction jobs."""
-    # MOCK IMPLEMENTATION
-    return {
-        "items": [
-            {"name": "Bananas", "quantity": 1.0, "unit": "bunch", "price": 1.99, "confidence": 0.98},
-            {"name": "Milk", "quantity": 1.0, "unit": "gallon", "price": 3.49, "confidence": 0.95}
-        ],
-        "total": 5.48,
-        "merchant": "Mock Supermarket",
-        "date": "2024-01-01"
-    }
+    if settings.USE_VLLM_OCR:
+        from ocr_service import extract_receipt
+
+        image_b64 = input_payload.get("image_base64")
+        if not image_b64:
+            raise ValueError("image_base64 required in payload")
+
+        return await extract_receipt(image_b64)
+    else:
+        # MOCK IMPLEMENTATION for development
+        return {
+            "items": [
+                {"name": "Bananas", "quantity": 1.0, "unit": "bunch", "price": 1.99, "confidence": 0.98},
+                {"name": "Milk", "quantity": 1.0, "unit": "gallon", "price": 3.49, "confidence": 0.95}
+            ],
+            "total": 5.48,
+            "merchant": "Mock Supermarket",
+            "date": "2024-01-01"
+        }
 
 
 @register_job_handler("embedding_batch")

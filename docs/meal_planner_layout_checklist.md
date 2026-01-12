@@ -15,15 +15,15 @@ Legend:
 - [x] Meal Planner Layout stored on user profile (`meal_planner_layout`)
 - [x] Settings UI to choose Explorer / Focus / Power
 - [x] Meal Planner header shows current layout and provides a path to change it
-- [ ] Add an in-app layout switcher (without leaving `/meal-planner`)
+- [x] Add an in-app layout switcher (without leaving `/meal-planner`)
 - [ ] Add per-device override (optional; later)
 
 ### Shared interaction primitives (all layouts)
 - [x] Shared recipe picker surface exists (modal / bottom sheet)
-- [~] Shared add-to-plan flow (Explorer uses slot picker; other layouts partly overlap)
+- [x] Shared add-to-plan flow (Explorer uses slot picker; other layouts partly overlap)
 - [x] Undo support for destructive/committing actions (remove meal, add meal, move meal)
-- [ ] Skeleton/loading states for recipe lists and slot pickers
-- [ ] Consistent terminology + labels across layouts (Day, Meal slot, Add, Swap, Clear)
+- [x] Skeleton/loading states for recipe lists and slot pickers
+- [x] Consistent terminology + labels across layouts (Day, Meal slot, Add, Swap, Clear)
 
 ---
 
@@ -70,7 +70,7 @@ Legend:
 ### 1.5 Micro-interactions
 - [~] Transitions/hover polish on cards and buttons
 - [ ] “Card flies to slot” animation on add-to-plan
-- [ ] Slot confirmation toast with Undo
+- [x] Slot confirmation toast with Undo
 - [ ] Skeleton states during feed refresh
 
 ### 1.6 Empty/loading states
@@ -85,14 +85,14 @@ Legend:
 ## 2) Alternative B — Focus Mode (Today-first)
 
 ### 2.1 Layout
-- [ ] Sticky header: current day + week strip
-- [ ] Main content: stacked meal slot cards
-- [ ] Mobile FAB: Add meal
+- [x] Sticky header: current day + week strip
+- [x] Main content: stacked meal slot cards
+- [x] Mobile FAB: Add meal
 - [ ] Desktop 2-column: day details + grocery impact summary
 
 ### 2.2 Components
-- [ ] Week strip (swipeable on mobile) with badges
-- [ ] Slot cards: Swap / Clear / Add note
+- [x] Week strip (swipeable on mobile) with badges
+- [x] Slot cards: Swap / Clear / Add note
 - [ ] Shortcuts: repeat last week / auto-fill day
 
 ### 2.3 Micro-interactions
@@ -105,7 +105,7 @@ Legend:
 ## 3) Alternative C — Power Mode (Kanban Week Board)
 
 ### 3.1 Layout
-- [ ] Desktop/tablet Kanban grid (columns=days, cards=meals)
+- [x] Desktop/tablet Kanban grid (columns=days, cards=meals)
 - [ ] Drag/drop meals across days + reorder within day
 - [ ] Mobile simplified pager (one day visible) with reorder
 
@@ -117,7 +117,7 @@ Legend:
 ### 3.3 Micro-interactions
 - [ ] Drag lift + drop highlight
 - [ ] Grocery delta feedback when moving meals (+/- items)
-- [ ] Undo toast after destructive actions
+- [x] Undo toast after destructive actions
 
 ---
 

@@ -53,5 +53,13 @@ defmodule GroceryPlanner.Inventory do
       define :list_grocery_item_taggings, action: :read
       define :destroy_grocery_item_tagging, action: :destroy
     end
+
+    resource GroceryPlanner.Inventory.Receipt do
+      define :create_receipt, action: :create, args: [:account_id]
+      define :list_receipts, action: :read
+      define :get_receipt, action: :read, get_by: [:id]
+      define :update_receipt, action: :update
+      define :destroy_receipt, action: :destroy
+    end
   end
 end

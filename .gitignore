@@ -51,7 +51,7 @@ dist/
 downloads/
 eggs/
 .eggs/
-lib/
+# lib/ - Removed to avoid ignoring Elixir source
 lib64/
 parts/
 sdist/

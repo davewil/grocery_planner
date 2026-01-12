@@ -48,6 +48,8 @@ defmodule GroceryPlannerWeb.Router do
     live("/shopping", ShoppingLive)
     live("/voting", VotingLive)
     live("/analytics", AnalyticsLive)
+    live("/receipts", ReceiptsLive)
+    live("/receipts/:id", ReceiptsLive)
   end
 
   # Other scopes may use custom stacks.

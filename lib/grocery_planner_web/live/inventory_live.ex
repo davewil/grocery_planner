@@ -4,6 +4,7 @@ defmodule GroceryPlannerWeb.InventoryLive do
   on_mount({GroceryPlannerWeb.Auth, :require_authenticated_user})
 
   alias GroceryPlanner.Inventory.{GroceryItem, InventoryEntry}
+  alias GroceryPlanner.AiClient
 
   require Ash.Query
 
@@ -311,7 +312,7 @@ defmodule GroceryPlannerWeb.InventoryLive do
       <h3 class="text-lg font-semibold text-base-content mb-4">
         {if @editing_id, do: "Edit Grocery Item", else: "Add New Grocery Item"}
       </h3>
-      <.form for={@form} id="item-form" phx-submit="save_item">
+      <.form for={@form} id="item-form" phx-change="validate_item" phx-submit="save_item">
         <div class="space-y-4">
           <.input field={@form[:name]} type="text" label="Name" required />
           <.input field={@form[:description]} type="text" label="Description" />
@@ -322,12 +323,37 @@ defmodule GroceryPlannerWeb.InventoryLive do
             placeholder="e.g., lbs, oz, liters"
           />
           <.input field={@form[:barcode]} type="text" label="Barcode (optional)" />
-          <.input
-            field={@form[:category_id]}
-            type="select"
-            label="Category"
-            options={[{"None", nil}] ++ Enum.map(@categories, fn c -> {c.name, c.id} end)}
-          />
+
+          <div class="flex items-end gap-2">
+            <div class="flex-1">
+              <.input
+                field={@form[:category_id]}
+                type="select"
+                label="Category"
+                options={[{"None", nil}] ++ Enum.map(@categories, fn c -> {c.name, c.id} end)}
+              />
+            </div>
+            <button
+              type="button"
+              phx-click="suggest_category"
+              class="btn btn-secondary btn-outline mb-[2px]"
+              title="Auto-detect category with AI"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+                class="w-5 h-5"
+              >
+                <path
+                  fill-rule="evenodd"
+                  d="M10 1c3.866 0 7 1.789 7 4 0 1.657-1.745 3.104-4.363 3.655C12.449 8.924 12 9.208 12 9.5v1a.5.5 0 01-1 0v-1c0-.709.61-1.243 1.346-1.39C14.717 7.643 16 6.387 16 5c0-1.657-2.686-3-6-3S4 3.343 4 5c0 1.25 1.05 2.308 2.656 2.9.23.084.417.27.513.504l.5 1.25a.5.5 0 01-.928.372l-.5-1.25A1.47 1.47 0 005.5 8C3.12 7.258 2 5.753 2 5c0-2.211 3.134-4 7-4zm0 12a1 1 0 100 2 1 1 0 000-2z"
+                  clip-rule="evenodd"
+                />
+              </svg>
+              Suggest
+            </button>
+          </div>
 
           <%= if length(@tags) > 0 do %>
             <div class="space-y-2">
@@ -1262,6 +1288,7 @@ defmodule GroceryPlannerWeb.InventoryLive do
       |> assign(:active_tab, "items")
       |> assign(:show_form, nil)
       |> assign(:form, nil)
+      |> assign(:form_params, %{})
       |> assign(:editing_id, nil)
       |> assign(:managing_tags_for, nil)
       |> assign(:show_tag_modal, false)
@@ -1317,6 +1344,7 @@ defmodule GroceryPlannerWeb.InventoryLive do
      assign(socket,
        show_form: :item,
        form: to_form(%{}, as: :item),
+       form_params: %{},
        editing_id: nil,
        selected_tag_ids: []
      )}
@@ -1424,17 +1452,15 @@ defmodule GroceryPlannerWeb.InventoryLive do
            load: [:tags]
          ) do
       {:ok, item} ->
-        form =
-          to_form(
-            %{
-              "name" => item.name,
-              "description" => item.description,
-              "category_id" => item.category_id,
-              "default_unit" => item.default_unit,
-              "barcode" => item.barcode
-            },
-            as: :item
-          )
+        form_params = %{
+          "name" => item.name,
+          "description" => item.description,
+          "category_id" => item.category_id,
+          "default_unit" => item.default_unit,
+          "barcode" => item.barcode
+        }
+
+        form = to_form(form_params, as: :item)
 
         selected_tag_ids = Enum.map(item.tags || [], fn tag -> to_string(tag.id) end)
 
@@ -1442,6 +1468,7 @@ defmodule GroceryPlannerWeb.InventoryLive do
          assign(socket,
            show_form: :item,
            form: form,
+           form_params: form_params,
            editing_id: id,
            selected_tag_ids: selected_tag_ids
          )}
@@ -1462,6 +1489,58 @@ defmodule GroceryPlannerWeb.InventoryLive do
       end
 
     {:noreply, assign(socket, :selected_tag_ids, new_selected)}
+  end
+
+  def handle_event("validate_item", %{"item" => params}, socket) do
+    new_params = Map.merge(socket.assigns.form_params || %{}, params)
+    form = to_form(new_params, as: :item)
+    {:noreply, assign(socket, form: form, form_params: new_params)}
+  end
+
+  def handle_event("suggest_category", _params, socket) do
+    form_params = socket.assigns.form_params || %{}
+    name = form_params["name"]
+
+    if is_nil(name) || name == "" do
+      {:noreply, put_flash(socket, :warning, "Please enter an item name first")}
+    else
+      categories = socket.assigns.categories
+      labels = Enum.map(categories, & &1.name)
+
+      context = %{
+        tenant_id: socket.assigns.current_account.id,
+        user_id: socket.assigns.current_user.id
+      }
+
+      case AiClient.categorize_item(name, labels, context) do
+        {:ok, %{"payload" => %{"category" => predicted_category}}} ->
+          case Enum.find(categories, fn c ->
+                 String.downcase(c.name) == String.downcase(predicted_category)
+               end) do
+            nil ->
+              {:noreply,
+               put_flash(
+                 socket,
+                 :warning,
+                 "Suggested category '#{predicted_category}' not found in list"
+               )}
+
+            category ->
+              new_params = Map.put(form_params, "category_id", category.id)
+              form = to_form(new_params, as: :item)
+
+              socket =
+                socket
+                |> assign(form: form, form_params: new_params)
+                |> put_flash(:info, "Suggested category: #{category.name}")
+
+              {:noreply, socket}
+          end
+
+        {:error, _} ->
+          {:noreply, put_flash(socket, :error, "Could not predict category")}
+      end
+    end
   end
 
   def handle_event("save_item", %{"item" => params}, socket) do
