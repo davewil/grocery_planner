@@ -26,10 +26,10 @@ Some users don't need discovery—they know their recipes and just want to quick
 **So that** I know what's planned without navigation
 
 **Acceptance Criteria:**
-- [ ] Today's meals displayed prominently on page load
-- [ ] Current day highlighted in week strip
-- [ ] Show meal status (planned, in progress, completed)
-- [ ] Quick access to recipe details
+- [x] Today's meals displayed prominently on page load
+- [x] Current day highlighted in week strip
+- [x] Show meal status (planned, in progress, completed)
+- [x] Quick access to recipe details
 
 ### US-002: Quick day navigation
 **As a** user planning multiple days
@@ -37,10 +37,10 @@ Some users don't need discovery—they know their recipes and just want to quick
 **So that** I can plan the week day-by-day
 
 **Acceptance Criteria:**
-- [ ] Swipeable week strip on mobile
-- [ ] Click to select day on desktop
-- [ ] Smooth transition between days
-- [ ] Visual indicator of which days have plans
+- [x] Swipeable week strip on mobile
+- [x] Click to select day on desktop
+- [x] Smooth transition between days
+- [x] Visual indicator of which days have plans
 
 ### US-003: Fast meal slot actions
 **As a** user filling meal slots
@@ -48,10 +48,10 @@ Some users don't need discovery—they know their recipes and just want to quick
 **So that** planning is fast and fluid
 
 **Acceptance Criteria:**
-- [ ] Tap empty slot to add meal
-- [ ] Swipe meal to remove/swap
-- [ ] Long-press for more options
-- [ ] Inline notes editing
+- [x] Tap empty slot to add meal
+- [x] Swipe meal to remove/swap
+- [x] Long-press for more options
+- [x] Inline notes editing
 
 ### US-004: Repeat and copy shortcuts
 **As a** user with recurring meals
@@ -70,10 +70,10 @@ Some users don't need discovery—they know their recipes and just want to quick
 **So that** I can balance convenience with what I have
 
 **Acceptance Criteria:**
-- [ ] Show ingredient availability per meal
-- [ ] Running tally of shopping items needed
-- [ ] Highlight meals that need shopping
-- [ ] Quick link to generate shopping list
+- [x] Show ingredient availability per meal
+- [x] Running tally of shopping items needed
+- [x] Highlight meals that need shopping
+- [x] Quick link to generate shopping list
 
 ## Technical Specification
 

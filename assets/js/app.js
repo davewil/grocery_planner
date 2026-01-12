@@ -23,6 +23,8 @@ import "phoenix_html"
 import {Socket} from "phoenix"
 import {LiveSocket} from "phoenix_live_view"
 import topbar from "../vendor/topbar"
+import { SwipeableMeal } from "./hooks/swipeable_meal"
+import { SwipeableWeek } from "./hooks/swipeable_week"
 
 // Theme handling
 const setTheme = (theme) => {
@@ -43,7 +45,10 @@ if (!document.documentElement.hasAttribute("data-theme")) {
 window.addEventListener("storage", (e) => e.key === "phx:theme" && setTheme(e.newValue || "system"));
 window.addEventListener("phx:set-theme", (e) => setTheme(e.target.dataset.phxTheme));
 
-let Hooks = {};
+let Hooks = {
+  SwipeableMeal,
+  SwipeableWeek
+};
 Hooks.ThemeChange = {
   mounted() {
     const theme = this.el.dataset.theme;

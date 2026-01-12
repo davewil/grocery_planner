@@ -16,7 +16,7 @@ defmodule GroceryPlannerWeb.MealPlannerLive.DataLoader do
       MealPlanning.list_meal_plans(
         actor: socket.assigns.current_user,
         tenant: account_id,
-        load: [:recipe]
+        load: [recipe: [recipe_ingredients: :grocery_item]]
       )
 
     meal_plans =
@@ -36,6 +36,7 @@ defmodule GroceryPlannerWeb.MealPlannerLive.DataLoader do
     socket
     |> assign(:meal_plans, meal_plans)
     |> assign(:week_meals, week_meals_map)
+    |> compute_shopping_needs()
   end
 
   def load_favorite_recipes(socket) do
@@ -60,7 +61,28 @@ defmodule GroceryPlannerWeb.MealPlannerLive.DataLoader do
   end
 
   def compute_shopping_needs(socket) do
-    # Placeholder: The spec mentions this, but the underlying action doesn't exist yet.
-    assign(socket, :week_shopping_items, [])
+    impact =
+      GroceryPlanner.MealPlanning.GroceryImpact.calculate_impact(
+        socket.assigns.meal_plans,
+        socket.assigns.current_account.id,
+        socket.assigns.current_user
+      )
+
+    assign(socket, :week_shopping_items, impact)
+  end
+
+  def compute_day_shopping_needs(socket, date) do
+    day_meals =
+      socket.assigns.meal_plans
+      |> Enum.filter(&(&1.scheduled_date == date))
+
+    impact =
+      GroceryPlanner.MealPlanning.GroceryImpact.calculate_impact(
+        day_meals,
+        socket.assigns.current_account.id,
+        socket.assigns.current_user
+      )
+
+    assign(socket, :day_shopping_items, impact)
   end
 end

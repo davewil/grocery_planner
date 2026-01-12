@@ -88,7 +88,7 @@ Legend:
 - [x] Sticky header: current day + week strip
 - [x] Main content: stacked meal slot cards
 - [x] Mobile FAB: Add meal
-- [ ] Desktop 2-column: day details + grocery impact summary
+- [x] Desktop 2-column: day details + grocery impact summary
 
 ### 2.2 Components
 - [x] Week strip (swipeable on mobile) with badges
@@ -97,8 +97,8 @@ Legend:
 
 ### 2.3 Micro-interactions
 - [ ] Tap-to-expand slot card
-- [ ] Swipe actions on mobile (swap/delete)
-- [ ] Skeleton loading on day switch
+- [x] Swipe actions on mobile (swap/delete)
+- [x] Skeleton loading on day switch
 
 ---
 
