@@ -25,19 +25,11 @@ import {LiveSocket} from "phoenix_live_view"
 import topbar from "../vendor/topbar"
 import { SwipeableMeal } from "./hooks/swipeable_meal"
 import { SwipeableWeek } from "./hooks/swipeable_week"
+import { FocusInput } from "./hooks/focus_input"
+import { LongPress } from "./hooks/long_press"
 
 // Theme handling
-const setTheme = (theme) => {
-  if (theme === "system") {
-    localStorage.removeItem("phx:theme");
-    document.documentElement.removeAttribute("data-theme");
-  } else {
-    localStorage.setItem("phx:theme", theme);
-    document.documentElement.setAttribute("data-theme", theme);
-  }
-};
-
-// Initialize theme
+// ... (omitted same code)
 if (!document.documentElement.hasAttribute("data-theme")) {
   setTheme(localStorage.getItem("phx:theme") || "system");
 }
@@ -47,7 +39,9 @@ window.addEventListener("phx:set-theme", (e) => setTheme(e.target.dataset.phxThe
 
 let Hooks = {
   SwipeableMeal,
-  SwipeableWeek
+  SwipeableWeek,
+  FocusInput,
+  LongPress
 };
 Hooks.ThemeChange = {
   mounted() {

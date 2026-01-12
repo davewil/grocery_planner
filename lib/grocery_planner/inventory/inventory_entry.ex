@@ -25,13 +25,51 @@ defmodule GroceryPlanner.Inventory.InventoryEntry do
   end
 
   code_interface do
-    define :create
+    define :create_inventory_entry, action: :create
     define :read
-    define :by_id, action: :read, get_by: [:id]
+    define :list_inventory_entries_filtered, action: :list_filtered
+    define :get_inventory_entry, action: :read, get_by: [:id]
+    define :update_inventory_entry, action: :update
+    define :destroy_inventory_entry, action: :destroy
   end
 
   actions do
     defaults [:read, :destroy]
+
+    read :list_filtered do
+      argument :status, :atom, default: :available
+      argument :expiration_filter, :atom
+
+      prepare build(load: [:grocery_item, :storage_location, :days_until_expiry, :is_expired])
+
+      filter expr(status == ^arg(:status))
+
+      filter expr(
+               if is_nil(^arg(:expiration_filter)) do
+                 true
+               else
+                 if ^arg(:expiration_filter) == :expired do
+                   is_expired == true
+                 else
+                   if ^arg(:expiration_filter) == :today do
+                     not is_nil(use_by_date) and fragment("DATE(?) = CURRENT_DATE", use_by_date)
+                   else
+                     if ^arg(:expiration_filter) == :tomorrow do
+                       not is_nil(use_by_date) and
+                         fragment("DATE(?) = CURRENT_DATE + INTERVAL '1 day'", use_by_date)
+                     else
+                       # this_week
+                       not is_nil(use_by_date) and
+                         fragment(
+                           "DATE(?) BETWEEN CURRENT_DATE + INTERVAL '2 days' AND CURRENT_DATE + INTERVAL '3 days'",
+                           use_by_date
+                         )
+                     end
+                   end
+                 end
+               end
+             )
+    end
 
     create :create do
       accept [

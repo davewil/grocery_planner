@@ -4,10 +4,7 @@ defmodule GroceryPlannerWeb.VotingLive do
 
   on_mount {GroceryPlannerWeb.Auth, :require_authenticated_user}
 
-  require Ash.Query
-
   alias GroceryPlanner.MealPlanning.Voting
-  alias GroceryPlanner.Recipes.Recipe
 
   def mount(_params, _session, socket) do
     socket = assign(socket, :current_scope, socket.assigns.current_account)
@@ -148,13 +145,9 @@ defmodule GroceryPlannerWeb.VotingLive do
     user = socket.assigns.current_user
 
     {:ok, recipes} =
-      GroceryPlanner.Recipes.list_recipes(
+      GroceryPlanner.Recipes.list_favorite_recipes(
         actor: user,
-        tenant: account_id,
-        query:
-          Recipe
-          |> Ash.Query.filter(is_favorite == true)
-          |> Ash.Query.sort(name: :asc)
+        tenant: account_id
       )
 
     {user_votes, tally} = build_vote_state(socket.assigns.session, recipes, socket)
@@ -173,12 +166,10 @@ defmodule GroceryPlannerWeb.VotingLive do
     user = socket.assigns.current_user
 
     {:ok, entries} =
-      GroceryPlanner.MealPlanning.list_vote_entries(
+      GroceryPlanner.MealPlanning.list_entries_for_session(
+        session_id,
         actor: user,
-        tenant: account_id,
-        query:
-          GroceryPlanner.MealPlanning.MealPlanVoteEntry
-          |> Ash.Query.filter(vote_session_id == ^session_id and account_id == ^account_id)
+        tenant: account_id
       )
 
     user_votes =

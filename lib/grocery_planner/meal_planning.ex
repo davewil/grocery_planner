@@ -11,6 +11,12 @@ defmodule GroceryPlanner.MealPlanning do
     resource GroceryPlanner.MealPlanning.MealPlan do
       define :create_meal_plan, action: :create, args: [:account_id]
       define :list_meal_plans, action: :read
+
+      define :list_meal_plans_by_date_range,
+        action: :by_date_range,
+        args: [:start_date, :end_date]
+
+      define :list_recent_meal_plans, action: :recent, args: [:since]
       define :get_meal_plan, action: :read, get_by: [:id]
       define :update_meal_plan, action: :update
       define :destroy_meal_plan, action: :destroy
@@ -44,6 +50,7 @@ defmodule GroceryPlanner.MealPlanning do
         args: [:account_id, :vote_session_id, :recipe_id, :user_id]
 
       define :list_vote_entries, action: :read
+      define :list_entries_for_session, action: :by_session, args: [:vote_session_id]
       define :destroy_vote_entry, action: :destroy
     end
   end

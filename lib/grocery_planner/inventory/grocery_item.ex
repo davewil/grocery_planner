@@ -25,13 +25,32 @@ defmodule GroceryPlanner.Inventory.GroceryItem do
   end
 
   code_interface do
-    define :create
+    define :create_grocery_item, action: :create
     define :read
-    define :by_id, action: :read, get_by: [:id]
+    define :get_grocery_item, action: :read, get_by: [:id]
+    define :get_item_by_name, action: :by_name, args: [:name], get?: true
+    define :list_items_with_tags, action: :list_with_tags, args: [:filter_tag_ids]
   end
 
   actions do
     defaults [:read, :destroy]
+
+    read :list_with_tags do
+      argument :filter_tag_ids, {:array, :uuid}
+
+      prepare build(load: [:tags])
+
+      filter expr(
+               is_nil(^arg(:filter_tag_ids)) or
+                 count(tags, query: [filter: expr(id in ^arg(:filter_tag_ids))]) ==
+                   length(^arg(:filter_tag_ids))
+             )
+    end
+
+    read :by_name do
+      argument :name, :string, allow_nil?: false
+      filter expr(fragment("lower(?) = lower(?)", name, ^arg(:name)))
+    end
 
     create :create do
       accept [:name, :description, :default_unit, :barcode, :category_id, :is_waste_risk]

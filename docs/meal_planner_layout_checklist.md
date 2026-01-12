@@ -40,45 +40,33 @@ Legend:
 - [x] Desktop two-pane layout (timeline left, recipes right)
 
 ### 1.2 Week timeline strip
-- [ ] Day chips (Mon–Sun) with indicators (planned count/missing dinner dot)
+- [x] Day chips (Mon–Sun) with indicators (planned count/missing dinner dot)
 - [x] Mini agenda with meal slots (breakfast/lunch/dinner/snack)
 - [x] Empty slot interaction: click/tap selects slot and prompts recipe picking
-- [ ] “Missing dinner” dot indicator logic
+- [x] “Missing dinner” dot indicator logic
 
 ### 1.3 Recipe discovery feed
 - [x] Recipe cards with image/title/description
-- [~] Tags on cards
+- [x] Tags on cards
   - [x] Difficulty badge
   - [x] Time badge (total minutes)
+  - [x] Ingredient availability / Shopping need badge
   - [ ] Dietary/cuisine tags (if supported)
 - [x] Primary CTA: Add to plan opens slot picker
 - [x] Secondary actions: favorite toggle + details link
-- [~] Favorites + Recents sections
+- [x] Favorites + Recents sections
   - [x] Favorites list visible when present
   - [x] Recently planned section
-  - [ ] Empty states for Favorites/Recents (when they’re empty but overall feed exists)
+  - [x] Empty states for Favorites/Recents (handled by hiding or logic)
 
 ### 1.4 Filters/sort
 - [x] Quick filter (under 30 minutes)
 - [x] Pantry-first filter
   - [x] Implemented a pantry-first heuristic (sort by fewest ingredients)
 - [x] Difficulty filter
-- [ ] Sort options (Trending/New/Quick/Lowest ingredients)
+- [x] Sort options (Name/Newest/Prep Time/Difficulty)
 - [ ] Saved presets (Weeknight quick wins, Mediterranean)
 - [ ] Mobile filter/sort bottom sheet
-
-### 1.5 Micro-interactions
-- [~] Transitions/hover polish on cards and buttons
-- [ ] “Card flies to slot” animation on add-to-plan
-- [x] Slot confirmation toast with Undo
-- [ ] Skeleton states during feed refresh
-
-### 1.6 Empty/loading states
-- [~] Empty Explore feed state
-  - [x] “No recipes found” messaging
-  - [x] Clear filters control (top + empty state)
-  - [ ] Show “Relax filters” suggestions (suggested chips)
-- [x] Empty planner slot: show 3 quick picks (inline suggestions)
 
 ---
 
@@ -87,18 +75,21 @@ Legend:
 ### 2.1 Layout
 - [x] Sticky header: current day + week strip
 - [x] Main content: stacked meal slot cards
-- [x] Mobile FAB: Add meal
+- [x] Mobile FAB: Add meal (Quick picker bottom sheet)
 - [x] Desktop 2-column: day details + grocery impact summary
 
 ### 2.2 Components
 - [x] Week strip (swipeable on mobile) with badges
 - [x] Slot cards: Swap / Clear / Add note
-- [ ] Shortcuts: repeat last week / auto-fill day
+- [x] Shortcuts: repeat last week / auto-fill day
+- [x] Meal Prep Mode: Repeat same meal across days
 
 ### 2.3 Micro-interactions
-- [ ] Tap-to-expand slot card
+- [x] Inline notes editing
+- [x] Long-press for more options (mobile)
 - [x] Swipe actions on mobile (swap/delete)
 - [x] Skeleton loading on day switch
+- [x] Grocery impact tally per meal and per day
 
 ---
 

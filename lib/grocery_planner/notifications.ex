@@ -11,6 +11,7 @@ defmodule GroceryPlanner.Notifications do
     resource GroceryPlanner.Notifications.NotificationPreference do
       define :create_notification_preference, action: :create, args: [:user_id, :account_id]
       define :list_notification_preferences, action: :read
+      define :get_preference_for_user, action: :by_user, args: [:user_id], get?: true
       define :get_notification_preference, action: :read, get_by: [:id]
       define :update_notification_preference, action: :update
       define :destroy_notification_preference, action: :destroy

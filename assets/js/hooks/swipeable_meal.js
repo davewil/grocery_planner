@@ -60,10 +60,10 @@ export const SwipeableMeal = {
         setTimeout(() => { this.el.style.transform = ''; }, 200);
       }, 300);
     } else if (diff > this.threshold) {
-      // Swipe right - swap (edit)
+      // Swipe right - swap
       // Bounce back
       this.el.style.transform = '';
-      this.pushEvent("edit_meal", { id: this.el.dataset.mealId });
+      this.pushEvent("swap_meal", { id: this.el.dataset.mealId });
     } else {
       // Reset
       this.el.style.transform = '';

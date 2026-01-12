@@ -19,6 +19,8 @@ defmodule GroceryPlanner.Recipes do
     resource GroceryPlanner.Recipes.Recipe do
       define :create_recipe, action: :create, args: [:account_id]
       define :list_recipes, action: :read
+      define :list_favorite_recipes, action: :favorites
+      define :list_recipes_sorted, action: :list_all_sorted
       define :list_recipes_for_meal_planner, action: :meal_planner_recipes
       define :get_recipe, action: :read, get_by: [:id]
       define :update_recipe, action: :update

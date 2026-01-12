@@ -30,6 +30,7 @@ defmodule GroceryPlannerWeb.MealPlannerLive do
       |> assign(:show_add_meal_modal, false)
       |> assign(:show_edit_meal_modal, false)
       |> assign(:editing_meal_plan, nil)
+      |> assign(:editing_notes_id, nil)
       |> assign(:selected_date, nil)
       |> assign(:selected_meal_type, nil)
       # Populated by DataLoader or specific searches
@@ -239,6 +240,10 @@ defmodule GroceryPlannerWeb.MealPlannerLive do
     {:noreply, socket}
   end
 
+  def handle_event("long_press", %{"id" => id}, socket) do
+    handle_event("edit_meal", %{"id" => id}, socket)
+  end
+
   def handle_event("close_edit_modal", _params, socket) do
     socket =
       socket
@@ -286,6 +291,119 @@ defmodule GroceryPlannerWeb.MealPlannerLive do
 
       {:error, _changeset} ->
         {:noreply, put_flash(socket, :error, "Failed to update meal")}
+    end
+  end
+
+  def handle_event("mark_complete", %{"id" => id}, socket) do
+    case GroceryPlanner.MealPlanning.get_meal_plan(id,
+           actor: socket.assigns.current_user,
+           tenant: socket.assigns.current_account.id
+         ) do
+      {:ok, meal_plan} ->
+        case GroceryPlanner.MealPlanning.complete_meal_plan(meal_plan,
+               actor: socket.assigns.current_user
+             ) do
+          {:ok, _} ->
+            socket =
+              socket
+              |> put_flash(:info, "Meal marked as completed")
+              |> DataLoader.load_week_meals()
+
+            {:noreply, socket}
+
+          {:error, _} ->
+            {:noreply, put_flash(socket, :error, "Failed to complete meal")}
+        end
+
+      _ ->
+        {:noreply, put_flash(socket, :error, "Meal not found")}
+    end
+  end
+
+  def handle_event("toggle_edit_notes", %{"id" => id}, socket) do
+    id = if socket.assigns.editing_notes_id == id, do: nil, else: id
+    {:noreply, assign(socket, :editing_notes_id, id)}
+  end
+
+  def handle_event("save_notes", %{"id" => id, "value" => notes}, socket) do
+    case GroceryPlanner.MealPlanning.get_meal_plan(id,
+           actor: socket.assigns.current_user,
+           tenant: socket.assigns.current_account.id
+         ) do
+      {:ok, meal_plan} ->
+        case GroceryPlanner.MealPlanning.update_meal_plan(meal_plan, %{notes: notes},
+               actor: socket.assigns.current_user
+             ) do
+          {:ok, _} ->
+            socket =
+              socket
+              |> assign(:editing_notes_id, nil)
+              |> DataLoader.load_week_meals()
+
+            {:noreply, socket}
+
+          {:error, _} ->
+            {:noreply, put_flash(socket, :error, "Failed to save notes")}
+        end
+
+      _ ->
+        {:noreply, put_flash(socket, :error, "Meal not found")}
+    end
+  end
+
+  def handle_event("swap_meal", %{"id" => id}, socket) do
+    case GroceryPlanner.MealPlanning.get_meal_plan(id,
+           actor: socket.assigns.current_user,
+           tenant: socket.assigns.current_account.id
+         ) do
+      {:ok, meal_plan} ->
+        # To swap, we remove the current meal and open the picker for the same slot
+        case GroceryPlanner.MealPlanning.destroy_meal_plan(meal_plan,
+               actor: socket.assigns.current_user
+             ) do
+          :ok ->
+            socket =
+              socket
+              |> DataLoader.load_week_meals()
+              |> assign(:selected_date, meal_plan.scheduled_date)
+              |> assign(:selected_meal_type, meal_plan.meal_type)
+              |> assign(:show_add_meal_modal, true)
+              |> DataLoader.load_all_recipes()
+
+            {:noreply, socket}
+
+          {:error, _} ->
+            {:noreply, put_flash(socket, :error, "Failed to initiate swap")}
+        end
+
+      _ ->
+        {:noreply, put_flash(socket, :error, "Meal not found")}
+    end
+  end
+
+  def handle_event("generate_shopping_list", _params, socket) do
+    start_date = socket.assigns.week_start
+    end_date = Date.add(start_date, 6)
+
+    name =
+      "Meals for #{Calendar.strftime(start_date, "%b %d")} - #{Calendar.strftime(end_date, "%b %d")}"
+
+    case GroceryPlanner.Shopping.generate_shopping_list_from_meal_plans(
+           socket.assigns.current_account.id,
+           start_date,
+           end_date,
+           %{name: name},
+           actor: socket.assigns.current_user,
+           tenant: socket.assigns.current_account.id
+         ) do
+      {:ok, _list} ->
+        {:noreply,
+         socket
+         |> put_flash(:info, "Shopping list generated!")
+         |> push_navigate(to: "/shopping")}
+
+      {:error, _} ->
+        {:noreply, put_flash(socket, :error, "Failed to generate shopping list")}
     end
   end
 

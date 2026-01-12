@@ -35,10 +35,16 @@ defmodule GroceryPlanner.Shopping.ShoppingList do
     define :archive
     define :reactivate
     define :generate_from_meal_plans
+    define :list_active_or_completed_shopping_lists, action: :active_or_completed
   end
 
   actions do
     defaults [:read, :destroy]
+
+    read :active_or_completed do
+      filter expr(status in [:active, :completed])
+      prepare build(sort: [updated_at: :desc])
+    end
 
     create :create do
       accept [

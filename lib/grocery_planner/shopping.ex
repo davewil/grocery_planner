@@ -11,6 +11,7 @@ defmodule GroceryPlanner.Shopping do
     resource GroceryPlanner.Shopping.ShoppingList do
       define :create_shopping_list, action: :create, args: [:account_id]
       define :list_shopping_lists, action: :read
+      define :list_active_or_completed_shopping_lists, action: :active_or_completed
       define :get_shopping_list, action: :read, get_by: [:id]
       define :update_shopping_list, action: :update
       define :destroy_shopping_list, action: :destroy

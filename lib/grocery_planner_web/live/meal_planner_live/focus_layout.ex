@@ -2,6 +2,7 @@ defmodule GroceryPlannerWeb.MealPlannerLive.FocusLayout do
   use GroceryPlannerWeb, :html
 
   alias GroceryPlannerWeb.MealPlannerLive.{Terminology, DataLoader}
+  import Phoenix.LiveView, only: [put_flash: 3]
   import GroceryPlannerWeb.CoreComponents
 
   def init(socket) do
@@ -13,6 +14,8 @@ defmodule GroceryPlannerWeb.MealPlannerLive.FocusLayout do
     |> assign(:show_focus_quick_picker, false)
     |> assign(:focus_picker_slot, nil)
     |> assign(:focus_search_query, "")
+    |> assign(:recent_recipes, [])
+    |> assign(:favorite_recipes, [])
     |> DataLoader.compute_day_shopping_needs(selected_day)
   end
 
@@ -124,6 +127,23 @@ defmodule GroceryPlannerWeb.MealPlannerLive.FocusLayout do
         
     <!-- Scrollable Meals Area -->
         <div class="flex-1 overflow-y-auto p-4 space-y-4">
+          <div class="flex items-center justify-end gap-2 mb-2 lg:hidden">
+            <button
+              class="btn btn-xs btn-outline"
+              phx-click="copy_previous_day"
+              title="Copy from yesterday"
+            >
+              <.icon name="hero-document-duplicate" class="w-3 h-3" /> Copy Prev
+            </button>
+            <button
+              class="btn btn-xs btn-outline"
+              phx-click="auto_fill_day"
+              title="Auto-fill suggestions"
+            >
+              <.icon name="hero-sparkles" class="w-3 h-3" /> Auto
+            </button>
+          </div>
+
           <%= for meal_type <- [:breakfast, :lunch, :dinner, :snack] do %>
             <div>
               <div class="text-xs font-bold uppercase text-base-content/40 mb-2 px-1">
@@ -158,22 +178,29 @@ defmodule GroceryPlannerWeb.MealPlannerLive.FocusLayout do
                       <span class="text-error-content font-bold ml-2">Remove</span>
                     </div>
                     <div class="absolute inset-y-0 right-0 w-full bg-warning flex items-center justify-end px-6 swipe-action-right opacity-0">
-                      <span class="text-warning-content font-bold mr-2">Edit</span>
-                      <.icon name="hero-pencil-square" class="w-6 h-6 text-warning-content" />
+                      <span class="text-warning-content font-bold mr-2">Swap</span>
+                      <.icon name="hero-arrow-path" class="w-6 h-6 text-warning-content" />
                     </div>
                     
     <!-- Card Content -->
-                    <div class="relative bg-base-100 border border-base-200 p-3 shadow-sm flex gap-3 items-start z-10 transition-transform">
-                      <%= if meal_plan.recipe.image_url do %>
-                        <img
-                          src={meal_plan.recipe.image_url}
-                          class="w-20 h-20 rounded-lg object-cover bg-base-200 shrink-0"
-                        />
-                      <% else %>
-                        <div class="w-20 h-20 rounded-lg bg-base-200 flex items-center justify-center shrink-0 text-3xl">
-                          {Terminology.meal_type_icon(meal_type) |> Terminology.icon_to_emoji()}
-                        </div>
-                      <% end %>
+                    <div
+                      class="relative bg-base-100 border border-base-200 p-3 shadow-sm flex gap-3 items-start z-10 transition-transform"
+                      phx-hook="LongPress"
+                      id={"focus-meal-content-#{meal_plan.id}"}
+                      data-id={meal_plan.id}
+                    >
+                      <.link navigate={~p"/recipes/#{meal_plan.recipe.id}"} class="shrink-0">
+                        <%= if meal_plan.recipe.image_url do %>
+                          <img
+                            src={meal_plan.recipe.image_url}
+                            class="w-20 h-20 rounded-lg object-cover bg-base-200"
+                          />
+                        <% else %>
+                          <div class="w-20 h-20 rounded-lg bg-base-200 flex items-center justify-center text-3xl">
+                            {Terminology.meal_type_icon(meal_type) |> Terminology.icon_to_emoji()}
+                          </div>
+                        <% end %>
+                      </.link>
 
                       <div class="flex-1 min-w-0">
                         <div class="flex justify-between items-start">
@@ -194,6 +221,19 @@ defmodule GroceryPlannerWeb.MealPlannerLive.FocusLayout do
                                 <a phx-click="edit_meal" phx-value-id={meal_plan.id}>Edit Notes</a>
                               </li>
                               <li>
+                                <a phx-click="swap_meal" phx-value-id={meal_plan.id}>Swap Recipe</a>
+                              </li>
+                              <li>
+                                <a phx-click="meal_prep" phx-value-id={meal_plan.id}>
+                                  Meal Prep (Repeat)
+                                </a>
+                              </li>
+                              <li :if={meal_plan.status != :completed}>
+                                <a phx-click="mark_complete" phx-value-id={meal_plan.id}>
+                                  Mark Completed
+                                </a>
+                              </li>
+                              <li>
                                 <a
                                   phx-click="remove_meal"
                                   phx-value-id={meal_plan.id}
@@ -206,21 +246,84 @@ defmodule GroceryPlannerWeb.MealPlannerLive.FocusLayout do
                           </div>
                         </div>
 
-                        <div class="flex gap-3 text-sm text-base-content/60 mt-1">
+                        <div class="flex flex-wrap gap-2 items-center mt-1">
+                          <span class={[
+                            "badge badge-xs gap-1",
+                            meal_plan.status == :completed && "badge-success",
+                            meal_plan.status == :planned && "badge-ghost",
+                            meal_plan.status == :skipped && "badge-error"
+                          ]}>
+                            {meal_plan.status}
+                          </span>
+
+                          <%= if meal_plan.requires_shopping do %>
+                            <span class="badge badge-warning badge-xs gap-1">
+                              <.icon name="hero-shopping-cart" class="w-3 h-3" /> Shopping needed
+                            </span>
+                          <% else %>
+                            <span class="badge badge-success badge-xs gap-1">
+                              <.icon name="hero-check" class="w-3 h-3" /> Ready
+                            </span>
+                          <% end %>
+
+                          <span class="text-xs text-base-content/60">
+                            {Decimal.to_integer(
+                              Decimal.round(meal_plan.recipe.ingredient_availability, 0)
+                            )}% in stock
+                          </span>
+                        </div>
+
+                        <div class="flex gap-3 text-sm text-base-content/60 mt-2">
                           <span>{meal_plan.servings} servings</span>
                           <span>•</span>
                           <span>{meal_plan.recipe.total_time_minutes || 30}m</span>
                         </div>
 
-                        <%= if meal_plan.notes do %>
-                          <div class="mt-2 text-sm bg-warning/10 text-warning-content px-2 py-1 rounded inline-block">
-                            <.icon
-                              name="hero-chat-bubble-bottom-center-text"
-                              class="w-3 h-3 inline mr-1"
-                            />
-                            {meal_plan.notes}
-                          </div>
-                        <% end %>
+                        <div class="mt-3">
+                          <%= if @editing_notes_id == meal_plan.id do %>
+                            <div class="flex gap-2">
+                              <input
+                                type="text"
+                                value={meal_plan.notes}
+                                class="input input-sm input-bordered flex-1"
+                                phx-blur="save_notes"
+                                phx-value-id={meal_plan.id}
+                                id={"notes-input-#{meal_plan.id}"}
+                                phx-hook="FocusInput"
+                                autofocus
+                              />
+                              <button
+                                class="btn btn-sm btn-circle btn-ghost"
+                                phx-click="toggle_edit_notes"
+                                phx-value-id={meal_plan.id}
+                              >
+                                <.icon name="hero-x-mark" class="w-4 h-4" />
+                              </button>
+                            </div>
+                          <% else %>
+                            <div
+                              phx-click="toggle_edit_notes"
+                              phx-value-id={meal_plan.id}
+                              class={[
+                                "text-sm px-2 py-1 rounded cursor-pointer hover:bg-base-200 transition-colors",
+                                if(meal_plan.notes,
+                                  do: "bg-warning/10 text-warning-content italic",
+                                  else: "text-base-content/30"
+                                )
+                              ]}
+                            >
+                              <%= if meal_plan.notes do %>
+                                <.icon
+                                  name="hero-chat-bubble-bottom-center-text"
+                                  class="w-3 h-3 inline mr-1"
+                                />
+                                {meal_plan.notes}
+                              <% else %>
+                                <span class="text-xs">+ Add notes</span>
+                              <% end %>
+                            </div>
+                          <% end %>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -292,10 +395,25 @@ defmodule GroceryPlannerWeb.MealPlannerLive.FocusLayout do
               </div>
             </div>
           </div>
+          
+    <!-- Quick Actions -->
+          <div class="space-y-2 mt-4">
+            <button class="btn btn-primary btn-sm w-full" phx-click="generate_shopping_list">
+              <.icon name="hero-clipboard-document-list" class="w-4 h-4" /> Generate Shopping List
+            </button>
+            <button class="btn btn-outline btn-sm w-full" phx-click="copy_previous_day">
+              <.icon name="hero-document-duplicate" class="w-4 h-4" /> Copy Yesterday
+            </button>
+            <button class="btn btn-outline btn-sm w-full" phx-click="repeat_last_week">
+              <.icon name="hero-arrow-path" class="w-4 h-4" /> Repeat Last Week
+            </button>
+            <button class="btn btn-outline btn-sm w-full" phx-click="auto_fill_day">
+              <.icon name="hero-sparkles" class="w-4 h-4" /> Auto-fill Day
+            </button>
+          </div>
         </div>
       </div>
-      
-    <!-- Quick Picker Bottom Sheet -->
+      <!-- Quick Picker Bottom Sheet -->
       <%= if @show_focus_quick_picker do %>
         <div
           class="fixed inset-0 z-50 flex items-end justify-center sm:items-center"
@@ -344,46 +462,76 @@ defmodule GroceryPlannerWeb.MealPlannerLive.FocusLayout do
             
     <!-- List -->
             <div class="overflow-y-auto flex-1 p-2 space-y-2">
-              <%= if @available_recipes == [] do %>
+              <%= if @available_recipes == [] && @recent_recipes == [] && @favorite_recipes == [] do %>
                 <div class="text-center py-10 text-base-content/40">
                   <p>No recipes found</p>
                 </div>
               <% end %>
-
+              
+    <!-- Recent Recipes -->
+              <%= if @recent_recipes != [] && @focus_search_query == "" do %>
+                <div class="px-2 pt-2 text-xs font-bold uppercase text-base-content/40">
+                  Recently Used
+                </div>
+                <%= for recipe <- @recent_recipes do %>
+                  <.focus_recipe_item recipe={recipe} />
+                <% end %>
+              <% end %>
+              
+    <!-- Favorite Recipes -->
+              <%= if @favorite_recipes != [] && @focus_search_query == "" do %>
+                <div class="px-2 pt-2 text-xs font-bold uppercase text-base-content/40">
+                  Favorites
+                </div>
+                <%= for recipe <- @favorite_recipes do %>
+                  <.focus_recipe_item recipe={recipe} />
+                <% end %>
+              <% end %>
+              
+    <!-- All Recipes -->
+              <div class="px-2 pt-2 text-xs font-bold uppercase text-base-content/40">
+                All Recipes
+              </div>
               <%= for recipe <- @available_recipes do %>
-                <button
-                  class="w-full flex items-center gap-3 p-2 hover:bg-base-200 rounded-xl transition-colors text-left group"
-                  phx-click="focus_select_recipe"
-                  phx-value-id={recipe.id}
-                >
-                  <%= if recipe.image_url do %>
-                    <img src={recipe.image_url} class="w-14 h-14 rounded-lg object-cover bg-base-200" />
-                  <% else %>
-                    <div class="w-14 h-14 rounded-lg bg-base-200 flex items-center justify-center text-2xl">
-                      <.icon name="hero-book-open" class="w-6 h-6 text-base-content/20" />
-                    </div>
-                  <% end %>
-
-                  <div class="flex-1 min-w-0">
-                    <div class="font-bold truncate">{recipe.name}</div>
-                    <div class="text-xs text-base-content/60 flex items-center gap-2">
-                      <span>{recipe.total_time_minutes || "--"}m</span>
-                      <%= if recipe.is_favorite do %>
-                        <.icon name="hero-heart-solid" class="w-3 h-3 text-error" />
-                      <% end %>
-                    </div>
-                  </div>
-
-                  <div class="opacity-0 group-hover:opacity-100 transition-opacity">
-                    <.icon name="hero-plus-circle" class="w-6 h-6 text-primary" />
-                  </div>
-                </button>
+                <.focus_recipe_item recipe={recipe} />
               <% end %>
             </div>
           </div>
         </div>
       <% end %>
     </div>
+    """
+  end
+
+  defp focus_recipe_item(assigns) do
+    ~H"""
+    <button
+      class="w-full flex items-center gap-3 p-2 hover:bg-base-200 rounded-xl transition-colors text-left group"
+      phx-click="focus_select_recipe"
+      phx-value-id={@recipe.id}
+    >
+      <%= if @recipe.image_url do %>
+        <img src={@recipe.image_url} class="w-14 h-14 rounded-lg object-cover bg-base-200" />
+      <% else %>
+        <div class="w-14 h-14 rounded-lg bg-base-200 flex items-center justify-center text-2xl">
+          <.icon name="hero-book-open" class="w-6 h-6 text-base-content/20" />
+        </div>
+      <% end %>
+
+      <div class="flex-1 min-w-0">
+        <div class="font-bold truncate">{@recipe.name}</div>
+        <div class="text-xs text-base-content/60 flex items-center gap-2">
+          <span>{@recipe.total_time_minutes || "--"}m</span>
+          <%= if @recipe.is_favorite do %>
+            <.icon name="hero-heart-solid" class="w-3 h-3 text-error" />
+          <% end %>
+        </div>
+      </div>
+
+      <div class="opacity-0 group-hover:opacity-100 transition-opacity">
+        <.icon name="hero-plus-circle" class="w-6 h-6 text-primary" />
+      </div>
+    </button>
     """
   end
 
@@ -429,8 +577,9 @@ defmodule GroceryPlannerWeb.MealPlannerLive.FocusLayout do
     atom_meal_type = String.to_existing_atom(meal_type)
 
     socket
-    # Helper from DataLoader
     |> DataLoader.load_all_recipes()
+    |> DataLoader.load_recent_recipes()
+    |> DataLoader.load_favorite_recipes()
     |> assign(:show_focus_quick_picker, true)
     |> assign(:focus_picker_slot, %{date: date, meal_type: atom_meal_type})
     |> assign(:focus_search_query, "")
@@ -484,6 +633,171 @@ defmodule GroceryPlannerWeb.MealPlannerLive.FocusLayout do
     send(self(), {:add_meal_internal, %{recipe_id: recipe_id, date: date, meal_type: meal_type}})
 
     {:noreply, assign(socket, :show_focus_quick_picker, false)}
+  end
+
+  # Shortcuts
+
+  def handle_event("copy_previous_day", _params, socket) do
+    target_date = socket.assigns.selected_day
+    source_date = Date.add(target_date, -1)
+
+    # Get source meals
+    source_meals =
+      socket.assigns.week_meals
+      |> Map.get(source_date, %{})
+      |> Map.values()
+
+    if Enum.empty?(source_meals) do
+      {:noreply, put_flash(socket, :info, "No meals found on previous day.")}
+    else
+      # Copy each meal
+      Enum.each(source_meals, fn source_meal ->
+        # Check if target slot is empty? For now just append
+        # Actually we should avoid duplicates.
+        unless get_meal_plan(target_date, source_meal.meal_type, socket.assigns.week_meals) do
+          GroceryPlanner.MealPlanning.create_meal_plan(
+            socket.assigns.current_account.id,
+            %{
+              recipe_id: source_meal.recipe_id,
+              scheduled_date: target_date,
+              meal_type: source_meal.meal_type,
+              servings: source_meal.servings
+            },
+            actor: socket.assigns.current_user,
+            tenant: socket.assigns.current_account.id
+          )
+        end
+      end)
+
+      # Refresh
+      send(self(), {:refresh_meals})
+      {:noreply, put_flash(socket, :info, "Copied meals from yesterday.")}
+    end
+  end
+
+  def handle_event("repeat_last_week", _params, socket) do
+    # Logic: For the current week (socket.assigns.week_start), copy meals from week_start - 7
+    week_start = socket.assigns.week_start
+    prev_week_start = Date.add(week_start, -7)
+
+    # We need to query the previous week's meals since they might not be loaded in @week_meals
+    {:ok, prev_week_meals} =
+      GroceryPlanner.MealPlanning.list_meal_plans_by_date_range(
+        prev_week_start,
+        week_start,
+        actor: socket.assigns.current_user,
+        tenant: socket.assigns.current_account.id
+      )
+
+    if Enum.empty?(prev_week_meals) do
+      {:noreply, put_flash(socket, :info, "No meals found in last week.")}
+    else
+      count =
+        prev_week_meals
+        |> Enum.reduce(0, fn source_meal, acc ->
+          # Calculate offset
+          diff = Date.diff(source_meal.scheduled_date, prev_week_start)
+          target_date = Date.add(week_start, diff)
+
+          # Check collision
+          unless get_meal_plan(target_date, source_meal.meal_type, socket.assigns.week_meals) do
+            GroceryPlanner.MealPlanning.create_meal_plan(
+              socket.assigns.current_account.id,
+              %{
+                recipe_id: source_meal.recipe_id,
+                scheduled_date: target_date,
+                meal_type: source_meal.meal_type,
+                servings: source_meal.servings
+              },
+              actor: socket.assigns.current_user,
+              tenant: socket.assigns.current_account.id
+            )
+
+            acc + 1
+          else
+            acc
+          end
+        end)
+
+      send(self(), {:refresh_meals})
+      {:noreply, put_flash(socket, :info, "Repeated #{count} meals from last week.")}
+    end
+  end
+
+  def handle_event("auto_fill_day", _params, socket) do
+    # Simple heuristic: Fill empty DINNER slots with random favorite recipes
+    target_date = socket.assigns.selected_day
+
+    unless get_meal_plan(target_date, :dinner, socket.assigns.week_meals) do
+      # Pick random favorite
+      {:ok, favorites} =
+        GroceryPlanner.Recipes.list_favorite_recipes(
+          actor: socket.assigns.current_user,
+          tenant: socket.assigns.current_account.id
+        )
+
+      if Enum.empty?(favorites) do
+        {:noreply, put_flash(socket, :info, "Mark some favorites to use Auto-fill!")}
+      else
+        recipe = Enum.random(favorites)
+
+        GroceryPlanner.MealPlanning.create_meal_plan(
+          socket.assigns.current_account.id,
+          %{
+            recipe_id: recipe.id,
+            scheduled_date: target_date,
+            meal_type: :dinner,
+            servings: 4
+          },
+          actor: socket.assigns.current_user,
+          tenant: socket.assigns.current_account.id
+        )
+
+        send(self(), {:refresh_meals})
+        {:noreply, put_flash(socket, :info, "Auto-filled dinner!")}
+      end
+    else
+      {:noreply, put_flash(socket, :info, "Dinner already planned for today.")}
+    end
+  end
+
+  def handle_event("meal_prep", %{"id" => id}, socket) do
+    case GroceryPlanner.MealPlanning.get_meal_plan(id,
+           actor: socket.assigns.current_user,
+           tenant: socket.assigns.current_account.id
+         ) do
+      {:ok, meal_plan} ->
+        # Copy this meal to all remaining days of the current week for the same meal type
+        week_end = Date.add(socket.assigns.week_start, 6)
+        remaining_days = Date.range(Date.add(meal_plan.scheduled_date, 1), week_end)
+
+        count =
+          Enum.reduce(remaining_days, 0, fn date, acc ->
+            unless get_meal_plan(date, meal_plan.meal_type, socket.assigns.week_meals) do
+              GroceryPlanner.MealPlanning.create_meal_plan(
+                socket.assigns.current_account.id,
+                %{
+                  recipe_id: meal_plan.recipe_id,
+                  scheduled_date: date,
+                  meal_type: meal_plan.meal_type,
+                  servings: meal_plan.servings
+                },
+                actor: socket.assigns.current_user,
+                tenant: socket.assigns.current_account.id
+              )
+
+              acc + 1
+            else
+              acc
+            end
+          end)
+
+        send(self(), {:refresh_meals})
+        {:noreply, put_flash(socket, :info, "Repeated meal for #{count} days")}
+
+      _ ->
+        {:noreply, put_flash(socket, :error, "Meal not found")}
+    end
   end
 
   # Helper for safe map access (same as before)

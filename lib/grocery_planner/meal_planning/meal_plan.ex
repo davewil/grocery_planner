@@ -24,6 +24,17 @@ defmodule GroceryPlanner.MealPlanning.MealPlan do
     end
   end
 
+  code_interface do
+    domain GroceryPlanner.MealPlanning
+
+    define :create_meal_plan, action: :create
+    define :update_meal_plan, action: :update
+    define :list_meal_plans_by_date_range, action: :by_date_range, args: [:start_date, :end_date]
+    define :list_recent_meal_plans, action: :recent, args: [:since]
+    define :read
+    define :destroy
+  end
+
   actions do
     defaults [:read, :destroy]
 
@@ -71,6 +82,20 @@ defmodule GroceryPlanner.MealPlanning.MealPlan do
       change set_attribute(:status, :skipped)
 
       require_atomic? false
+    end
+
+    read :by_date_range do
+      argument :start_date, :date, allow_nil?: false
+      argument :end_date, :date, allow_nil?: false
+
+      filter expr(scheduled_date >= ^arg(:start_date) and scheduled_date < ^arg(:end_date))
+    end
+
+    read :recent do
+      argument :since, :date, allow_nil?: false
+
+      filter expr(scheduled_date >= ^arg(:since))
+      prepare build(sort: [scheduled_date: :desc])
     end
   end
 

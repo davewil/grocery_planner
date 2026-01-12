@@ -3,10 +3,7 @@ defmodule GroceryPlannerWeb.InventoryLive do
 
   on_mount({GroceryPlannerWeb.Auth, :require_authenticated_user})
 
-  alias GroceryPlanner.Inventory.{GroceryItem, InventoryEntry}
   alias GroceryPlanner.AiClient
-
-  require Ash.Query
 
   @inventory_per_page 12
 
@@ -1909,13 +1906,13 @@ defmodule GroceryPlannerWeb.InventoryLive do
 
   def handle_event("remove_tag_from_item", %{"item-id" => item_id, "tag-id" => tag_id}, socket) do
     # Find the tagging and destroy it
-    case GroceryPlanner.Inventory.list_grocery_item_taggings(
+    case GroceryPlanner.Inventory.get_tagging(
+           item_id,
+           tag_id,
            actor: socket.assigns.current_user,
-           query:
-             GroceryPlanner.Inventory.GroceryItemTagging
-             |> Ash.Query.filter(grocery_item_id == ^item_id and tag_id == ^tag_id)
+           tenant: socket.assigns.current_account.id
          ) do
-      {:ok, [tagging | _]} ->
+      {:ok, tagging} ->
         case GroceryPlanner.Inventory.destroy_grocery_item_tagging(tagging, authorize?: false) do
           :ok ->
             # Reload the item with tags
@@ -2155,11 +2152,10 @@ defmodule GroceryPlannerWeb.InventoryLive do
   defp sync_item_tags(item_id, selected_tag_ids, socket) do
     # Get current tags for this item
     {:ok, current_taggings} =
-      GroceryPlanner.Inventory.list_grocery_item_taggings(
+      GroceryPlanner.Inventory.list_taggings_for_item(
+        item_id,
         actor: socket.assigns.current_user,
-        query:
-          GroceryPlanner.Inventory.GroceryItemTagging
-          |> Ash.Query.filter(grocery_item_id == ^item_id)
+        tenant: socket.assigns.current_account.id
       )
 
     current_tag_ids = Enum.map(current_taggings, fn t -> to_string(t.tag_id) end)
@@ -2195,26 +2191,21 @@ defmodule GroceryPlannerWeb.InventoryLive do
   def format_expiring_filter(_), do: "All Items"
 
   defp load_data(socket) do
-    import Ash.Query, only: [filter: 2]
     account_id = socket.assigns.current_account.id
     user = socket.assigns.current_user
 
-    items_query = GroceryItem |> Ash.Query.load(:tags)
-
-    items_query =
+    filter_tag_ids =
       if socket.assigns[:filter_tag_ids] && socket.assigns.filter_tag_ids != [] do
-        Enum.reduce(socket.assigns.filter_tag_ids, items_query, fn filter_tag_id, query ->
-          filter(query, exists(tags, id == ^filter_tag_id))
-        end)
+        socket.assigns.filter_tag_ids
       else
-        items_query
+        nil
       end
 
     {:ok, items} =
-      GroceryPlanner.Inventory.list_grocery_items(
+      GroceryPlanner.Inventory.list_items_with_tags(
+        filter_tag_ids,
         actor: user,
-        tenant: account_id,
-        query: items_query
+        tenant: account_id
       )
 
     {:ok, categories} = GroceryPlanner.Inventory.list_categories(actor: user, tenant: account_id)
@@ -2225,47 +2216,21 @@ defmodule GroceryPlannerWeb.InventoryLive do
     {:ok, tags} =
       GroceryPlanner.Inventory.list_grocery_item_tags(authorize?: false, tenant: account_id)
 
-    # Build inventory entries query with expiration filter
-    entries_query =
-      InventoryEntry
-      |> Ash.Query.load([:grocery_item, :storage_location, :days_until_expiry, :is_expired])
-      |> filter(status == :available)
-
-    entries_query =
+    expiration_filter =
       case socket.assigns[:expiring_filter] do
-        "expired" ->
-          entries_query
-          |> filter(is_expired == true)
-
-        "today" ->
-          entries_query
-          |> filter(not is_nil(use_by_date))
-          |> filter(fragment("DATE(?) = CURRENT_DATE", use_by_date))
-
-        "tomorrow" ->
-          entries_query
-          |> filter(not is_nil(use_by_date))
-          |> filter(fragment("DATE(?) = CURRENT_DATE + INTERVAL '1 day'", use_by_date))
-
-        "this_week" ->
-          entries_query
-          |> filter(not is_nil(use_by_date))
-          |> filter(
-            fragment(
-              "DATE(?) BETWEEN CURRENT_DATE + INTERVAL '2 days' AND CURRENT_DATE + INTERVAL '3 days'",
-              use_by_date
-            )
-          )
-
-        _ ->
-          entries_query
+        "expired" -> :expired
+        "today" -> :today
+        "tomorrow" -> :tomorrow
+        "this_week" -> :this_week
+        _ -> nil
       end
 
     {:ok, all_entries} =
-      GroceryPlanner.Inventory.list_inventory_entries(
+      GroceryPlanner.Inventory.list_inventory_entries_filtered(
+        status: :available,
+        expiration_filter: expiration_filter,
         actor: user,
-        tenant: account_id,
-        query: entries_query
+        tenant: account_id
       )
 
     # Paginate inventory entries

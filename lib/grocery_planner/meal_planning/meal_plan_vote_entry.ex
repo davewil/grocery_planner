@@ -10,8 +10,17 @@ defmodule GroceryPlanner.MealPlanning.MealPlanVoteEntry do
     repo GroceryPlanner.Repo
   end
 
+  code_interface do
+    define :list_entries_for_session, action: :by_session, args: [:vote_session_id]
+  end
+
   actions do
     defaults [:read, :destroy]
+
+    read :by_session do
+      argument :vote_session_id, :uuid, allow_nil?: false
+      filter expr(vote_session_id == ^arg(:vote_session_id))
+    end
 
     create :vote do
       accept []

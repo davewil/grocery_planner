@@ -13,10 +13,7 @@ defmodule GroceryPlannerWeb.ReceiptsLive do
   on_mount({GroceryPlannerWeb.Auth, :require_authenticated_user})
 
   alias GroceryPlanner.Inventory
-  alias GroceryPlanner.Inventory.Receipt
   alias GroceryPlanner.AiClient
-
-  require Ash.Query
 
   @poll_interval 2000
 
@@ -598,11 +595,11 @@ defmodule GroceryPlannerWeb.ReceiptsLive do
   # Private helpers
 
   defp load_receipts(socket) do
-    receipts =
-      Receipt
-      |> Ash.Query.filter(account_id == ^socket.assigns.current_account.id)
-      |> Ash.Query.sort(created_at: :desc)
-      |> Ash.read!(actor: socket.assigns.current_user)
+    {:ok, receipts} =
+      Inventory.list_receipts(
+        actor: socket.assigns.current_user,
+        tenant: socket.assigns.current_account.id
+      )
 
     assign(socket, :receipts, receipts)
   end
@@ -757,8 +754,6 @@ defmodule GroceryPlannerWeb.ReceiptsLive do
   defp error_to_string(err), do: "Error: #{inspect(err)}"
 
   defp create_inventory_entry_from_item(item, account_id, purchase_date, actor) do
-    alias GroceryPlanner.Inventory.GroceryItem
-
     # Find or create a GroceryItem by name
     grocery_item =
       case find_grocery_item_by_name(item.name, account_id, actor) do
@@ -790,19 +785,10 @@ defmodule GroceryPlannerWeb.ReceiptsLive do
   end
 
   defp find_grocery_item_by_name(name, account_id, actor) do
-    alias GroceryPlanner.Inventory.GroceryItem
-
-    result =
-      GroceryItem
-      |> Ash.Query.filter(account_id == ^account_id)
-      |> Ash.Query.filter(fragment("lower(?) = lower(?)", name, ^name))
-      |> Ash.Query.limit(1)
-      |> Ash.read(actor: actor)
-
-    case result do
-      {:ok, [item]} -> {:ok, item}
-      {:ok, []} -> :not_found
-      {:error, _} -> :not_found
+    case Inventory.get_item_by_name(name, actor: actor, tenant: account_id) do
+      {:ok, item} -> {:ok, item}
+      {:error, %Ash.Error.Query.NotFound{}} -> :not_found
+      _ -> :not_found
     end
   end
 end

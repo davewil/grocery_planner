@@ -16,7 +16,15 @@ defmodule GroceryPlannerWeb.MealPlannerLive.DataLoader do
       MealPlanning.list_meal_plans(
         actor: socket.assigns.current_user,
         tenant: account_id,
-        load: [recipe: [recipe_ingredients: :grocery_item]]
+        load: [
+          :requires_shopping,
+          recipe: [
+            :can_make,
+            :ingredient_availability,
+            :recipe_ingredients,
+            recipe_ingredients: :grocery_item
+          ]
+        ]
       )
 
     meal_plans =
@@ -40,14 +48,33 @@ defmodule GroceryPlannerWeb.MealPlannerLive.DataLoader do
   end
 
   def load_favorite_recipes(socket) do
-    # Currently reusing the main recipe list logic since we don't have a dedicated endpoint yet
-    # This is a placeholder to match the spec's intent
-    load_all_recipes(socket)
+    {:ok, favorites} =
+      Recipes.list_favorite_recipes(
+        actor: socket.assigns.current_user,
+        tenant: socket.assigns.current_account.id
+      )
+
+    assign(socket, :favorite_recipes, favorites)
   end
 
-  def load_recent_recipes(socket, _days \\ 14) do
-    # Placeholder: currently recent recipes are derived from meal plans in the LiveView
-    socket
+  def load_recent_recipes(socket, days \\ 14) do
+    cutoff = Date.add(Date.utc_today(), -days)
+
+    {:ok, recent_plans} =
+      MealPlanning.list_recent_meal_plans(
+        cutoff,
+        actor: socket.assigns.current_user,
+        tenant: socket.assigns.current_account.id,
+        load: [:recipe]
+      )
+
+    recent_recipes =
+      recent_plans
+      |> Enum.map(& &1.recipe)
+      |> Enum.uniq_by(& &1.id)
+      |> Enum.take(5)
+
+    assign(socket, :recent_recipes, recent_recipes)
   end
 
   def load_all_recipes(socket, _opts \\ []) do

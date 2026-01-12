@@ -24,6 +24,18 @@ defmodule GroceryPlanner.Recipes.Recipe do
     end
   end
 
+  code_interface do
+    domain GroceryPlanner.Recipes
+
+    define :list_favorite_recipes, action: :favorites
+    define :list_recipes_for_meal_planner, action: :meal_planner_recipes
+    define :list_recipes_sorted, action: :list_all_sorted
+    define :read
+    define :create
+    define :update
+    define :destroy
+  end
+
   actions do
     defaults [:read, :destroy]
 
@@ -123,6 +135,15 @@ defmodule GroceryPlanner.Recipes.Recipe do
       end
 
       require_atomic? false
+    end
+
+    read :favorites do
+      filter expr(is_favorite == true)
+      prepare build(sort: [name: :asc])
+    end
+
+    read :list_all_sorted do
+      prepare build(sort: [name: :asc])
     end
   end
 

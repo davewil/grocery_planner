@@ -25,12 +25,18 @@ defmodule GroceryPlanner.Inventory.StorageLocation do
   end
 
   code_interface do
+    define :create_storage_location, action: :create
     define :read
+    define :list_storage_locations_sorted, action: :list_all_sorted
     define :by_id, action: :read, get_by: [:id]
   end
 
   actions do
     defaults [:read, :destroy]
+
+    read :list_all_sorted do
+      prepare build(sort: [name: :asc])
+    end
 
     create :create do
       accept [:name, :temperature_zone]

@@ -19,6 +19,7 @@ defmodule GroceryPlanner.Inventory do
     resource GroceryPlanner.Inventory.StorageLocation do
       define :create_storage_location, action: :create, args: [:account_id]
       define :list_storage_locations, action: :read
+      define :list_storage_locations_sorted, action: :list_all_sorted
       define :get_storage_location, action: :read, get_by: [:id]
       define :update_storage_location, action: :update
       define :destroy_storage_location, action: :destroy
@@ -27,7 +28,9 @@ defmodule GroceryPlanner.Inventory do
     resource GroceryPlanner.Inventory.GroceryItem do
       define :create_grocery_item, action: :create, args: [:account_id]
       define :list_grocery_items, action: :read
+      define :list_items_with_tags, action: :list_with_tags, args: [:filter_tag_ids]
       define :get_grocery_item, action: :read, get_by: [:id]
+      define :get_item_by_name, action: :by_name, args: [:name], get?: true
       define :update_grocery_item, action: :update
       define :destroy_grocery_item, action: :destroy
     end
@@ -35,6 +38,7 @@ defmodule GroceryPlanner.Inventory do
     resource GroceryPlanner.Inventory.InventoryEntry do
       define :create_inventory_entry, action: :create, args: [:account_id, :grocery_item_id]
       define :list_inventory_entries, action: :read
+      define :list_inventory_entries_filtered, action: :list_filtered
       define :get_inventory_entry, action: :read, get_by: [:id]
       define :update_inventory_entry, action: :update
       define :destroy_inventory_entry, action: :destroy
@@ -51,12 +55,14 @@ defmodule GroceryPlanner.Inventory do
     resource GroceryPlanner.Inventory.GroceryItemTagging do
       define :create_grocery_item_tagging, action: :create
       define :list_grocery_item_taggings, action: :read
+      define :list_taggings_for_item, action: :by_item, args: [:grocery_item_id]
+      define :get_tagging, action: :by_item_and_tag, args: [:grocery_item_id, :tag_id], get?: true
       define :destroy_grocery_item_tagging, action: :destroy
     end
 
     resource GroceryPlanner.Inventory.Receipt do
       define :create_receipt, action: :create, args: [:account_id]
-      define :list_receipts, action: :read
+      define :list_receipts, action: :list_all
       define :get_receipt, action: :read, get_by: [:id]
       define :update_receipt, action: :update
       define :destroy_receipt, action: :destroy

@@ -2,7 +2,6 @@ defmodule GroceryPlannerWeb.ShoppingLive do
   use GroceryPlannerWeb, :live_view
   import GroceryPlannerWeb.UIComponents
   require Logger
-  require Ash.Query
 
   on_mount({GroceryPlannerWeb.Auth, :require_authenticated_user})
 
@@ -238,10 +237,9 @@ defmodule GroceryPlannerWeb.ShoppingLive do
 
     # Load storage locations for the dropdown
     {:ok, locations} =
-      GroceryPlanner.Inventory.list_storage_locations(
+      GroceryPlanner.Inventory.list_storage_locations_sorted(
         actor: socket.assigns.current_user,
-        tenant: socket.assigns.current_account.id,
-        query: GroceryPlanner.Inventory.StorageLocation |> Ash.Query.sort(name: :asc)
+        tenant: socket.assigns.current_account.id
       )
 
     socket =
@@ -476,14 +474,10 @@ defmodule GroceryPlannerWeb.ShoppingLive do
 
   defp load_shopping_lists(socket) do
     {:ok, all_lists} =
-      GroceryPlanner.Shopping.list_shopping_lists(
+      GroceryPlanner.Shopping.list_active_or_completed_shopping_lists(
         actor: socket.assigns.current_user,
         tenant: socket.assigns.current_account.id,
-        query:
-          GroceryPlanner.Shopping.ShoppingList
-          |> Ash.Query.filter(or: [status: :active, status: :completed])
-          |> Ash.Query.sort(updated_at: :desc)
-          |> Ash.Query.load([:total_items, :checked_items, :progress_percentage])
+        load: [:total_items, :checked_items, :progress_percentage]
       )
 
     # Paginate the lists

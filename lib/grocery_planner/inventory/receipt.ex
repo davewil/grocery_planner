@@ -11,15 +11,20 @@ defmodule GroceryPlanner.Inventory.Receipt do
   end
 
   code_interface do
-    define :create
+    define :create_receipt, action: :create
+    define :list_receipts, action: :list_all
     define :read
-    define :by_id, action: :read, get_by: [:id]
-    define :update
-    define :destroy
+    define :get_receipt, action: :read, get_by: [:id]
+    define :update_receipt, action: :update
+    define :destroy_receipt, action: :destroy
   end
 
   actions do
     defaults [:read, :destroy]
+
+    read :list_all do
+      prepare build(sort: [created_at: :desc])
+    end
 
     create :create do
       accept [:image_path]

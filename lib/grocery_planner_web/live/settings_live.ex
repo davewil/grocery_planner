@@ -42,22 +42,16 @@ defmodule GroceryPlannerWeb.SettingsLive do
     invite_form = to_form(%{})
 
     # Load notification preferences
-    require Ash.Query
     user_id = socket.assigns.current_user.id
 
     notification_preference =
-      case GroceryPlanner.Notifications.list_notification_preferences(
+      case GroceryPlanner.Notifications.get_preference_for_user(
+             user_id,
              actor: socket.assigns.current_user,
-             tenant: socket.assigns.current_account.id,
-             query:
-               Ash.Query.filter(
-                 GroceryPlanner.Notifications.NotificationPreference,
-                 user_id == ^user_id
-               )
+             tenant: socket.assigns.current_account.id
            ) do
-        {:ok, [pref | _]} -> pref
-        {:ok, []} -> nil
-        _ -> nil
+        {:ok, pref} -> pref
+        {:error, _} -> nil
       end
 
     notification_form =

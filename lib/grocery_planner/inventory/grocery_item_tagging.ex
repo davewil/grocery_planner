@@ -9,8 +9,24 @@ defmodule GroceryPlanner.Inventory.GroceryItemTagging do
     repo GroceryPlanner.Repo
   end
 
+  code_interface do
+    define :list_taggings_for_item, action: :by_item, args: [:grocery_item_id]
+    define :get_tagging, action: :by_item_and_tag, args: [:grocery_item_id, :tag_id], get?: true
+  end
+
   actions do
     defaults [:read, :destroy]
+
+    read :by_item do
+      argument :grocery_item_id, :uuid, allow_nil?: false
+      filter expr(grocery_item_id == ^arg(:grocery_item_id))
+    end
+
+    read :by_item_and_tag do
+      argument :grocery_item_id, :uuid, allow_nil?: false
+      argument :tag_id, :uuid, allow_nil?: false
+      filter expr(grocery_item_id == ^arg(:grocery_item_id) and tag_id == ^arg(:tag_id))
+    end
 
     create :create do
       accept [:grocery_item_id, :tag_id]

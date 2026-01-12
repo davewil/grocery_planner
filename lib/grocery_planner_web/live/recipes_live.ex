@@ -4,7 +4,6 @@ defmodule GroceryPlannerWeb.RecipesLive do
 
   on_mount {GroceryPlannerWeb.Auth, :require_authenticated_user}
 
-  alias GroceryPlanner.Recipes.Recipe
   alias GroceryPlanner.MealPlanning.Voting
 
   @per_page 12
@@ -163,10 +162,9 @@ defmodule GroceryPlannerWeb.RecipesLive do
     per_page = socket.assigns.per_page
 
     filtered_recipes =
-      case GroceryPlanner.Recipes.list_recipes(
+      case GroceryPlanner.Recipes.list_recipes_sorted(
              actor: user,
-             tenant: account_id,
-             query: Recipe |> Ash.Query.sort(name: :asc)
+             tenant: account_id
            ) do
         {:ok, all_recipes} ->
           all_recipes

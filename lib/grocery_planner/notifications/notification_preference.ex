@@ -24,8 +24,20 @@ defmodule GroceryPlanner.Notifications.NotificationPreference do
     end
   end
 
+  code_interface do
+    define :get_preference_for_user, action: :by_user, args: [:user_id], get?: true
+    define :create_notification_preference, action: :create
+    define :update_notification_preference, action: :update
+    define :list_notification_preferences, action: :read
+  end
+
   actions do
     defaults [:read, :destroy]
+
+    read :by_user do
+      argument :user_id, :uuid, allow_nil?: false
+      filter expr(user_id == ^arg(:user_id))
+    end
 
     create :create do
       accept [

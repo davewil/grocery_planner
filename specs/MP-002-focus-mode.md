@@ -59,10 +59,10 @@ Some users don't need discovery—they know their recipes and just want to quick
 **So that** I don't re-enter the same data
 
 **Acceptance Criteria:**
-- [ ] "Repeat last week" button
-- [ ] "Copy yesterday's lunch" option
-- [ ] Recently used recipes in quick picker
-- [ ] Meal prep mode (same meal multiple days)
+- [x] "Repeat last week" button
+- [x] "Copy yesterday's lunch" option
+- [x] Recently used recipes in quick picker
+- [x] Meal prep mode (same meal multiple days)
 
 ### US-005: Grocery impact visibility
 **As a** user planning meals
