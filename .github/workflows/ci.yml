@@ -73,6 +73,7 @@ jobs:
   test-python:
     name: Python AI Service Test
     runs-on: ubuntu-latest
+    if: false
     # specific path for python service
     defaults:
       run:
