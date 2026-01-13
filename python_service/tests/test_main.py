@@ -14,7 +14,7 @@ os.environ["AI_DATABASE_URL"] = f"sqlite:///{_test_db_file.name}"
 
 from fastapi.testclient import TestClient
 from main import app
-from database import Base, get_engine, reset_engine, init_db, get_db, get_session_local
+from database import Base, get_engine, reset_engine, init_db
 
 
 @pytest.fixture(scope="function")
