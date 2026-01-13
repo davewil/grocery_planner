@@ -13,7 +13,7 @@ defmodule GroceryPlannerWeb.MealPlannerLive.PowerLayout do
 
   def init(socket) do
     socket
-    |> Phoenix.Component.assign(:sidebar_open, true)
+    |> Phoenix.Component.assign(:sidebar_open, false)
     |> Phoenix.Component.assign(:selected_meals, MapSet.new())
     |> Phoenix.Component.assign(:pending_swap, nil)
     |> Phoenix.Component.assign(:sidebar_search, "")
@@ -44,7 +44,7 @@ defmodule GroceryPlannerWeb.MealPlannerLive.PowerLayout do
   def render(assigns) do
     ~H"""
     <div
-      class="flex flex-col h-[calc(100vh-12rem)]"
+      class="flex flex-col h-[calc(100vh-12rem)] relative"
       id="power-mode-kanban"
       phx-hook="KanbanBoard"
     >
@@ -52,7 +52,7 @@ defmodule GroceryPlannerWeb.MealPlannerLive.PowerLayout do
       <div class="bg-base-200 border-b border-base-300 px-4 py-3 rounded-t-xl">
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <%!-- Week Navigation --%>
-          <div class="flex items-center gap-2">
+          <div class="hidden lg:flex items-center gap-2">
             <button phx-click="prev_week" class="btn btn-ghost btn-sm" id="power-prev-week">
               <.icon name="hero-chevron-left" class="w-4 h-4" /> Prev
             </button>
@@ -141,8 +141,8 @@ defmodule GroceryPlannerWeb.MealPlannerLive.PowerLayout do
       <%!-- Main Content: Kanban Board + Sidebar --%>
       <div class="flex flex-1 overflow-hidden">
         <%!-- Kanban Board --%>
-        <div class="flex-1 overflow-x-auto" id="power-week-board">
-          <div class="flex h-full gap-2 p-2 min-w-[900px]">
+        <div class="flex-1 overflow-y-auto lg:overflow-hidden" id="power-week-board">
+          <div class="flex flex-col lg:flex-row lg:h-full h-auto gap-2 p-2 lg:min-w-[900px] lg:overflow-x-auto">
             <%= for day <- @days do %>
               <.day_column
                 day={day}
@@ -155,16 +155,18 @@ defmodule GroceryPlannerWeb.MealPlannerLive.PowerLayout do
 
         <%!-- Recipe Sidebar --%>
         <div class={[
-          "border-l border-base-300 bg-base-100 transition-all duration-300 overflow-hidden flex-shrink-0",
-          if(@sidebar_open, do: "w-72", else: "w-0")
+          "bg-base-100 transition-all duration-300 overflow-hidden flex-shrink-0 z-20 absolute right-0 h-full shadow-xl lg:relative lg:shadow-none",
+          if(@sidebar_open, do: "w-72 border-l border-base-300", else: "w-0 border-l-0")
         ]}>
-          <.recipe_sidebar
-            :if={@sidebar_open}
-            recipes={@recipes}
-            favorites={@favorites}
-            recent_recipes={@recent_recipes}
-            sidebar_search={assigns[:sidebar_search] || ""}
-          />
+          <div class="w-72 h-full flex flex-col absolute right-0 top-0">
+            <.recipe_sidebar
+              :if={true}
+              recipes={@recipes}
+              favorites={@favorites}
+              recent_recipes={@recent_recipes}
+              sidebar_search={assigns[:sidebar_search] || ""}
+            />
+          </div>
         </div>
       </div>
 
@@ -188,15 +190,19 @@ defmodule GroceryPlannerWeb.MealPlannerLive.PowerLayout do
 
     ~H"""
     <div class={[
-      "flex-1 min-w-[120px] rounded-xl border border-base-200 bg-base-100 shadow-sm overflow-hidden flex flex-col",
-      if(Date.compare(@day, Date.utc_today()) == :eq, do: "ring-2 ring-primary/30")
+      "flex-1 min-w-[120px] overflow-hidden flex flex-col w-full",
+      "lg:w-auto",
+      "lg:rounded-xl lg:border lg:border-base-200 lg:bg-base-100 lg:shadow-sm",
+      "max-lg:border-b max-lg:border-base-200/80 max-lg:pb-3",
+      if(Date.compare(@day, Date.utc_today()) == :eq, do: "lg:ring-2 lg:ring-primary/30")
     ]}>
       <%!-- Day Header --%>
       <div class={[
-        "px-3 py-2 flex items-center justify-between gap-2 border-b flex-shrink-0",
+        "px-3 py-2 flex items-center justify-between gap-2 flex-shrink-0",
+        "lg:border-b",
         if(Date.compare(@day, Date.utc_today()) == :eq,
-          do: "bg-primary text-primary-content border-transparent",
-          else: "bg-base-200 text-base-content border-base-200"
+          do: "bg-primary text-primary-content lg:border-transparent",
+          else: "bg-base-200 text-base-content lg:border-base-200"
         )
       ]}>
         <div class="min-w-0">
@@ -248,7 +254,9 @@ defmodule GroceryPlannerWeb.MealPlannerLive.PowerLayout do
       data-meal-type={@meal_type}
     >
       <div class="text-[10px] uppercase text-base-content/50 mb-1 px-1 flex items-center gap-1">
-        <span>{Terminology.meal_type_icon(@meal_type) |> Terminology.icon_to_emoji()}</span>
+        <span class="text-sm leading-none">
+          {Terminology.meal_type_icon(@meal_type) |> Terminology.icon_to_emoji()}
+        </span>
         <span class="capitalize">{@meal_type}</span>
       </div>
 
@@ -261,7 +269,7 @@ defmodule GroceryPlannerWeb.MealPlannerLive.PowerLayout do
           phx-value-meal_type={@meal_type}
           class="w-full h-9 rounded-lg border border-dashed border-base-300 text-base-content/30 hover:border-primary hover:text-primary hover:bg-primary/5 text-xs transition-colors flex items-center justify-center gap-1"
         >
-          <.icon name="hero-plus" class="w-3 h-3" /> Add
+          <.icon name="hero-plus" class="w-4 h-4" /> Add
         </button>
       <% end %>
     </div>
@@ -302,11 +310,11 @@ defmodule GroceryPlannerWeb.MealPlannerLive.PowerLayout do
       <div class="mt-1.5 flex items-center gap-1">
         <%= if recipe_ready?(@meal.recipe) do %>
           <span class="badge badge-success badge-xs gap-0.5">
-            <.icon name="hero-check" class="w-2 h-2" /> Ready
+            <.icon name="hero-check" class="w-3 h-3" /> Ready
           </span>
         <% else %>
           <span class="badge badge-warning badge-xs gap-0.5">
-            <.icon name="hero-shopping-cart" class="w-2 h-2" /> Need items
+            <.icon name="hero-shopping-cart" class="w-3 h-3" /> Need items
           </span>
         <% end %>
       </div>

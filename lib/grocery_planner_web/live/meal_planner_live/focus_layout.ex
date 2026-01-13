@@ -6,7 +6,6 @@ defmodule GroceryPlannerWeb.MealPlannerLive.FocusLayout do
   import GroceryPlannerWeb.CoreComponents
 
   def init(socket) do
-    # Ensure selected_day is set, default to today if nil
     selected_day = socket.assigns[:selected_day] || Date.utc_today()
 
     socket
@@ -22,328 +21,580 @@ defmodule GroceryPlannerWeb.MealPlannerLive.FocusLayout do
   def render(assigns) do
     ~H"""
     <div class="flex h-[calc(100vh-8rem)] lg:h-[calc(100vh-6rem)] overflow-hidden" id="focus-mode">
-      <!-- Main Content (Mobile + Desktop Left Col) -->
       <div class="flex-1 flex flex-col min-w-0 bg-base-100/50">
-        <!-- Week Strip Header -->
-        <div class="flex-none bg-base-100 border-b border-base-200 shadow-sm z-10">
-          <div class="px-4 py-3">
-            <div class="flex items-center justify-between mb-3">
-              <div>
-                <div class="text-xs font-semibold uppercase tracking-wide text-base-content/60">
-                  Planning
-                </div>
-                <div class="text-xl font-bold text-base-content flex items-center gap-2">
-                  {Calendar.strftime(@selected_day, "%A, %B %d")}
-                  <button
-                    :if={@selected_day != Date.utc_today()}
-                    phx-click="focus_today"
-                    class="btn btn-ghost btn-xs text-primary"
-                  >
-                    Jump to Today
-                  </button>
-                </div>
-              </div>
-              <!-- Mobile Shopping Summary (Small) -->
-              <div class="lg:hidden flex items-center gap-1 text-sm bg-base-200 px-2 py-1 rounded-lg">
-                <.icon name="hero-shopping-cart" class="w-4 h-4" />
-                <span class={
-                  if Enum.empty?(@day_shopping_items), do: "text-success", else: "text-warning"
-                }>
-                  {length(@day_shopping_items)}
-                </span>
-              </div>
-            </div>
-            
-    <!-- Swipeable Week Strip -->
-            <div
-              class="overflow-x-auto scrollbar-hide -mx-4 px-4 touch-pan-x"
-              phx-hook="SwipeableWeek"
-              id="week-strip"
-            >
-              <div class="flex gap-2 min-w-max pb-1">
-                <button
-                  phx-click="prev_week"
-                  class="flex flex-col items-center justify-center w-12 rounded-xl text-base-content/40 hover:bg-base-200 transition-colors"
-                >
-                  <.icon name="hero-chevron-left" class="w-5 h-5" />
-                </button>
-
-                <%= for day <- @days do %>
-                  <% selected = @selected_day == day %>
-                  <% today = day == Date.utc_today() %>
-                  <% meal_count = Enum.count(@week_meals[day] || []) %>
-                  <% has_dinner = Map.has_key?(@week_meals[day] || %{}, :dinner) %>
-
-                  <button
-                    phx-click="focus_select_day"
-                    phx-value-date={day}
-                    class={[
-                      "flex flex-col items-center py-2 px-1 w-14 rounded-xl transition-all relative",
-                      selected && "bg-primary text-primary-content shadow-md scale-105",
-                      !selected && today && "bg-primary/10 text-primary border border-primary/20",
-                      !selected && !today &&
-                        "bg-base-100 border border-base-200 hover:bg-base-200 text-base-content/70"
-                    ]}
-                    id={"focus-day-#{day}"}
-                  >
-                    <span class="text-xs opacity-80 uppercase tracking-tighter">
-                      {Calendar.strftime(day, "%a")}
-                    </span>
-                    <span class="text-lg font-bold leading-none my-0.5">
-                      {Calendar.strftime(day, "%d")}
-                    </span>
-
-                    <div class="flex gap-0.5 mt-1 h-1.5">
-                      <%= if meal_count > 0 do %>
-                        <div class={[
-                          "w-1.5 h-1.5 rounded-full",
-                          selected && "bg-primary-content/70",
-                          !selected && "bg-primary"
-                        ]}>
-                        </div>
-                      <% end %>
-                      <%= if has_dinner do %>
-                        <div class={[
-                          "w-1.5 h-1.5 rounded-full",
-                          selected && "bg-primary-content/70",
-                          !selected && "bg-primary"
-                        ]}>
-                        </div>
-                      <% end %>
-                    </div>
-                  </button>
-                <% end %>
-
-                <button
-                  phx-click="next_week"
-                  class="flex flex-col items-center justify-center w-12 rounded-xl text-base-content/40 hover:bg-base-200 transition-colors"
-                >
-                  <.icon name="hero-chevron-right" class="w-5 h-5" />
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-        
-    <!-- Scrollable Meals Area -->
-        <div class="flex-1 overflow-y-auto p-4 space-y-4">
-          <div class="flex items-center justify-end gap-2 mb-2 lg:hidden">
-            <button
-              class="btn btn-xs btn-outline"
-              phx-click="copy_previous_day"
-              title="Copy from yesterday"
-            >
-              <.icon name="hero-document-duplicate" class="w-3 h-3" /> Copy Prev
-            </button>
-            <button
-              class="btn btn-xs btn-outline"
-              phx-click="auto_fill_day"
-              title="Auto-fill suggestions"
-            >
-              <.icon name="hero-sparkles" class="w-3 h-3" /> Auto
-            </button>
-          </div>
-
-          <%= for meal_type <- [:breakfast, :lunch, :dinner, :snack] do %>
-            <div>
-              <div class="text-xs font-bold uppercase text-base-content/40 mb-2 px-1">
-                {meal_type}
-              </div>
-
-              <%= case get_meal_plan(@selected_day, meal_type, @week_meals) do %>
-                <% nil -> %>
-                  <button
-                    phx-click="focus_open_picker"
-                    phx-value-date={@selected_day}
-                    phx-value-meal_type={meal_type}
-                    class="w-full py-4 border-2 border-dashed border-base-200 rounded-xl text-base-content/40 hover:border-primary/50 hover:text-primary hover:bg-primary/5 transition-all flex items-center justify-center gap-2 group"
-                  >
-                    <div class="w-8 h-8 rounded-full bg-base-200 group-hover:bg-primary/20 flex items-center justify-center transition-colors">
-                      <.icon name="hero-plus" class="w-4 h-4" />
-                    </div>
-                    <span class="font-medium">Add {meal_type}</span>
-                  </button>
-                <% meal_plan -> %>
-                  <!-- Swipeable Meal Card -->
-                  <div
-                    class="relative overflow-hidden rounded-xl group select-none touch-pan-y"
-                    phx-hook="SwipeableMeal"
-                    id={"focus-meal-#{meal_plan.id}"}
-                    data-meal-id={meal_plan.id}
-                  >
-                    
-    <!-- Background Actions (Hidden by default, revealed on swipe) -->
-                    <div class="absolute inset-y-0 left-0 w-full bg-error flex items-center justify-start px-6 swipe-action-left opacity-0">
-                      <.icon name="hero-trash" class="w-6 h-6 text-error-content" />
-                      <span class="text-error-content font-bold ml-2">Remove</span>
-                    </div>
-                    <div class="absolute inset-y-0 right-0 w-full bg-warning flex items-center justify-end px-6 swipe-action-right opacity-0">
-                      <span class="text-warning-content font-bold mr-2">Swap</span>
-                      <.icon name="hero-arrow-path" class="w-6 h-6 text-warning-content" />
-                    </div>
-                    
-    <!-- Card Content -->
-                    <div
-                      class="relative bg-base-100 border border-base-200 p-3 shadow-sm flex gap-3 items-start z-10 transition-transform"
-                      phx-hook="LongPress"
-                      id={"focus-meal-content-#{meal_plan.id}"}
-                      data-id={meal_plan.id}
+        <div class={[@mobile_view == "day" && "lg:hidden", @mobile_view != "day" && "hidden"]}>
+          <div class="flex-none bg-base-100 border-b border-base-200 shadow-sm z-10">
+            <div class="px-4 py-3">
+              <div class="flex items-center justify-between mb-3">
+                <div>
+                  <div class="text-xs font-semibold uppercase tracking-wide text-base-content/60">
+                    Planning
+                  </div>
+                  <div class="text-xl font-bold text-base-content flex items-center gap-2">
+                    {Calendar.strftime(@selected_day, "%A, %B %d")}
+                    <button
+                      :if={@selected_day != Date.utc_today()}
+                      phx-click="focus_today"
+                      class="btn btn-ghost btn-xs text-primary"
                     >
-                      <.link navigate={~p"/recipes/#{meal_plan.recipe.id}"} class="shrink-0">
-                        <%= if meal_plan.recipe.image_url do %>
-                          <img
-                            src={meal_plan.recipe.image_url}
-                            class="w-20 h-20 rounded-lg object-cover bg-base-200"
-                          />
-                        <% else %>
-                          <div class="w-20 h-20 rounded-lg bg-base-200 flex items-center justify-center text-3xl">
-                            {Terminology.meal_type_icon(meal_type) |> Terminology.icon_to_emoji()}
+                      Jump to Today
+                    </button>
+                  </div>
+                </div>
+
+                <div class="flex items-center gap-1 text-sm bg-base-200 px-2 py-1 rounded-lg">
+                  <.icon name="hero-shopping-cart" class="w-4 h-4" />
+                  <span class={
+                    if Enum.empty?(@day_shopping_items), do: "text-success", else: "text-warning"
+                  }>
+                    {length(@day_shopping_items)}
+                  </span>
+                </div>
+              </div>
+
+              <div
+                class="overflow-x-auto scrollbar-hide -mx-4 px-4 touch-pan-x"
+                phx-hook="SwipeableWeek"
+                id="focus-week-strip-day"
+              >
+                <div class="flex gap-2 min-w-max pb-1">
+                  <button
+                    phx-click="prev_week"
+                    class="flex flex-col items-center justify-center w-12 rounded-xl text-base-content/40 hover:bg-base-200 transition-colors"
+                    title="Previous week"
+                  >
+                    <.icon name="hero-chevron-left" class="w-5 h-5" />
+                  </button>
+
+                  <%= for day <- @days do %>
+                    <% selected = @selected_day == day %>
+                    <% today = day == Date.utc_today() %>
+                    <% meal_count = Enum.count(@week_meals[day] || []) %>
+                    <% has_dinner = Map.has_key?(@week_meals[day] || %{}, :dinner) %>
+
+                    <button
+                      phx-click="focus_select_day"
+                      phx-value-date={day}
+                      class={[
+                        "flex flex-col items-center py-2 px-1 w-14 rounded-xl transition-all relative",
+                        selected && "bg-primary text-primary-content shadow-md scale-105",
+                        !selected && today && "bg-primary/10 text-primary border border-primary/20",
+                        !selected && !today &&
+                          "bg-base-100 border border-base-200 hover:bg-base-200 text-base-content/70"
+                      ]}
+                      id={"focus-day-#{day}"}
+                    >
+                      <span class="text-xs opacity-80 uppercase tracking-tighter">
+                        {Calendar.strftime(day, "%a")}
+                      </span>
+                      <span class="text-lg font-bold leading-none my-0.5">
+                        {Calendar.strftime(day, "%d")}
+                      </span>
+
+                      <div class="flex gap-0.5 mt-1 h-1.5">
+                        <%= if meal_count > 0 do %>
+                          <div class={[
+                            "w-1.5 h-1.5 rounded-full",
+                            selected && "bg-primary-content/70",
+                            !selected && "bg-primary"
+                          ]}>
                           </div>
                         <% end %>
-                      </.link>
-
-                      <div class="flex-1 min-w-0">
-                        <div class="flex justify-between items-start">
-                          <h3 class="font-bold text-lg truncate leading-tight">
-                            {meal_plan.recipe.name}
-                          </h3>
-                          
-    <!-- Context Menu (Desktop mainly) -->
-                          <div class="dropdown dropdown-end lg:block hidden">
-                            <label tabindex="0" class="btn btn-ghost btn-xs btn-square">
-                              <.icon name="hero-ellipsis-horizontal" class="w-5 h-5" />
-                            </label>
-                            <ul
-                              tabindex="0"
-                              class="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-52"
-                            >
-                              <li>
-                                <a phx-click="edit_meal" phx-value-id={meal_plan.id}>Edit Notes</a>
-                              </li>
-                              <li>
-                                <a phx-click="swap_meal" phx-value-id={meal_plan.id}>Swap Recipe</a>
-                              </li>
-                              <li>
-                                <a phx-click="meal_prep" phx-value-id={meal_plan.id}>
-                                  Meal Prep (Repeat)
-                                </a>
-                              </li>
-                              <li :if={meal_plan.status != :completed}>
-                                <a phx-click="mark_complete" phx-value-id={meal_plan.id}>
-                                  Mark Completed
-                                </a>
-                              </li>
-                              <li>
-                                <a
-                                  phx-click="remove_meal"
-                                  phx-value-id={meal_plan.id}
-                                  class="text-error"
-                                >
-                                  Remove
-                                </a>
-                              </li>
-                            </ul>
-                          </div>
-                        </div>
-
-                        <div class="flex flex-wrap gap-2 items-center mt-1">
-                          <span class={[
-                            "badge badge-xs gap-1",
-                            meal_plan.status == :completed && "badge-success",
-                            meal_plan.status == :planned && "badge-ghost",
-                            meal_plan.status == :skipped && "badge-error"
+                        <%= if has_dinner do %>
+                          <div class={[
+                            "w-1.5 h-1.5 rounded-full",
+                            selected && "bg-primary-content/70",
+                            !selected && "bg-primary"
                           ]}>
-                            {meal_plan.status}
-                          </span>
+                          </div>
+                        <% end %>
+                      </div>
+                    </button>
+                  <% end %>
 
-                          <%= if meal_plan.requires_shopping do %>
-                            <span class="badge badge-warning badge-xs gap-1">
-                              <.icon name="hero-shopping-cart" class="w-3 h-3" /> Shopping needed
-                            </span>
+                  <button
+                    phx-click="next_week"
+                    class="flex flex-col items-center justify-center w-12 rounded-xl text-base-content/40 hover:bg-base-200 transition-colors"
+                    title="Next week"
+                  >
+                    <.icon name="hero-chevron-right" class="w-5 h-5" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div
+            class="flex-1 overflow-y-auto p-4 space-y-4"
+            phx-hook="SwipeableDay"
+            id="focus-day-swipe-area"
+          >
+            <%= for meal_type <- [:breakfast, :lunch, :dinner, :snack] do %>
+              <div>
+                <div class="text-xs font-bold uppercase text-base-content/40 mb-2 px-1">
+                  {meal_type}
+                </div>
+
+                <%= case get_meal_plan(@selected_day, meal_type, @week_meals) do %>
+                  <% nil -> %>
+                    <button
+                      phx-click="focus_open_picker"
+                      phx-value-date={@selected_day}
+                      phx-value-meal_type={meal_type}
+                      class="w-full py-4 border-2 border-dashed border-base-200 rounded-xl text-base-content/40 hover:border-primary/50 hover:text-primary hover:bg-primary/5 transition-all flex items-center justify-center gap-2 group"
+                    >
+                      <div class="w-8 h-8 rounded-full bg-base-200 group-hover:bg-primary/20 flex items-center justify-center transition-colors">
+                        <.icon name="hero-plus" class="w-4 h-4" />
+                      </div>
+                      <span class="font-medium">Add {meal_type}</span>
+                    </button>
+                  <% meal_plan -> %>
+                    <div
+                      class="relative overflow-hidden rounded-xl group select-none touch-pan-y"
+                      phx-hook="SwipeableMeal"
+                      id={"focus-meal-#{meal_plan.id}"}
+                      data-meal-id={meal_plan.id}
+                    >
+                      <div class="absolute inset-y-0 left-0 w-full bg-error flex items-center justify-start px-6 swipe-action-left opacity-0">
+                        <.icon name="hero-trash" class="w-6 h-6 text-error-content" />
+                        <span class="text-error-content font-bold ml-2">Remove</span>
+                      </div>
+                      <div class="absolute inset-y-0 right-0 w-full bg-warning flex items-center justify-end px-6 swipe-action-right opacity-0">
+                        <span class="text-warning-content font-bold mr-2">Swap</span>
+                        <.icon name="hero-arrow-path" class="w-6 h-6 text-warning-content" />
+                      </div>
+
+                      <div
+                        class="relative bg-base-100 border border-base-200 p-3 shadow-sm flex gap-3 items-start z-10 transition-transform"
+                        phx-hook="LongPress"
+                        id={"focus-meal-content-#{meal_plan.id}"}
+                        data-id={meal_plan.id}
+                      >
+                        <.link navigate={~p"/recipes/#{meal_plan.recipe.id}"} class="shrink-0">
+                          <%= if meal_plan.recipe.image_url do %>
+                            <img
+                              src={meal_plan.recipe.image_url}
+                              class="w-20 h-20 rounded-lg object-cover bg-base-200"
+                            />
                           <% else %>
-                            <span class="badge badge-success badge-xs gap-1">
-                              <.icon name="hero-check" class="w-3 h-3" /> Ready
-                            </span>
+                            <div class="w-20 h-20 rounded-lg bg-base-200 flex items-center justify-center text-3xl">
+                              {Terminology.meal_type_icon(meal_type) |> Terminology.icon_to_emoji()}
+                            </div>
                           <% end %>
+                        </.link>
 
-                          <span class="text-xs text-base-content/60">
-                            {Decimal.to_integer(
-                              Decimal.round(meal_plan.recipe.ingredient_availability, 0)
-                            )}% in stock
-                          </span>
-                        </div>
+                        <div class="flex-1 min-w-0">
+                          <div class="flex justify-between items-start">
+                            <h3 class="font-bold text-lg truncate leading-tight">
+                              {meal_plan.recipe.name}
+                            </h3>
+                          </div>
 
-                        <div class="flex gap-3 text-sm text-base-content/60 mt-2">
-                          <span>{meal_plan.servings} servings</span>
-                          <span>•</span>
-                          <span>{meal_plan.recipe.total_time_minutes || 30}m</span>
-                        </div>
+                          <div class="flex flex-wrap gap-2 items-center mt-1">
+                            <span class={[
+                              "badge badge-xs gap-1",
+                              meal_plan.status == :completed && "badge-success",
+                              meal_plan.status == :planned && "badge-ghost",
+                              meal_plan.status == :skipped && "badge-error"
+                            ]}>
+                              {meal_plan.status}
+                            </span>
 
-                        <div class="mt-3">
-                          <%= if @editing_notes_id == meal_plan.id do %>
-                            <div class="flex gap-2">
-                              <input
-                                type="text"
-                                value={meal_plan.notes}
-                                class="input input-sm input-bordered flex-1"
-                                phx-blur="save_notes"
-                                phx-value-id={meal_plan.id}
-                                id={"notes-input-#{meal_plan.id}"}
-                                phx-hook="FocusInput"
-                                autofocus
-                              />
-                              <button
-                                class="btn btn-sm btn-circle btn-ghost"
+                            <%= if meal_plan.requires_shopping do %>
+                              <span class="badge badge-warning badge-xs gap-1">
+                                <.icon name="hero-shopping-cart" class="w-3 h-3" /> Shopping needed
+                              </span>
+                            <% else %>
+                              <span class="badge badge-success badge-xs gap-1">
+                                <.icon name="hero-check" class="w-3 h-3" /> Ready
+                              </span>
+                            <% end %>
+
+                            <span class="text-xs text-base-content/60">
+                              {Decimal.to_integer(
+                                Decimal.round(meal_plan.recipe.ingredient_availability, 0)
+                              )}% in stock
+                            </span>
+                          </div>
+
+                          <div class="flex gap-3 text-sm text-base-content/60 mt-2">
+                            <span>{meal_plan.servings} servings</span>
+                            <span>•</span>
+                            <span>{format_total_time(meal_plan.recipe)}m</span>
+                          </div>
+
+                          <div class="mt-3">
+                            <%= if @editing_notes_id == meal_plan.id do %>
+                              <div class="flex gap-2">
+                                <input
+                                  type="text"
+                                  value={meal_plan.notes}
+                                  class="input input-sm input-bordered flex-1"
+                                  phx-blur="save_notes"
+                                  phx-value-id={meal_plan.id}
+                                  id={"notes-input-#{meal_plan.id}"}
+                                  phx-hook="FocusInput"
+                                  autofocus
+                                />
+                                <button
+                                  class="btn btn-sm btn-circle btn-ghost"
+                                  phx-click="toggle_edit_notes"
+                                  phx-value-id={meal_plan.id}
+                                >
+                                  <.icon name="hero-x-mark" class="w-4 h-4" />
+                                </button>
+                              </div>
+                            <% else %>
+                              <div
                                 phx-click="toggle_edit_notes"
                                 phx-value-id={meal_plan.id}
+                                class={[
+                                  "text-sm px-2 py-1 rounded cursor-pointer hover:bg-base-200 transition-colors",
+                                  if(meal_plan.notes,
+                                    do: "bg-warning/10 text-warning-content italic",
+                                    else: "text-base-content/30"
+                                  )
+                                ]}
                               >
-                                <.icon name="hero-x-mark" class="w-4 h-4" />
-                              </button>
-                            </div>
-                          <% else %>
-                            <div
-                              phx-click="toggle_edit_notes"
-                              phx-value-id={meal_plan.id}
-                              class={[
-                                "text-sm px-2 py-1 rounded cursor-pointer hover:bg-base-200 transition-colors",
-                                if(meal_plan.notes,
-                                  do: "bg-warning/10 text-warning-content italic",
-                                  else: "text-base-content/30"
-                                )
-                              ]}
-                            >
-                              <%= if meal_plan.notes do %>
-                                <.icon
-                                  name="hero-chat-bubble-bottom-center-text"
-                                  class="w-3 h-3 inline mr-1"
-                                />
-                                {meal_plan.notes}
-                              <% else %>
-                                <span class="text-xs">+ Add notes</span>
-                              <% end %>
-                            </div>
-                          <% end %>
+                                <%= if meal_plan.notes do %>
+                                  <.icon
+                                    name="hero-chat-bubble-bottom-center-text"
+                                    class="w-3 h-3 inline mr-1"
+                                  />
+                                  {meal_plan.notes}
+                                <% else %>
+                                  <span class="text-xs">+ Add notes</span>
+                                <% end %>
+                              </div>
+                            <% end %>
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-              <% end %>
-            </div>
-          <% end %>
+                <% end %>
+              </div>
+            <% end %>
 
-          <div class="h-20"></div>
-          <!-- Bottom padding -->
+            <div class="h-24"></div>
+          </div>
+        </div>
+
+        <div class={[
+          @mobile_view == "week" && "block",
+          @mobile_view != "week" && "hidden",
+          "lg:block"
+        ]}>
+          <div class="flex-none bg-base-100 border-b border-base-200 shadow-sm z-10">
+            <div class="px-4 py-3">
+              <div class="flex items-center justify-between mb-3">
+                <div>
+                  <div class="text-xs font-semibold uppercase tracking-wide text-base-content/60">
+                    Planning
+                  </div>
+                  <div class="text-xl font-bold text-base-content flex items-center gap-2">
+                    {Calendar.strftime(@selected_day, "%A, %B %d")}
+                    <button
+                      :if={@selected_day != Date.utc_today()}
+                      phx-click="focus_today"
+                      class="btn btn-ghost btn-xs text-primary"
+                    >
+                      Jump to Today
+                    </button>
+                  </div>
+                </div>
+                <div class="lg:hidden flex items-center gap-1 text-sm bg-base-200 px-2 py-1 rounded-lg">
+                  <.icon name="hero-shopping-cart" class="w-4 h-4" />
+                  <span class={
+                    if Enum.empty?(@day_shopping_items), do: "text-success", else: "text-warning"
+                  }>
+                    {length(@day_shopping_items)}
+                  </span>
+                </div>
+              </div>
+
+              <div
+                class="overflow-x-auto scrollbar-hide -mx-4 px-4 touch-pan-x"
+                phx-hook="SwipeableWeek"
+                id="focus-week-strip-week"
+              >
+                <div class="flex gap-2 min-w-max pb-1">
+                  <button
+                    phx-click="prev_week"
+                    class="flex flex-col items-center justify-center w-12 rounded-xl text-base-content/40 hover:bg-base-200 transition-colors"
+                    title="Previous week"
+                  >
+                    <.icon name="hero-chevron-left" class="w-5 h-5" />
+                  </button>
+
+                  <%= for day <- @days do %>
+                    <% selected = @selected_day == day %>
+                    <% today = day == Date.utc_today() %>
+                    <% meal_count = Enum.count(@week_meals[day] || []) %>
+                    <% has_dinner = Map.has_key?(@week_meals[day] || %{}, :dinner) %>
+
+                    <button
+                      phx-click="focus_select_day"
+                      phx-value-date={day}
+                      class={[
+                        "flex flex-col items-center py-2 px-1 w-14 rounded-xl transition-all relative",
+                        selected && "bg-primary text-primary-content shadow-md scale-105",
+                        !selected && today && "bg-primary/10 text-primary border border-primary/20",
+                        !selected && !today &&
+                          "bg-base-100 border border-base-200 hover:bg-base-200 text-base-content/70"
+                      ]}
+                      id={"focus-week-day-#{day}"}
+                    >
+                      <span class="text-xs opacity-80 uppercase tracking-tighter">
+                        {Calendar.strftime(day, "%a")}
+                      </span>
+                      <span class="text-lg font-bold leading-none my-0.5">
+                        {Calendar.strftime(day, "%d")}
+                      </span>
+
+                      <div class="flex gap-0.5 mt-1 h-1.5">
+                        <%= if meal_count > 0 do %>
+                          <div class={[
+                            "w-1.5 h-1.5 rounded-full",
+                            selected && "bg-primary-content/70",
+                            !selected && "bg-primary"
+                          ]}>
+                          </div>
+                        <% end %>
+                        <%= if has_dinner do %>
+                          <div class={[
+                            "w-1.5 h-1.5 rounded-full",
+                            selected && "bg-primary-content/70",
+                            !selected && "bg-primary"
+                          ]}>
+                          </div>
+                        <% end %>
+                      </div>
+                    </button>
+                  <% end %>
+
+                  <button
+                    phx-click="next_week"
+                    class="flex flex-col items-center justify-center w-12 rounded-xl text-base-content/40 hover:bg-base-200 transition-colors"
+                    title="Next week"
+                  >
+                    <.icon name="hero-chevron-right" class="w-5 h-5" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="flex-1 overflow-y-auto p-4 space-y-4">
+            <div class="flex items-center justify-end gap-2 mb-2 lg:hidden">
+              <button
+                class="btn btn-xs btn-outline"
+                phx-click="copy_previous_day"
+                title="Copy from yesterday"
+              >
+                <.icon name="hero-document-duplicate" class="w-3 h-3" /> Copy Prev
+              </button>
+              <button
+                class="btn btn-xs btn-outline"
+                phx-click="auto_fill_day"
+                title="Auto-fill suggestions"
+              >
+                <.icon name="hero-sparkles" class="w-3 h-3" /> Auto
+              </button>
+            </div>
+
+            <%= for meal_type <- [:breakfast, :lunch, :dinner, :snack] do %>
+              <div>
+                <div class="text-xs font-bold uppercase text-base-content/40 mb-2 px-1">
+                  {meal_type}
+                </div>
+
+                <%= case get_meal_plan(@selected_day, meal_type, @week_meals) do %>
+                  <% nil -> %>
+                    <button
+                      phx-click="focus_open_picker"
+                      phx-value-date={@selected_day}
+                      phx-value-meal_type={meal_type}
+                      class="w-full py-4 border-2 border-dashed border-base-200 rounded-xl text-base-content/40 hover:border-primary/50 hover:text-primary hover:bg-primary/5 transition-all flex items-center justify-center gap-2 group"
+                    >
+                      <div class="w-8 h-8 rounded-full bg-base-200 group-hover:bg-primary/20 flex items-center justify-center transition-colors">
+                        <.icon name="hero-plus" class="w-4 h-4" />
+                      </div>
+                      <span class="font-medium">Add {meal_type}</span>
+                    </button>
+                  <% meal_plan -> %>
+                    <div
+                      class="relative overflow-hidden rounded-xl group select-none touch-pan-y"
+                      phx-hook="SwipeableMeal"
+                      id={"focus-week-meal-#{meal_plan.id}"}
+                      data-meal-id={meal_plan.id}
+                    >
+                      <div class="absolute inset-y-0 left-0 w-full bg-error flex items-center justify-start px-6 swipe-action-left opacity-0">
+                        <.icon name="hero-trash" class="w-6 h-6 text-error-content" />
+                        <span class="text-error-content font-bold ml-2">Remove</span>
+                      </div>
+                      <div class="absolute inset-y-0 right-0 w-full bg-warning flex items-center justify-end px-6 swipe-action-right opacity-0">
+                        <span class="text-warning-content font-bold mr-2">Swap</span>
+                        <.icon name="hero-arrow-path" class="w-6 h-6 text-warning-content" />
+                      </div>
+
+                      <div
+                        class="relative bg-base-100 border border-base-200 p-3 shadow-sm flex gap-3 items-start z-10 transition-transform"
+                        phx-hook="LongPress"
+                        id={"focus-week-meal-content-#{meal_plan.id}"}
+                        data-id={meal_plan.id}
+                      >
+                        <.link navigate={~p"/recipes/#{meal_plan.recipe.id}"} class="shrink-0">
+                          <%= if meal_plan.recipe.image_url do %>
+                            <img
+                              src={meal_plan.recipe.image_url}
+                              class="w-20 h-20 rounded-lg object-cover bg-base-200"
+                            />
+                          <% else %>
+                            <div class="w-20 h-20 rounded-lg bg-base-200 flex items-center justify-center text-3xl">
+                              {Terminology.meal_type_icon(meal_type) |> Terminology.icon_to_emoji()}
+                            </div>
+                          <% end %>
+                        </.link>
+
+                        <div class="flex-1 min-w-0">
+                          <div class="flex justify-between items-start">
+                            <h3 class="font-bold text-lg truncate leading-tight">
+                              {meal_plan.recipe.name}
+                            </h3>
+
+                            <div class="dropdown dropdown-end lg:block hidden">
+                              <label tabindex="0" class="btn btn-ghost btn-xs btn-square">
+                                <.icon name="hero-ellipsis-horizontal" class="w-5 h-5" />
+                              </label>
+                              <ul
+                                tabindex="0"
+                                class="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-52"
+                              >
+                                <li>
+                                  <a phx-click="edit_meal" phx-value-id={meal_plan.id}>Edit Notes</a>
+                                </li>
+                                <li>
+                                  <a phx-click="swap_meal" phx-value-id={meal_plan.id}>Swap Recipe</a>
+                                </li>
+                                <li>
+                                  <a phx-click="meal_prep" phx-value-id={meal_plan.id}>
+                                    Meal Prep (Repeat)
+                                  </a>
+                                </li>
+                                <li :if={meal_plan.status != :completed}>
+                                  <a phx-click="mark_complete" phx-value-id={meal_plan.id}>
+                                    Mark Completed
+                                  </a>
+                                </li>
+                                <li>
+                                  <a
+                                    phx-click="remove_meal"
+                                    phx-value-id={meal_plan.id}
+                                    class="text-error"
+                                  >
+                                    Remove
+                                  </a>
+                                </li>
+                              </ul>
+                            </div>
+                          </div>
+
+                          <div class="flex flex-wrap gap-2 items-center mt-1">
+                            <span class={[
+                              "badge badge-xs gap-1",
+                              meal_plan.status == :completed && "badge-success",
+                              meal_plan.status == :planned && "badge-ghost",
+                              meal_plan.status == :skipped && "badge-error"
+                            ]}>
+                              {meal_plan.status}
+                            </span>
+
+                            <%= if meal_plan.requires_shopping do %>
+                              <span class="badge badge-warning badge-xs gap-1">
+                                <.icon name="hero-shopping-cart" class="w-3 h-3" /> Shopping needed
+                              </span>
+                            <% else %>
+                              <span class="badge badge-success badge-xs gap-1">
+                                <.icon name="hero-check" class="w-3 h-3" /> Ready
+                              </span>
+                            <% end %>
+
+                            <span class="text-xs text-base-content/60">
+                              {Decimal.to_integer(
+                                Decimal.round(meal_plan.recipe.ingredient_availability, 0)
+                              )}% in stock
+                            </span>
+                          </div>
+
+                          <div class="flex gap-3 text-sm text-base-content/60 mt-2">
+                            <span>{meal_plan.servings} servings</span>
+                            <span>•</span>
+                            <span>{format_total_time(meal_plan.recipe)}m</span>
+                          </div>
+
+                          <div class="mt-3">
+                            <%= if @editing_notes_id == meal_plan.id do %>
+                              <div class="flex gap-2">
+                                <input
+                                  type="text"
+                                  value={meal_plan.notes}
+                                  class="input input-sm input-bordered flex-1"
+                                  phx-blur="save_notes"
+                                  phx-value-id={meal_plan.id}
+                                  id={"notes-input-#{meal_plan.id}"}
+                                  phx-hook="FocusInput"
+                                  autofocus
+                                />
+                                <button
+                                  class="btn btn-sm btn-circle btn-ghost"
+                                  phx-click="toggle_edit_notes"
+                                  phx-value-id={meal_plan.id}
+                                >
+                                  <.icon name="hero-x-mark" class="w-4 h-4" />
+                                </button>
+                              </div>
+                            <% else %>
+                              <div
+                                phx-click="toggle_edit_notes"
+                                phx-value-id={meal_plan.id}
+                                class={[
+                                  "text-sm px-2 py-1 rounded cursor-pointer hover:bg-base-200 transition-colors",
+                                  if(meal_plan.notes,
+                                    do: "bg-warning/10 text-warning-content italic",
+                                    else: "text-base-content/30"
+                                  )
+                                ]}
+                              >
+                                <%= if meal_plan.notes do %>
+                                  <.icon
+                                    name="hero-chat-bubble-bottom-center-text"
+                                    class="w-3 h-3 inline mr-1"
+                                  />
+                                  {meal_plan.notes}
+                                <% else %>
+                                  <span class="text-xs">+ Add notes</span>
+                                <% end %>
+                              </div>
+                            <% end %>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                <% end %>
+              </div>
+            <% end %>
+
+            <div class="h-24"></div>
+          </div>
         </div>
       </div>
-      
-    <!-- Desktop Sidebar (Grocery Impact) -->
+
       <div class="hidden lg:flex flex-col w-96 border-l border-base-200 bg-base-100/30">
         <div class="p-6">
           <h3 class="font-bold text-lg mb-4 flex items-center gap-2">
             <.icon name="hero-shopping-cart" class="w-5 h-5" /> Grocery Impact
           </h3>
-          
-    <!-- Day Summary -->
+
           <div class="card bg-base-100 shadow-sm border border-base-200 mb-6">
             <div class="card-body p-4">
               <h4 class="text-sm font-bold uppercase text-base-content/60 mb-2">
@@ -375,8 +626,7 @@ defmodule GroceryPlannerWeb.MealPlannerLive.FocusLayout do
               <% end %>
             </div>
           </div>
-          
-    <!-- Week Summary -->
+
           <div class="card bg-base-100 shadow-sm border border-base-200">
             <div class="card-body p-4">
               <h4 class="text-sm font-bold uppercase text-base-content/60 mb-2">Week Overview</h4>
@@ -395,8 +645,7 @@ defmodule GroceryPlannerWeb.MealPlannerLive.FocusLayout do
               </div>
             </div>
           </div>
-          
-    <!-- Quick Actions -->
+
           <div class="space-y-2 mt-4">
             <button class="btn btn-primary btn-sm w-full" phx-click="generate_shopping_list">
               <.icon name="hero-clipboard-document-list" class="w-4 h-4" /> Generate Shopping List
@@ -413,27 +662,22 @@ defmodule GroceryPlannerWeb.MealPlannerLive.FocusLayout do
           </div>
         </div>
       </div>
-      <!-- Quick Picker Bottom Sheet -->
+
       <%= if @show_focus_quick_picker do %>
         <div
           class="fixed inset-0 z-50 flex items-end justify-center sm:items-center"
           phx-click="focus_close_picker"
         >
-          <!-- Backdrop -->
           <div class="absolute inset-0 bg-neutral/60 backdrop-blur-sm animate-in fade-in"></div>
-          
-    <!-- Sheet -->
+
           <div
             class="relative w-full max-w-lg bg-base-100 rounded-t-2xl sm:rounded-2xl shadow-2xl overflow-hidden animate-in slide-in-from-bottom duration-300 max-h-[85vh] flex flex-col"
             phx-click="prevent_close_picker"
           >
-            
-    <!-- Handle -->
             <div class="w-full flex justify-center pt-3 pb-1 sm:hidden">
               <div class="w-12 h-1.5 bg-base-300 rounded-full"></div>
             </div>
-            
-    <!-- Header -->
+
             <div class="p-4 border-b border-base-200">
               <h3 class="font-bold text-lg">
                 Add {String.capitalize(to_string(@focus_picker_slot.meal_type))}
@@ -441,8 +685,7 @@ defmodule GroceryPlannerWeb.MealPlannerLive.FocusLayout do
               <p class="text-sm text-base-content/60">
                 {Calendar.strftime(@focus_picker_slot.date, "%A, %B %d")}
               </p>
-              
-    <!-- Search -->
+
               <div class="mt-4 relative">
                 <.icon
                   name="hero-magnifying-glass"
@@ -459,16 +702,14 @@ defmodule GroceryPlannerWeb.MealPlannerLive.FocusLayout do
                 />
               </div>
             </div>
-            
-    <!-- List -->
+
             <div class="overflow-y-auto flex-1 p-2 space-y-2">
               <%= if @available_recipes == [] && @recent_recipes == [] && @favorite_recipes == [] do %>
                 <div class="text-center py-10 text-base-content/40">
                   <p>No recipes found</p>
                 </div>
               <% end %>
-              
-    <!-- Recent Recipes -->
+
               <%= if @recent_recipes != [] && @focus_search_query == "" do %>
                 <div class="px-2 pt-2 text-xs font-bold uppercase text-base-content/40">
                   Recently Used
@@ -477,8 +718,7 @@ defmodule GroceryPlannerWeb.MealPlannerLive.FocusLayout do
                   <.focus_recipe_item recipe={recipe} />
                 <% end %>
               <% end %>
-              
-    <!-- Favorite Recipes -->
+
               <%= if @favorite_recipes != [] && @focus_search_query == "" do %>
                 <div class="px-2 pt-2 text-xs font-bold uppercase text-base-content/40">
                   Favorites
@@ -487,8 +727,7 @@ defmodule GroceryPlannerWeb.MealPlannerLive.FocusLayout do
                   <.focus_recipe_item recipe={recipe} />
                 <% end %>
               <% end %>
-              
-    <!-- All Recipes -->
+
               <div class="px-2 pt-2 text-xs font-bold uppercase text-base-content/40">
                 All Recipes
               </div>
@@ -571,7 +810,6 @@ defmodule GroceryPlannerWeb.MealPlannerLive.FocusLayout do
     |> then(&{:noreply, &1})
   end
 
-  # Picker Events
   def handle_event("focus_open_picker", %{"date" => date_str, "meal_type" => meal_type}, socket) do
     date = Date.from_iso8601!(date_str)
     atom_meal_type = String.to_existing_atom(meal_type)
@@ -593,16 +831,6 @@ defmodule GroceryPlannerWeb.MealPlannerLive.FocusLayout do
   def handle_event("prevent_close_picker", _params, socket), do: {:noreply, socket}
 
   def handle_event("focus_search_recipes", %{"value" => query}, socket) do
-    # Delegate to parent's search logic but update our local filtered list
-    # Actually, DataLoader.load_all_recipes loads everything into :available_recipes.
-    # We can filter locally or call the parent's search.
-    # Parent has "search_recipes" which updates :available_recipes.
-    # We can just reuse that logic by manually filtering or calling the resource again?
-    # The parent handle_event("search_recipes") does a DB query.
-    # Let's just do an in-memory filter if available_recipes is already loaded, or DB query.
-    # For consistency, let's call the same logic.
-
-    # We'll just invoke the search logic similar to the parent
     {:ok, all_recipes} =
       GroceryPlanner.Recipes.list_recipes_for_meal_planner(
         actor: socket.assigns.current_user,
@@ -629,19 +857,15 @@ defmodule GroceryPlannerWeb.MealPlannerLive.FocusLayout do
   def handle_event("focus_select_recipe", %{"id" => recipe_id}, socket) do
     %{date: date, meal_type: meal_type} = socket.assigns.focus_picker_slot
 
-    # Send message to parent to add meal
     send(self(), {:add_meal_internal, %{recipe_id: recipe_id, date: date, meal_type: meal_type}})
 
     {:noreply, assign(socket, :show_focus_quick_picker, false)}
   end
 
-  # Shortcuts
-
   def handle_event("copy_previous_day", _params, socket) do
     target_date = socket.assigns.selected_day
     source_date = Date.add(target_date, -1)
 
-    # Get source meals
     source_meals =
       socket.assigns.week_meals
       |> Map.get(source_date, %{})
@@ -650,10 +874,7 @@ defmodule GroceryPlannerWeb.MealPlannerLive.FocusLayout do
     if Enum.empty?(source_meals) do
       {:noreply, put_flash(socket, :info, "No meals found on previous day.")}
     else
-      # Copy each meal
       Enum.each(source_meals, fn source_meal ->
-        # Check if target slot is empty? For now just append
-        # Actually we should avoid duplicates.
         unless get_meal_plan(target_date, source_meal.meal_type, socket.assigns.week_meals) do
           GroceryPlanner.MealPlanning.create_meal_plan(
             socket.assigns.current_account.id,
@@ -669,18 +890,15 @@ defmodule GroceryPlannerWeb.MealPlannerLive.FocusLayout do
         end
       end)
 
-      # Refresh
       send(self(), {:refresh_meals})
       {:noreply, put_flash(socket, :info, "Copied meals from yesterday.")}
     end
   end
 
   def handle_event("repeat_last_week", _params, socket) do
-    # Logic: For the current week (socket.assigns.week_start), copy meals from week_start - 7
     week_start = socket.assigns.week_start
     prev_week_start = Date.add(week_start, -7)
 
-    # We need to query the previous week's meals since they might not be loaded in @week_meals
     {:ok, prev_week_meals} =
       GroceryPlanner.MealPlanning.list_meal_plans_by_date_range(
         prev_week_start,
@@ -695,11 +913,9 @@ defmodule GroceryPlannerWeb.MealPlannerLive.FocusLayout do
       count =
         prev_week_meals
         |> Enum.reduce(0, fn source_meal, acc ->
-          # Calculate offset
           diff = Date.diff(source_meal.scheduled_date, prev_week_start)
           target_date = Date.add(week_start, diff)
 
-          # Check collision
           unless get_meal_plan(target_date, source_meal.meal_type, socket.assigns.week_meals) do
             GroceryPlanner.MealPlanning.create_meal_plan(
               socket.assigns.current_account.id,
@@ -725,11 +941,9 @@ defmodule GroceryPlannerWeb.MealPlannerLive.FocusLayout do
   end
 
   def handle_event("auto_fill_day", _params, socket) do
-    # Simple heuristic: Fill empty DINNER slots with random favorite recipes
     target_date = socket.assigns.selected_day
 
     unless get_meal_plan(target_date, :dinner, socket.assigns.week_meals) do
-      # Pick random favorite
       {:ok, favorites} =
         GroceryPlanner.Recipes.list_favorite_recipes(
           actor: socket.assigns.current_user,
@@ -767,7 +981,6 @@ defmodule GroceryPlannerWeb.MealPlannerLive.FocusLayout do
            tenant: socket.assigns.current_account.id
          ) do
       {:ok, meal_plan} ->
-        # Copy this meal to all remaining days of the current week for the same meal type
         week_end = Date.add(socket.assigns.week_start, 6)
         remaining_days = Date.range(Date.add(meal_plan.scheduled_date, 1), week_end)
 
@@ -800,10 +1013,18 @@ defmodule GroceryPlannerWeb.MealPlannerLive.FocusLayout do
     end
   end
 
-  # Helper for safe map access (same as before)
   defp get_meal_plan(date, meal_type, week_meals) do
     week_meals
     |> Map.get(date, %{})
     |> Map.get(meal_type)
+  end
+
+  defp format_total_time(recipe) do
+    case Map.get(recipe, :total_time_minutes) do
+      %Ash.NotLoaded{} -> 30
+      nil -> 30
+      minutes when is_integer(minutes) -> minutes
+      other -> to_string(other)
+    end
   end
 end

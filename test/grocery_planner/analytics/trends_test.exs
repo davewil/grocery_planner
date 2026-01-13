@@ -45,14 +45,14 @@ defmodule GroceryPlanner.Analytics.TrendsTest do
         )
 
       item =
-        Inventory.GroceryItem.create!(
+        Inventory.GroceryItem.create_grocery_item!(
           %{name: "Apple", category_id: category.id, account_id: account.id},
           tenant: account.id,
           actor: user,
           authorize?: false
         )
 
-      Inventory.InventoryEntry.create!(
+      Inventory.InventoryEntry.create_inventory_entry!(
         %{
           grocery_item_id: item.id,
           quantity: 1,
@@ -67,7 +67,7 @@ defmodule GroceryPlanner.Analytics.TrendsTest do
         authorize?: false
       )
 
-      Inventory.InventoryEntry.create!(
+      Inventory.InventoryEntry.create_inventory_entry!(
         %{
           grocery_item_id: item.id,
           quantity: 1,
@@ -82,7 +82,7 @@ defmodule GroceryPlanner.Analytics.TrendsTest do
         authorize?: false
       )
 
-      Inventory.InventoryEntry.create!(
+      Inventory.InventoryEntry.create_inventory_entry!(
         %{
           grocery_item_id: item.id,
           quantity: 1,
@@ -122,7 +122,7 @@ defmodule GroceryPlanner.Analytics.TrendsTest do
         )
 
       item =
-        Inventory.GroceryItem.create!(
+        Inventory.GroceryItem.create_grocery_item!(
           %{name: "Apple", category_id: category.id, account_id: account.id},
           tenant: account.id,
           actor: user,
@@ -213,7 +213,7 @@ defmodule GroceryPlanner.Analytics.TrendsTest do
         )
 
       apple =
-        Inventory.GroceryItem.create!(
+        Inventory.GroceryItem.create_grocery_item!(
           %{name: "Apple", category_id: category.id, account_id: account.id},
           tenant: account.id,
           actor: user,
@@ -221,7 +221,7 @@ defmodule GroceryPlanner.Analytics.TrendsTest do
         )
 
       banana =
-        Inventory.GroceryItem.create!(
+        Inventory.GroceryItem.create_grocery_item!(
           %{name: "Banana", category_id: category.id, account_id: account.id},
           tenant: account.id,
           actor: user,

@@ -5,11 +5,18 @@
   current_scope={@current_scope}
   voting_active={@voting_active}
 >
-  <div class="max-w-[1400px] mx-auto px-4 py-8 sm:px-6 lg:px-8">
-    <.page_header title="Meal Planner" description="Plan your weekly meals with ease">
+  <div class={[
+    "max-w-[1400px] mx-auto px-4 py-8 sm:px-6 lg:px-8",
+    @meal_planner_layout != "explorer" && "pb-28 sm:pb-8"
+  ]}>
+    <.page_header
+      title="Meal Planner"
+      description="Plan your weekly meals with ease"
+      show_description={false}
+    >
       <:actions>
         <div class="flex flex-col sm:flex-row sm:items-center gap-3">
-          <div class="bg-base-100 rounded-xl shadow-sm px-2 py-2 border border-base-200">
+          <div class="bg-base-100 rounded-xl shadow-sm px-2 py-2 border border-base-200 sm:block hidden">
             <div class="flex flex-col sm:flex-row sm:items-center gap-2">
               <div class="flex items-center gap-2 px-2">
                 <span class="text-xs font-semibold uppercase tracking-wide text-base-content/60">
@@ -20,8 +27,6 @@
               <div
                 id="meal-planner-layout-switcher"
                 class="inline-flex rounded-lg border border-base-200 bg-base-200/40 p-1"
-                role="tablist"
-                aria-label="Meal planner layout"
               >
                 <button
                   id="meal-planner-layout-explorer"
@@ -34,8 +39,6 @@
                     @meal_planner_layout != "explorer" &&
                       "text-base-content/60 hover:text-base-content hover:bg-base-100/70"
                   ]}
-                  role="tab"
-                  aria-selected={@meal_planner_layout == "explorer"}
                 >
                   Explorer
                 </button>
@@ -50,8 +53,6 @@
                     @meal_planner_layout != "focus" &&
                       "text-base-content/60 hover:text-base-content hover:bg-base-100/70"
                   ]}
-                  role="tab"
-                  aria-selected={@meal_planner_layout == "focus"}
                 >
                   Focus
                 </button>
@@ -66,8 +67,6 @@
                     @meal_planner_layout != "power" &&
                       "text-base-content/60 hover:text-base-content hover:bg-base-100/70"
                   ]}
-                  role="tab"
-                  aria-selected={@meal_planner_layout == "power"}
                 >
                   Power
                 </button>
@@ -81,10 +80,9 @@
               </.link>
             </div>
           </div>
-          
-<!-- Weekly Navigation (Shared) -->
+
           <%= if @meal_planner_layout != "explorer" do %>
-            <div class="flex items-center gap-2 bg-base-100 rounded-xl shadow-sm p-1.5 border border-base-200">
+            <div class="hidden sm:flex items-center gap-2 bg-base-100 rounded-xl shadow-sm p-1.5 border border-base-200">
               <button
                 phx-click="prev_week"
                 class="p-2.5 hover:bg-base-200 rounded-lg transition-all duration-200 group"
@@ -116,7 +114,10 @@
       </:actions>
     </.page_header>
 
-    <div class="mb-6 text-center bg-base-100 rounded-xl shadow-sm py-4 border border-base-200">
+    <div class={[
+      "mb-6 text-center bg-base-100 rounded-xl shadow-sm py-4 border border-base-200",
+      @meal_planner_layout != "explorer" && "hidden sm:block"
+    ]}>
       <p class="text-xl font-semibold text-base-content">
         {Calendar.strftime(@week_start, "%B %d")} - {Calendar.strftime(
           Date.add(@week_start, 6),
@@ -124,12 +125,10 @@
         )}
       </p>
     </div>
-    
-<!-- Render the active layout -->
+
     {render_layout(assigns)}
   </div>
-  
-<!-- Undo Toast -->
+
   <%= if @undo_system.toast do %>
     <div class="toast toast-end z-50">
       <div class="alert shadow-lg bg-base-100 border border-base-200">
@@ -142,8 +141,6 @@
       </div>
     </div>
   <% end %>
-  
-<!-- Modals -->
   <%= if @show_add_meal_modal do %>
     <div
       class="fixed inset-0 bg-neutral/50 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-in fade-in duration-200"
@@ -607,6 +604,246 @@
             >
               Add
             </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  <% end %>
+  
+<!-- Mobile bottom action bar (thumb-ready) -->
+  <%= if @meal_planner_layout != "explorer" do %>
+    <div class="sm:hidden fixed inset-x-0 bottom-0 z-40 pb-[env(safe-area-inset-bottom)]">
+      <div class="mx-auto max-w-[1400px] px-4">
+        <div class="rounded-2xl border border-base-200 bg-base-100/95 backdrop-blur shadow-lg p-2">
+          <div class="grid grid-cols-3 gap-2" id="meal-planner-mobile-actionbar">
+            <button
+              class="btn btn-primary rounded-xl"
+              phx-click="generate_shopping_list"
+              id="meal-planner-mobile-generate"
+              title="Generate shopping list"
+            >
+              <.icon name="hero-clipboard-document-list" class="w-5 h-5" />
+            </button>
+
+            <button
+              class={[
+                "btn rounded-xl",
+                if(@mobile_view == "day", do: "btn-secondary", else: "btn-ghost")
+              ]}
+              phx-click="set_mobile_view"
+              phx-value-view={if(@mobile_view == "day", do: "week", else: "day")}
+              id="meal-planner-mobile-toggle-view"
+              title={if(@mobile_view == "day", do: "Show week", else: "Show day")}
+            >
+              <.icon
+                name={
+                  if(@mobile_view == "day", do: "hero-calendar-days", else: "hero-squares-2x2")
+                }
+                class="w-5 h-5"
+              />
+            </button>
+
+            <button
+              class="btn btn-ghost rounded-xl"
+              phx-click="open_mobile_actions"
+              id="meal-planner-mobile-more"
+              title="More actions"
+            >
+              <.icon name="hero-ellipsis-horizontal" class="w-6 h-6" />
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  <% end %>
+  
+<!-- Mobile actions sheet -->
+  <%= if assigns[:show_mobile_actions] do %>
+    <div
+      class="fixed inset-0 z-50 flex items-end justify-center"
+      phx-click="close_mobile_actions"
+      id="meal-planner-mobile-actions-backdrop"
+    >
+      <div class="absolute inset-0 bg-neutral/50 backdrop-blur-sm"></div>
+
+      <div
+        class="relative w-full max-w-lg bg-base-100 rounded-t-2xl shadow-2xl border border-base-200"
+        phx-click="prevent_close"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Meal planner actions"
+        id="meal-planner-mobile-actions"
+      >
+        <div class="w-full flex justify-center pt-3 pb-1">
+          <div class="w-12 h-1.5 bg-base-300 rounded-full"></div>
+        </div>
+
+        <div class="px-4 pb-4 pt-2">
+          <div class="flex items-center justify-between">
+            <div class="font-bold text-base-content">Actions</div>
+            <button class="btn btn-ghost btn-sm btn-circle" phx-click="close_mobile_actions">
+              <.icon name="hero-x-mark" class="w-5 h-5" />
+            </button>
+          </div>
+
+          <div class="mt-3 grid grid-cols-1 gap-2">
+            <button
+              class="btn btn-ghost justify-start"
+              phx-click="today"
+              id="meal-planner-mobile-today"
+            >
+              <.icon name="hero-sparkles" class="w-5 h-5" /> This week
+            </button>
+
+            <div class="grid grid-cols-2 gap-2">
+              <button
+                class="btn btn-outline"
+                phx-click="prev_week"
+                id="meal-planner-mobile-prev-week"
+              >
+                <.icon name="hero-chevron-left" class="w-5 h-5" /> Prev
+              </button>
+              <button
+                class="btn btn-outline"
+                phx-click="next_week"
+                id="meal-planner-mobile-next-week"
+              >
+                Next <.icon name="hero-chevron-right" class="w-5 h-5" />
+              </button>
+            </div>
+
+            <%= if @meal_planner_layout == "power" do %>
+              <div class="h-px bg-base-200 my-1"></div>
+
+              <div class="font-semibold text-sm text-base-content/70 px-2 pt-1">Layout</div>
+              <div class="grid grid-cols-3 gap-2">
+                <button
+                  class={[
+                    "btn btn-sm",
+                    if(@meal_planner_layout == "explorer", do: "btn-primary", else: "btn-ghost")
+                  ]}
+                  phx-click="meal_planner_set_layout"
+                  phx-value-layout="explorer"
+                  id="meal-planner-mobile-layout-explorer"
+                >
+                  Explorer
+                </button>
+                <button
+                  class={[
+                    "btn btn-sm",
+                    if(@meal_planner_layout == "focus", do: "btn-primary", else: "btn-ghost")
+                  ]}
+                  phx-click="meal_planner_set_layout"
+                  phx-value-layout="focus"
+                  id="meal-planner-mobile-layout-focus"
+                >
+                  Focus
+                </button>
+                <button
+                  class={[
+                    "btn btn-sm",
+                    if(@meal_planner_layout == "power", do: "btn-primary", else: "btn-ghost")
+                  ]}
+                  phx-click="meal_planner_set_layout"
+                  phx-value-layout="power"
+                  id="meal-planner-mobile-layout-power"
+                >
+                  Power
+                </button>
+              </div>
+
+              <button
+                class="btn btn-ghost justify-start"
+                phx-click="copy_last_week"
+                id="meal-planner-mobile-copy-last-week"
+              >
+                <.icon name="hero-document-duplicate" class="w-5 h-5" /> Copy meals from last week
+              </button>
+              <button
+                class="btn btn-ghost justify-start"
+                phx-click="auto_fill_week"
+                id="meal-planner-mobile-auto-fill"
+              >
+                <.icon name="hero-sparkles" class="w-5 h-5" /> Auto-fill empty slots
+              </button>
+              <button
+                class="btn btn-ghost justify-start text-error"
+                phx-click="clear_week"
+                data-confirm="Are you sure you want to clear all meals this week?"
+                id="meal-planner-mobile-clear-week"
+              >
+                <.icon name="hero-trash" class="w-5 h-5" /> Clear all meals this week
+              </button>
+
+              <button
+                class="btn btn-ghost justify-start"
+                phx-click="toggle_sidebar"
+                id="meal-planner-mobile-toggle-sidebar"
+              >
+                <.icon
+                  name={if(@sidebar_open, do: "hero-x-mark", else: "hero-bars-3")}
+                  class="w-5 h-5"
+                />
+                {if(@sidebar_open, do: "Hide recipe sidebar", else: "Show recipe sidebar")}
+              </button>
+            <% end %>
+
+            <%= if @meal_planner_layout == "focus" do %>
+              <div class="h-px bg-base-200 my-1"></div>
+
+              <div class="font-semibold text-sm text-base-content/70 px-2 pt-1">Layout</div>
+              <div class="grid grid-cols-3 gap-2">
+                <button
+                  class={[
+                    "btn btn-sm",
+                    if(@meal_planner_layout == "explorer", do: "btn-primary", else: "btn-ghost")
+                  ]}
+                  phx-click="meal_planner_set_layout"
+                  phx-value-layout="explorer"
+                  id="meal-planner-mobile-layout-explorer"
+                >
+                  Explorer
+                </button>
+                <button
+                  class={[
+                    "btn btn-sm",
+                    if(@meal_planner_layout == "focus", do: "btn-primary", else: "btn-ghost")
+                  ]}
+                  phx-click="meal_planner_set_layout"
+                  phx-value-layout="focus"
+                  id="meal-planner-mobile-layout-focus"
+                >
+                  Focus
+                </button>
+                <button
+                  class={[
+                    "btn btn-sm",
+                    if(@meal_planner_layout == "power", do: "btn-primary", else: "btn-ghost")
+                  ]}
+                  phx-click="meal_planner_set_layout"
+                  phx-value-layout="power"
+                  id="meal-planner-mobile-layout-power"
+                >
+                  Power
+                </button>
+              </div>
+
+              <button
+                class="btn btn-ghost justify-start"
+                phx-click="copy_previous_day"
+                id="meal-planner-mobile-copy-yesterday"
+              >
+                <.icon name="hero-document-duplicate" class="w-5 h-5" /> Copy yesterday
+              </button>
+
+              <button
+                class="btn btn-ghost justify-start"
+                phx-click="auto_fill_day"
+                id="meal-planner-mobile-auto-fill-day"
+              >
+                <.icon name="hero-sparkles" class="w-5 h-5" /> Auto-fill today
+              </button>
+            <% end %>
           </div>
         </div>
       </div>

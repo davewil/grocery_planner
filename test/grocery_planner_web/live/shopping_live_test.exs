@@ -30,7 +30,7 @@ defmodule GroceryPlannerWeb.ShoppingLiveTest do
       {:ok, view, _html} = live(conn, "/shopping")
 
       view
-      |> element("button", "Create New List")
+      |> element("button[phx-click='show_create_modal']")
       |> render_click()
 
       assert has_element?(view, "#create-list-modal")

@@ -26,6 +26,9 @@ defmodule GroceryPlannerWeb.MealPlannerLive do
       |> assign(:week_start, week_start)
       |> assign(:days, get_week_days(week_start))
       |> assign(:selected_day, if(layout == "focus", do: today, else: nil))
+      # Mobile UI state
+      |> assign(:mobile_view, if(layout == "focus", do: "day", else: "week"))
+      |> assign(:show_mobile_actions, false)
       # Shared UI state
       |> assign(:show_add_meal_modal, false)
       |> assign(:show_edit_meal_modal, false)
@@ -76,6 +79,8 @@ defmodule GroceryPlannerWeb.MealPlannerLive do
           socket
           |> assign(:current_user, user)
           |> assign(:meal_planner_layout, layout)
+          |> assign(:mobile_view, if(layout == "focus", do: "day", else: "week"))
+          |> assign(:show_mobile_actions, false)
           |> init_layout(layout)
 
         {:noreply, socket}
@@ -110,6 +115,19 @@ defmodule GroceryPlannerWeb.MealPlannerLive do
     refresh_week(socket, week_start)
   end
 
+  def handle_event("set_mobile_view", %{"view" => view}, socket)
+      when view in ["week", "day"] do
+    {:noreply, assign(socket, :mobile_view, view)}
+  end
+
+  def handle_event("open_mobile_actions", _params, socket) do
+    {:noreply, assign(socket, :show_mobile_actions, true)}
+  end
+
+  def handle_event("close_mobile_actions", _params, socket) do
+    {:noreply, assign(socket, :show_mobile_actions, false)}
+  end
+
   # Shared Modal / Add Meal
   def handle_event("add_meal", %{"date" => date_str, "meal_type" => meal_type}, socket) do
     date = Date.from_iso8601!(date_str)
@@ -137,6 +155,7 @@ defmodule GroceryPlannerWeb.MealPlannerLive do
       |> assign(:selected_meal_type, nil)
       |> assign(:explorer_slot_prompt_open, false)
       |> assign(:explorer_slot_prompt_slot, nil)
+      |> assign(:show_mobile_actions, false)
 
     {:noreply, socket}
   end
@@ -956,9 +975,22 @@ defmodule GroceryPlannerWeb.MealPlannerLive do
     socket
     |> assign(:week_start, week_start)
     |> assign(:days, get_week_days(week_start))
+    |> assign(:selected_day, maybe_clamp_selected_day(socket.assigns[:selected_day], week_start))
     |> DataLoader.load_week_meals()
     |> maybe_refresh_layout()
     |> then(&{:noreply, &1})
+  end
+
+  defp maybe_clamp_selected_day(nil, _week_start), do: nil
+
+  defp maybe_clamp_selected_day(selected_day, week_start) do
+    week_end = Date.add(week_start, 6)
+
+    cond do
+      Date.compare(selected_day, week_start) == :lt -> week_start
+      Date.compare(selected_day, week_end) == :gt -> week_start
+      true -> selected_day
+    end
   end
 
   defp maybe_refresh_layout(socket) do

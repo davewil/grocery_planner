@@ -207,6 +207,7 @@ defmodule GroceryPlannerWeb.UIComponents do
   """
   attr :title, :string, required: true
   attr :description, :string, default: nil
+  attr :show_description, :boolean, default: true
   attr :centered, :boolean, default: false
 
   slot :actions
@@ -220,7 +221,9 @@ defmodule GroceryPlannerWeb.UIComponents do
     ]}>
       <div class={@actions != [] && "flex-1"}>
         <h1 class="text-4xl font-bold text-base-content">{@title}</h1>
-        <p :if={@description} class="mt-2 text-lg text-base-content/70">{@description}</p>
+        <p :if={@description && @show_description} class="mt-2 text-lg text-base-content/70">
+          {@description}
+        </p>
       </div>
       <div :if={@actions != []} class="flex gap-3 ml-4">
         {render_slot(@actions)}

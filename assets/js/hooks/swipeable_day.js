@@ -1,9 +1,7 @@
-export const SwipeableWeek = {
+export const SwipeableDay = {
   mounted() {
     this.startX = 0;
     this.startY = 0;
-    this.lastX = 0;
-    this.lastY = 0;
 
     this.threshold = 60;
     this.restraint = 90;
@@ -16,23 +14,18 @@ export const SwipeableWeek = {
     const t = e.touches[0];
     this.startX = t.clientX;
     this.startY = t.clientY;
-    this.lastX = t.clientX;
-    this.lastY = t.clientY;
   },
 
   handleTouchEnd(e) {
     const t = e.changedTouches[0];
-    this.lastX = t.clientX;
-    this.lastY = t.clientY;
-
-    const diffX = this.lastX - this.startX;
-    const diffY = this.lastY - this.startY;
+    const diffX = t.clientX - this.startX;
+    const diffY = t.clientY - this.startY;
 
     if (Math.abs(diffX) > this.threshold && Math.abs(diffY) < this.restraint) {
       if (diffX > 0) {
-        this.pushEvent("prev_week", {});
+        this.pushEvent("focus_prev_day", {});
       } else {
-        this.pushEvent("next_week", {});
+        this.pushEvent("focus_next_day", {});
       }
     }
   }

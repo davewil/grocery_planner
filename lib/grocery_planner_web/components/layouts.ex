@@ -49,7 +49,6 @@ defmodule GroceryPlannerWeb.Layouts do
           <div class="flex items-center justify-between py-4">
             <div class="flex-1">
               <.link navigate="/dashboard" class="flex items-center gap-2">
-                <img src={~p"/images/logo.svg"} width="36" alt="GroceryPlanner logo" />
                 <span class="text-xl font-bold text-base-content">GroceryPlanner</span>
               </.link>
             </div>

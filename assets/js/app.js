@@ -25,12 +25,23 @@ import {LiveSocket} from "phoenix_live_view"
 import topbar from "../vendor/topbar"
 import { SwipeableMeal } from "./hooks/swipeable_meal"
 import { SwipeableWeek } from "./hooks/swipeable_week"
+import { SwipeableDay } from "./hooks/swipeable_day"
 import { FocusInput } from "./hooks/focus_input"
 import { LongPress } from "./hooks/long_press"
 import { KanbanBoard } from "./hooks/kanban_board"
 
 // Theme handling
-// ... (omitted same code)
+function setTheme(theme) {
+  let themeToSet = theme;
+  if (theme === 'system') {
+    themeToSet = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    localStorage.setItem('phx:theme', 'system');
+  } else {
+    localStorage.setItem('phx:theme', theme);
+  }
+  document.documentElement.setAttribute('data-theme', themeToSet);
+}
+
 if (!document.documentElement.hasAttribute("data-theme")) {
   setTheme(localStorage.getItem("phx:theme") || "system");
 }
@@ -41,6 +52,7 @@ window.addEventListener("phx:set-theme", (e) => setTheme(e.target.dataset.phxThe
 let Hooks = {
   SwipeableMeal,
   SwipeableWeek,
+  SwipeableDay,
   FocusInput,
   LongPress,
   KanbanBoard
@@ -115,4 +127,3 @@ if (process.env.NODE_ENV === "development") {
     window.liveReloader = reloader
   })
 }
-

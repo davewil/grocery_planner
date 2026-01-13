@@ -209,30 +209,17 @@
           phx-click="show_create_modal"
           class="btn btn-primary flex-1 py-4"
         >
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M12 6v6m0 0v6m0-6h6m-6 0H6"
-            />
-          </svg>
-          Create New List
+          <.icon name="hero-plus" class="w-5 h-5" />
+          <span class="whitespace-nowrap text-sm">New List</span>
         </button>
 
         <button
           phx-click="show_generate_modal"
           class="btn btn-secondary flex-1 py-4"
         >
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-            />
-          </svg>
-          Generate from Meal Plans
+          <.icon name="hero-calendar-days" class="w-5 h-5" />
+          <span class="whitespace-nowrap text-sm">Generate</span>
+          <span class="whitespace-nowrap text-sm opacity-80">Meals</span>
         </button>
       </div>
 

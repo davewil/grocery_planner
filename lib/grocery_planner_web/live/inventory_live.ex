@@ -2227,8 +2227,10 @@ defmodule GroceryPlannerWeb.InventoryLive do
 
     {:ok, all_entries} =
       GroceryPlanner.Inventory.list_inventory_entries_filtered(
-        status: :available,
-        expiration_filter: expiration_filter,
+        %{
+          status: :available,
+          expiration_filter: expiration_filter
+        },
         actor: user,
         tenant: account_id
       )

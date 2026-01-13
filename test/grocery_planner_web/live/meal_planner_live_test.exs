@@ -33,7 +33,7 @@ defmodule GroceryPlannerWeb.MealPlannerLiveTest do
       {:ok, view, html} = live(conn, "/meal-planner")
 
       assert html =~ "Meal Planner"
-      assert html =~ "Plan your weekly meals with ease"
+      refute html =~ "Plan your weekly meals with ease"
       assert html =~ "Layout"
       assert has_element?(view, "#meal-planner-layout-switcher")
       assert has_element?(view, "#meal-planner-layout-focus")
@@ -108,11 +108,11 @@ defmodule GroceryPlannerWeb.MealPlannerLiveTest do
 
       # create meal plan after LV mount; force a data refresh by navigating weeks back/forward
       view
-      |> element("button[phx-click='next_week']")
+      |> element(".sm\\:flex button[phx-click='next_week']")
       |> render_click()
 
       view
-      |> element("button[phx-click='prev_week']")
+      |> element(".sm\\:flex button[phx-click='prev_week']")
       |> render_click()
 
       view
@@ -146,11 +146,11 @@ defmodule GroceryPlannerWeb.MealPlannerLiveTest do
       |> render_click()
 
       view
-      |> element("button[phx-click='next_week']")
+      |> element(".sm\\:flex button[phx-click='next_week']")
       |> render_click()
 
       view
-      |> element("button[phx-click='prev_week']")
+      |> element(".sm\\:flex button[phx-click='prev_week']")
       |> render_click()
 
       html =
@@ -160,8 +160,8 @@ defmodule GroceryPlannerWeb.MealPlannerLiveTest do
 
       assert html =~ "Breakfast Delight"
       assert html =~ "6 servings"
-      assert has_element?(view, "button[phx-click='edit_meal']")
-      assert has_element?(view, "button[phx-click='remove_meal']")
+      assert has_element?(view, "a[phx-click='edit_meal']")
+      assert has_element?(view, "a[phx-click='remove_meal']")
     end
   end
 
@@ -202,11 +202,11 @@ defmodule GroceryPlannerWeb.MealPlannerLiveTest do
       |> render_click()
 
       view
-      |> element("button[phx-click='next_week']")
+      |> element(".sm\\:flex button[phx-click='next_week']")
       |> render_click()
 
       view
-      |> element("button[phx-click='prev_week']")
+      |> element(".sm\\:flex button[phx-click='prev_week']")
       |> render_click()
 
       view
@@ -215,7 +215,7 @@ defmodule GroceryPlannerWeb.MealPlannerLiveTest do
 
       html =
         view
-        |> element("#focus-meal-#{meal_plan.id} button[phx-click='edit_meal']")
+        |> element("a[phx-click='edit_meal'][phx-value-id='#{meal_plan.id}']")
         |> render_click()
 
       assert html =~ "Edit Meal"
@@ -248,23 +248,11 @@ defmodule GroceryPlannerWeb.MealPlannerLiveTest do
       |> render_click()
 
       view
-      |> element("button[phx-click='next_week']")
+      |> element(".sm\\:flex button[phx-click='next_week']")
       |> render_click()
 
       view
-      |> element("button[phx-click='prev_week']")
-      |> render_click()
-
-      view
-      |> element("#focus-day-#{tuesday}")
-      |> render_click()
-
-      view
-      |> element("button[phx-click='next_week']")
-      |> render_click()
-
-      view
-      |> element("button[phx-click='prev_week']")
+      |> element(".sm\\:flex button[phx-click='prev_week']")
       |> render_click()
 
       view
@@ -272,7 +260,19 @@ defmodule GroceryPlannerWeb.MealPlannerLiveTest do
       |> render_click()
 
       view
-      |> element("#focus-meal-#{meal_plan.id} button[phx-click='edit_meal']")
+      |> element(".sm\\:flex button[phx-click='next_week']")
+      |> render_click()
+
+      view
+      |> element(".sm\\:flex button[phx-click='prev_week']")
+      |> render_click()
+
+      view
+      |> element("#focus-day-#{tuesday}")
+      |> render_click()
+
+      view
+      |> element("a[phx-click='edit_meal'][phx-value-id='#{meal_plan.id}']")
       |> render_click()
 
       assert has_element?(view, "#edit-servings[value='8']")
@@ -301,11 +301,11 @@ defmodule GroceryPlannerWeb.MealPlannerLiveTest do
       |> render_click()
 
       view
-      |> element("button[phx-click='next_week']")
+      |> element(".sm\\:flex button[phx-click='next_week']")
       |> render_click()
 
       view
-      |> element("button[phx-click='prev_week']")
+      |> element(".sm\\:flex button[phx-click='prev_week']")
       |> render_click()
 
       view
@@ -314,7 +314,7 @@ defmodule GroceryPlannerWeb.MealPlannerLiveTest do
 
       html =
         view
-        |> element("#focus-meal-#{meal_plan.id} button[phx-click='edit_meal']")
+        |> element("a[phx-click='edit_meal'][phx-value-id='#{meal_plan.id}']")
         |> render_click()
 
       assert html =~ "Extra spicy please"
@@ -342,11 +342,11 @@ defmodule GroceryPlannerWeb.MealPlannerLiveTest do
       |> render_click()
 
       view
-      |> element("button[phx-click='next_week']")
+      |> element(".sm\\:flex button[phx-click='next_week']")
       |> render_click()
 
       view
-      |> element("button[phx-click='prev_week']")
+      |> element(".sm\\:flex button[phx-click='prev_week']")
       |> render_click()
 
       view
@@ -354,7 +354,7 @@ defmodule GroceryPlannerWeb.MealPlannerLiveTest do
       |> render_click()
 
       view
-      |> element("#focus-meal-#{meal_plan.id} button[phx-click='edit_meal']")
+      |> element("a[phx-click='edit_meal'][phx-value-id='#{meal_plan.id}']")
       |> render_click()
 
       html =
@@ -396,11 +396,11 @@ defmodule GroceryPlannerWeb.MealPlannerLiveTest do
       |> render_click()
 
       view
-      |> element("button[phx-click='next_week']")
+      |> element(".sm\\:flex button[phx-click='next_week']")
       |> render_click()
 
       view
-      |> element("button[phx-click='prev_week']")
+      |> element(".sm\\:flex button[phx-click='prev_week']")
       |> render_click()
 
       view
@@ -408,7 +408,7 @@ defmodule GroceryPlannerWeb.MealPlannerLiveTest do
       |> render_click()
 
       view
-      |> element("#focus-meal-#{meal_plan.id} button[phx-click='edit_meal']")
+      |> element("a[phx-click='edit_meal'][phx-value-id='#{meal_plan.id}']")
       |> render_click()
 
       html =
@@ -449,11 +449,11 @@ defmodule GroceryPlannerWeb.MealPlannerLiveTest do
       |> render_click()
 
       view
-      |> element("button[phx-click='next_week']")
+      |> element(".sm\\:flex button[phx-click='next_week']")
       |> render_click()
 
       view
-      |> element("button[phx-click='prev_week']")
+      |> element(".sm\\:flex button[phx-click='prev_week']")
       |> render_click()
 
       view
@@ -461,7 +461,7 @@ defmodule GroceryPlannerWeb.MealPlannerLiveTest do
       |> render_click()
 
       view
-      |> element("#focus-meal-#{meal_plan.id} button[phx-click='edit_meal']")
+      |> element("a[phx-click='edit_meal'][phx-value-id='#{meal_plan.id}']")
       |> render_click()
 
       html =
@@ -504,11 +504,11 @@ defmodule GroceryPlannerWeb.MealPlannerLiveTest do
       |> render_click()
 
       view
-      |> element("button[phx-click='next_week']")
+      |> element(".sm\\:flex button[phx-click='next_week']")
       |> render_click()
 
       view
-      |> element("button[phx-click='prev_week']")
+      |> element(".sm\\:flex button[phx-click='prev_week']")
       |> render_click()
 
       view
@@ -516,7 +516,7 @@ defmodule GroceryPlannerWeb.MealPlannerLiveTest do
       |> render_click()
 
       view
-      |> element("#focus-meal-#{meal_plan.id} button[phx-click='edit_meal']")
+      |> element("a[phx-click='edit_meal'][phx-value-id='#{meal_plan.id}']")
       |> render_click()
 
       assert has_element?(view, "#edit-meal-modal-backdrop")
@@ -550,11 +550,11 @@ defmodule GroceryPlannerWeb.MealPlannerLiveTest do
       |> render_click()
 
       view
-      |> element("button[phx-click='next_week']")
+      |> element(".sm\\:flex button[phx-click='next_week']")
       |> render_click()
 
       view
-      |> element("button[phx-click='prev_week']")
+      |> element(".sm\\:flex button[phx-click='prev_week']")
       |> render_click()
 
       view
@@ -562,7 +562,7 @@ defmodule GroceryPlannerWeb.MealPlannerLiveTest do
       |> render_click()
 
       view
-      |> element("#focus-meal-#{meal_plan.id} button[phx-click='edit_meal']")
+      |> element("a[phx-click='edit_meal'][phx-value-id='#{meal_plan.id}']")
       |> render_click()
 
       assert has_element?(view, "#edit-meal-modal-backdrop")
@@ -595,11 +595,11 @@ defmodule GroceryPlannerWeb.MealPlannerLiveTest do
       |> render_click()
 
       view
-      |> element("button[phx-click='next_week']")
+      |> element(".sm\\:flex button[phx-click='next_week']")
       |> render_click()
 
       view
-      |> element("button[phx-click='prev_week']")
+      |> element(".sm\\:flex button[phx-click='prev_week']")
       |> render_click()
 
       view
@@ -607,7 +607,7 @@ defmodule GroceryPlannerWeb.MealPlannerLiveTest do
       |> render_click()
 
       view
-      |> element("button[phx-click='edit_meal']")
+      |> element("a[phx-click='edit_meal']")
       |> render_click()
 
       assert has_element?(view, "#edit-servings[min='1']")
@@ -656,11 +656,11 @@ defmodule GroceryPlannerWeb.MealPlannerLiveTest do
       |> render_click()
 
       view
-      |> element("button[phx-click='next_week']")
+      |> element(".sm\\:flex button[phx-click='next_week']")
       |> render_click()
 
       view
-      |> element("button[phx-click='prev_week']")
+      |> element(".sm\\:flex button[phx-click='prev_week']")
       |> render_click()
 
       view
@@ -669,7 +669,7 @@ defmodule GroceryPlannerWeb.MealPlannerLiveTest do
 
       html =
         view
-        |> element("#focus-meal-#{meal_plan.id} button[phx-click='remove_meal']")
+        |> element("a[phx-click='remove_meal'][phx-value-id='#{meal_plan.id}']")
         |> render_click()
 
       assert html =~ "Meal removed"
@@ -706,8 +706,11 @@ defmodule GroceryPlannerWeb.MealPlannerLiveTest do
       week_start = Date.add(today, -(Date.day_of_week(today) - 1))
       tuesday = Date.add(week_start, 1)
 
+      # Target the desktop timeline version to avoid duplicate mobile button
       view
-      |> element("#explorer-slot-#{tuesday}-lunch")
+      |> element(
+        "#explorer-timeline button[phx-click='explorer_open_recipe_picker'][phx-value-date='#{tuesday}'][phx-value-meal_type='lunch']"
+      )
       |> render_click()
 
       html =
@@ -759,8 +762,11 @@ defmodule GroceryPlannerWeb.MealPlannerLiveTest do
         servings: 2
       })
 
+      # Target the desktop timeline version to avoid duplicate mobile button
       view
-      |> element("#explorer-slot-#{tuesday}-lunch")
+      |> element(
+        "#explorer-timeline button[phx-click='explorer_open_recipe_picker'][phx-value-date='#{tuesday}'][phx-value-meal_type='lunch']"
+      )
       |> render_click()
 
       html =
@@ -790,8 +796,11 @@ defmodule GroceryPlannerWeb.MealPlannerLiveTest do
       week_start = Date.add(today, -(Date.day_of_week(today) - 1))
       tuesday = Date.add(week_start, 1)
 
+      # Target the desktop timeline version to avoid duplicate mobile button
       view
-      |> element("#explorer-slot-#{tuesday}-lunch")
+      |> element(
+        "#explorer-timeline button[phx-click='explorer_open_recipe_picker'][phx-value-date='#{tuesday}'][phx-value-meal_type='lunch']"
+      )
       |> render_click()
 
       view
@@ -823,7 +832,7 @@ defmodule GroceryPlannerWeb.MealPlannerLiveTest do
 
       html =
         view
-        |> element("button[phx-click='next_week']")
+        |> element(".sm\\:flex button[phx-click='next_week']")
         |> render_click()
 
       assert html =~ Calendar.strftime(next_week_start, "%B %d")
@@ -838,7 +847,7 @@ defmodule GroceryPlannerWeb.MealPlannerLiveTest do
 
       html =
         view
-        |> element("button[phx-click='prev_week']")
+        |> element(".sm\\:flex button[phx-click='prev_week']")
         |> render_click()
 
       assert html =~ Calendar.strftime(prev_week_start, "%B %d")
@@ -851,7 +860,7 @@ defmodule GroceryPlannerWeb.MealPlannerLiveTest do
       week_start = Date.add(today, -(Date.day_of_week(today) - 1))
 
       view
-      |> element("button[phx-click='next_week']")
+      |> element(".sm\\:flex button[phx-click='next_week']")
       |> render_click()
 
       html =

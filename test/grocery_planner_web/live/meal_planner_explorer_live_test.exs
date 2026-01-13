@@ -51,7 +51,9 @@ defmodule GroceryPlannerWeb.MealPlannerExplorerLiveTest do
     today = Date.utc_today()
 
     view
-    |> element("#explorer-slot-#{today}-dinner")
+    |> element(
+      ".hidden.lg\\:grid button[phx-click='explorer_open_recipe_picker'][phx-value-date='#{today}'][phx-value-meal_type='dinner']"
+    )
     |> render_click()
 
     assert has_element?(view, "#meal-modal-backdrop")
@@ -69,7 +71,7 @@ defmodule GroceryPlannerWeb.MealPlannerExplorerLiveTest do
     {:ok, view, _html} = live(conn, "/meal-planner")
 
     view
-    |> element("#explorer-feed-favorite-toggle-#{recipe.id}")
+    |> element("button[phx-click='explorer_toggle_favorite'][phx-value-recipe_id='#{recipe.id}']")
     |> render_click()
 
     assert has_element?(view, "#explorer-favorites")
