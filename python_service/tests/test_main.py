@@ -7,14 +7,13 @@ Covers health check, AI endpoints, job management, artifacts, and feedback.
 import os
 import pytest
 import tempfile
+from fastapi.testclient import TestClient
+from main import app
+from database import Base, get_engine, reset_engine
 
 # Create a temporary database file for tests
 _test_db_file = tempfile.NamedTemporaryFile(suffix=".db", delete=False)
 os.environ["AI_DATABASE_URL"] = f"sqlite:///{_test_db_file.name}"
-
-from fastapi.testclient import TestClient
-from main import app
-from database import Base, get_engine, reset_engine, init_db
 
 
 @pytest.fixture(scope="function")
