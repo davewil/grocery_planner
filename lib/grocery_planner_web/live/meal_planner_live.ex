@@ -790,19 +790,17 @@ defmodule GroceryPlannerWeb.MealPlannerLive do
       # Sort by availability (can_make first, then by ingredient availability descending)
       sorted_recipes =
         recipes
-        |> Enum.sort_by(
-          fn r ->
-            availability =
-              case Map.get(r, :ingredient_availability) do
-                %Decimal{} = d -> Decimal.to_float(d)
-                nil -> 0.0
-                n when is_number(n) -> n * 1.0
-                _ -> 0.0
-              end
+        |> Enum.sort_by(fn r ->
+          availability =
+            case Map.get(r, :ingredient_availability) do
+              %Decimal{} = d -> Decimal.to_float(d)
+              nil -> 0.0
+              n when is_number(n) -> n * 1.0
+              _ -> 0.0
+            end
 
-            {!Map.get(r, :can_make, false), -availability}
-          end
-        )
+          {!Map.get(r, :can_make, false), -availability}
+        end)
 
       # Fill slots, avoiding repeats
       {filled_count, _used_recipes} =
@@ -1101,7 +1099,10 @@ defmodule GroceryPlannerWeb.MealPlannerLive do
         |> Enum.reject(fn m -> target_meal && m.id == target_meal.id end)
         |> then(fn meals ->
           # Add the moved meal at new position
-          [Map.merge(dragged_meal, %{scheduled_date: target_date, meal_type: target_meal_type}) | meals]
+          [
+            Map.merge(dragged_meal, %{scheduled_date: target_date, meal_type: target_meal_type})
+            | meals
+          ]
         end)
         |> then(fn meals ->
           # If there was a swap, add the swapped meal at the dragged meal's old position

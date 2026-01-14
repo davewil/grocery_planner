@@ -194,15 +194,15 @@ defmodule GroceryPlannerWeb.MealPlannerLive.PowerLayout do
               <%= if @grocery_delta.added_count > 0 do %>
                 <span class="text-warning flex items-center gap-1">
                   <.icon name="hero-plus" class="w-4 h-4" />
-                  <%= @grocery_delta.added_count %>
-                  <%= if @grocery_delta.added_count == 1, do: "item", else: "items" %>
+                  {@grocery_delta.added_count}
+                  {if @grocery_delta.added_count == 1, do: "item", else: "items"}
                 </span>
               <% end %>
               <%= if @grocery_delta.removed_count > 0 do %>
                 <span class="text-success flex items-center gap-1">
                   <.icon name="hero-minus" class="w-4 h-4" />
-                  <%= @grocery_delta.removed_count %>
-                  <%= if @grocery_delta.removed_count == 1, do: "item", else: "items" %>
+                  {@grocery_delta.removed_count}
+                  {if @grocery_delta.removed_count == 1, do: "item", else: "items"}
                 </span>
               <% end %>
             </div>
