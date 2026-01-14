@@ -1,0 +1,14 @@
+#!/bin/bash
+# Pre-commit hook that runs mix precommit before allowing commit
+
+echo "Running mix precommit..."
+
+if mix precommit; then
+  echo "✓ mix precommit passed"
+  exit 0
+else
+  echo "✗ mix precommit failed"
+  echo ""
+  echo "Commit blocked. Please fix the issues above and try again."
+  exit 1
+fi
