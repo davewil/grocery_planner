@@ -27,10 +27,10 @@ Advanced users who plan their entire week at once want a high-information-densit
 **So that** I can optimize my entire week efficiently
 
 **Acceptance Criteria:**
-- [ ] 7 columns visible (one per day)
-- [ ] All meal types visible per day
-- [ ] Recipe cards show key info (name, time, availability)
-- [ ] Visual distinction for days with issues (missing ingredients)
+- [x] 7 columns visible (one per day)
+- [x] All meal types visible per day
+- [x] Recipe cards show key info (name, time, availability)
+- [x] Visual distinction for days with issues (missing ingredients)
 - [ ] Compact view option for more density
 
 ### US-002: Drag and drop meals between days
@@ -39,11 +39,11 @@ Advanced users who plan their entire week at once want a high-information-densit
 **So that** I can quickly reorganize my plan
 
 **Acceptance Criteria:**
-- [ ] Drag recipe cards between day columns
-- [ ] Drag within day to change meal type
-- [ ] Visual drop zone indicators
-- [ ] Undo support for moves
-- [ ] Keyboard alternative (select + move)
+- [x] Drag recipe cards between day columns
+- [x] Drag within day to change meal type
+- [x] Visual drop zone indicators
+- [x] Undo support for moves
+- [x] Keyboard alternative (select + move)
 
 ### US-003: Batch operations on week
 **As a** power user
@@ -51,11 +51,11 @@ Advanced users who plan their entire week at once want a high-information-densit
 **So that** I can make sweeping changes quickly
 
 **Acceptance Criteria:**
-- [ ] "Clear week" button with confirmation
-- [ ] "Copy last week" button
-- [ ] "Auto-fill week" with optimization
-- [ ] Select multiple meals for bulk delete
-- [ ] Keyboard shortcuts for common actions
+- [x] "Clear week" button with confirmation
+- [x] "Copy last week" button
+- [x] "Auto-fill week" with optimization
+- [x] Select multiple meals for bulk delete
+- [x] Keyboard shortcuts for common actions
 
 ### US-004: Real-time grocery impact feedback
 **As a** user optimizing my shopping
@@ -63,9 +63,9 @@ Advanced users who plan their entire week at once want a high-information-densit
 **So that** I can minimize my grocery list
 
 **Acceptance Criteria:**
-- [ ] Running total of shopping items needed
-- [ ] Delta feedback when moving meals (+2 items, -1 item)
-- [ ] Highlight days with shopping needs
+- [x] Running total of shopping items needed
+- [x] Delta feedback when moving meals (+2 items, -1 item)
+- [x] Highlight days with shopping needs
 - [ ] "Optimize for shopping" suggestion
 
 ### US-005: Quick add from sidebar
@@ -74,11 +74,11 @@ Advanced users who plan their entire week at once want a high-information-densit
 **So that** I can drag recipes directly onto the board
 
 **Acceptance Criteria:**
-- [ ] Collapsible recipe sidebar
-- [ ] Search and filter recipes in sidebar
-- [ ] Drag from sidebar to day column
-- [ ] Recently used recipes at top
-- [ ] Favorites pinned
+- [x] Collapsible recipe sidebar
+- [x] Search and filter recipes in sidebar
+- [x] Drag from sidebar to day column
+- [x] Recently used recipes at top
+- [x] Favorites pinned
 
 ## Technical Specification
 

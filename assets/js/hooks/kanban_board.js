@@ -12,6 +12,8 @@ export const KanbanBoard = {
     this.draggedMeal = null;
     this.targetSlotOccupied = false;
     this.targetMealId = null;
+    this.lastDragOverTarget = null;
+    this.dragOverThrottle = null;
 
     this.initializeSortables();
     this.setupKeyboardShortcuts();
@@ -78,12 +80,19 @@ export const KanbanBoard = {
             dz.classList.remove('bg-primary/10', 'ring-2', 'ring-primary/30');
           });
 
+          // Clear drag over throttle
+          if (this.dragOverThrottle) {
+            clearTimeout(this.dragOverThrottle);
+            this.dragOverThrottle = null;
+          }
+
           this.pushEvent("drag_end", {});
 
           // Reset state
           this.draggedMeal = null;
           this.targetSlotOccupied = false;
           this.targetMealId = null;
+          this.lastDragOverTarget = null;
         },
 
         onMove: (evt) => {
@@ -104,6 +113,25 @@ export const KanbanBoard = {
             this.targetMealId = null;
             targetZone.classList.remove('bg-warning/20', 'ring-2', 'ring-warning/50');
             targetZone.classList.add('bg-primary/10', 'ring-2', 'ring-primary/30');
+          }
+
+          // Push drag_over event with throttling for grocery delta calculation
+          const targetKey = `${targetDate}-${targetMealType}`;
+          if (this.lastDragOverTarget !== targetKey) {
+            this.lastDragOverTarget = targetKey;
+
+            // Clear existing throttle
+            if (this.dragOverThrottle) {
+              clearTimeout(this.dragOverThrottle);
+            }
+
+            // Throttle to avoid excessive calculations (300ms)
+            this.dragOverThrottle = setTimeout(() => {
+              this.pushEvent("drag_over", {
+                target_date: targetDate,
+                target_meal_type: targetMealType
+              });
+            }, 300);
           }
 
           return true; // Allow the move

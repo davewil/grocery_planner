@@ -17,6 +17,8 @@ defmodule GroceryPlannerWeb.MealPlannerLive.PowerLayout do
     |> Phoenix.Component.assign(:selected_meals, MapSet.new())
     |> Phoenix.Component.assign(:pending_swap, nil)
     |> Phoenix.Component.assign(:sidebar_search, "")
+    |> Phoenix.Component.assign(:grocery_delta, nil)
+    |> Phoenix.Component.assign(:dragging_meal_id, nil)
     |> load_sidebar_recipes()
   end
 
@@ -178,6 +180,35 @@ defmodule GroceryPlannerWeb.MealPlannerLive.PowerLayout do
         Keyboard shortcuts: Ctrl+Z to undo, Ctrl+Shift+Z to redo, Delete to remove selected,
         Escape to clear selection, Ctrl+Arrow to navigate weeks
       </div>
+
+      <%!-- Grocery Delta Toast (shown during drag) --%>
+      <%= if @grocery_delta && (@grocery_delta.added_count > 0 || @grocery_delta.removed_count > 0) do %>
+        <div
+          class="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 pointer-events-none animate-fade-in"
+          role="status"
+          aria-live="polite"
+        >
+          <div class="bg-base-100 rounded-lg shadow-2xl px-5 py-3 flex items-center gap-4 border border-base-300">
+            <.icon name="hero-shopping-cart" class="w-5 h-5 text-base-content/60" />
+            <div class="flex items-center gap-3 font-medium">
+              <%= if @grocery_delta.added_count > 0 do %>
+                <span class="text-warning flex items-center gap-1">
+                  <.icon name="hero-plus" class="w-4 h-4" />
+                  <%= @grocery_delta.added_count %>
+                  <%= if @grocery_delta.added_count == 1, do: "item", else: "items" %>
+                </span>
+              <% end %>
+              <%= if @grocery_delta.removed_count > 0 do %>
+                <span class="text-success flex items-center gap-1">
+                  <.icon name="hero-minus" class="w-4 h-4" />
+                  <%= @grocery_delta.removed_count %>
+                  <%= if @grocery_delta.removed_count == 1, do: "item", else: "items" %>
+                </span>
+              <% end %>
+            </div>
+          </div>
+        </div>
+      <% end %>
     </div>
     """
   end

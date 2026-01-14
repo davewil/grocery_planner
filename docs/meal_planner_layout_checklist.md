@@ -116,9 +116,9 @@ Legend:
 ### 3.3 Micro-interactions
 - [x] Drag lift + drop highlight (SortableJS)
 - [x] Swap confirmation modal when dropping on occupied slot
-- [ ] Grocery delta feedback when moving meals (+/- items)
+- [x] Grocery delta feedback when moving meals (+/- items)
 - [x] Undo toast after destructive actions
-- [x] Keyboard shortcuts (Ctrl+Z undo, Delete selected, etc.)
+- [x] Keyboard shortcuts (Ctrl+Z undo, Ctrl+Shift+Z redo, Delete selected, etc.)
 
 ---
 

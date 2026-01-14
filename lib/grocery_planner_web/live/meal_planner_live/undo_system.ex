@@ -123,4 +123,42 @@ defmodule GroceryPlannerWeb.MealPlannerLive.UndoActions do
       )
     end
   end
+
+  # Redo actions (reapply the forward action)
+  def apply_redo({:create_meal, _meal_id}, _actor, _tenant) do
+    # Redo create is the same as undo (delete it again)
+    # This shouldn't happen in practice, but handle it
+    :ok
+  end
+
+  def apply_redo({:delete_meal, _meal_data}, _actor, _tenant) do
+    # Redo delete is the same as undo (recreate it)
+    :ok
+  end
+
+  def apply_redo({:move_meal, meal_id, _from, to}, actor, tenant) do
+    # For redo, move to the target position
+    with {:ok, meal_plan} <- MealPlanning.get_meal_plan(meal_id, actor: actor, tenant: tenant) do
+      MealPlanning.update_meal_plan(
+        meal_plan,
+        %{
+          scheduled_date: to.date,
+          meal_type: to.meal_type
+        },
+        actor: actor
+      )
+    end
+  end
+
+  def apply_redo({:update_meal, meal_id, _old_attrs, new_attrs}, actor, tenant) do
+    # For redo, apply the new attributes
+    with {:ok, meal_plan} <- MealPlanning.get_meal_plan(meal_id, actor: actor, tenant: tenant) do
+      MealPlanning.update_meal_plan(meal_plan, new_attrs, actor: actor)
+    end
+  end
+
+  def apply_redo({:swap_meals, meal_a_id, meal_b_id, pos_a, pos_b}, actor, tenant) do
+    # For redo, swap them to their swapped positions (same as undo)
+    apply_undo({:swap_meals, meal_a_id, meal_b_id, pos_a, pos_b}, actor, tenant)
+  end
 end

@@ -44,6 +44,8 @@ defmodule GroceryPlanner.Recipes.Recipe do
                 load: [
                   :total_time_minutes,
                   :recipe_ingredients,
+                  :can_make,
+                  :ingredient_availability,
                   follow_up_recipes: [:recipe_ingredients],
                   parent_recipe: [follow_up_recipes: [:recipe_ingredients]]
                 ]

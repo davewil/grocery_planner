@@ -404,14 +404,35 @@ defmodule GroceryPlannerWeb.MealPlannerLive do
   # Power Mode: Drag and Drop Events
   # =============================================================================
 
-  def handle_event("drag_start", _params, socket) do
-    # Track drag state if needed for visual feedback
-    {:noreply, socket}
+  def handle_event("drag_start", params, socket) do
+    # Track which meal is being dragged for grocery delta calculation
+    meal_id = params["meal_id"]
+    {:noreply, assign(socket, :dragging_meal_id, meal_id)}
+  end
+
+  def handle_event("drag_over", params, socket) do
+    # Calculate grocery delta when hovering over a target slot
+    %{
+      "target_date" => target_date_str,
+      "target_meal_type" => target_type_str
+    } = params
+
+    meal_id = socket.assigns[:dragging_meal_id]
+
+    if meal_id && socket.assigns.meal_planner_layout == "power" do
+      target_date = Date.from_iso8601!(target_date_str)
+      target_meal_type = String.to_existing_atom(target_type_str)
+
+      delta = calculate_grocery_delta(socket, meal_id, target_date, target_meal_type)
+      {:noreply, assign(socket, :grocery_delta, delta)}
+    else
+      {:noreply, socket}
+    end
   end
 
   def handle_event("drag_end", _params, socket) do
-    # Clear drag state
-    {:noreply, socket}
+    # Clear drag state and grocery delta
+    {:noreply, socket |> assign(:dragging_meal_id, nil) |> assign(:grocery_delta, nil)}
   end
 
   def handle_event("drop_meal", params, socket) do
@@ -766,12 +787,22 @@ defmodule GroceryPlannerWeb.MealPlannerLive do
           tenant: socket.assigns.current_account.id
         )
 
-      # Sort by availability (can_make first, then by ingredient count)
+      # Sort by availability (can_make first, then by ingredient availability descending)
       sorted_recipes =
         recipes
-        |> Enum.sort_by(fn r ->
-          {!Map.get(r, :can_make, false), -Map.get(r, :ingredient_availability, 0)}
-        end)
+        |> Enum.sort_by(
+          fn r ->
+            availability =
+              case Map.get(r, :ingredient_availability) do
+                %Decimal{} = d -> Decimal.to_float(d)
+                nil -> 0.0
+                n when is_number(n) -> n * 1.0
+                _ -> 0.0
+              end
+
+            {!Map.get(r, :can_make, false), -availability}
+          end
+        )
 
       # Fill slots, avoiding repeats
       {filled_count, _used_recipes} =
@@ -865,6 +896,42 @@ defmodule GroceryPlannerWeb.MealPlannerLive do
 
         _ ->
           {:noreply, put_flash(socket, :error, "Undo failed")}
+      end
+    else
+      {:noreply, socket}
+    end
+  end
+
+  # Redo Action
+  def handle_event("redo", _params, socket) do
+    {action, undo_system} = UndoSystem.redo(socket.assigns.undo_system)
+
+    socket = assign(socket, :undo_system, undo_system)
+
+    if action do
+      case UndoActions.apply_redo(
+             action,
+             socket.assigns.current_user,
+             socket.assigns.current_account.id
+           ) do
+        {:ok, _} ->
+          socket =
+            socket
+            |> DataLoader.load_week_meals()
+            |> maybe_refresh_layout()
+
+          {:noreply, socket}
+
+        :ok ->
+          socket =
+            socket
+            |> DataLoader.load_week_meals()
+            |> maybe_refresh_layout()
+
+          {:noreply, socket}
+
+        _ ->
+          {:noreply, put_flash(socket, :error, "Redo failed")}
       end
     else
       {:noreply, socket}
@@ -996,6 +1063,85 @@ defmodule GroceryPlannerWeb.MealPlannerLive do
   defp maybe_refresh_layout(socket) do
     # Re-run init logic for the current layout to refresh lists (e.g. recents)
     init_layout(socket, socket.assigns.meal_planner_layout)
+  end
+
+  defp calculate_grocery_delta(socket, meal_id, target_date, target_meal_type) do
+    # Get current week meals (structure: %{date => %{meal_type => meal}})
+    week_meals = socket.assigns[:week_meals] || %{}
+
+    # Flatten to a list of meals
+    current_meals =
+      week_meals
+      |> Enum.flat_map(fn {_date, meals_by_type} ->
+        meals_by_type |> Map.values() |> Enum.reject(&is_nil/1)
+      end)
+
+    # Find the meal being dragged
+    dragged_meal = Enum.find(current_meals, &(&1.id == meal_id))
+
+    if dragged_meal do
+      # Check if target slot is already occupied
+      target_meal =
+        Enum.find(current_meals, fn m ->
+          m.scheduled_date == target_date && m.meal_type == target_meal_type && m.id != meal_id
+        end)
+
+      # Calculate current grocery impact
+      current_impact =
+        GroceryPlanner.MealPlanning.GroceryImpact.calculate_impact(
+          current_meals,
+          socket.assigns.current_account.id,
+          socket.assigns.current_user
+        )
+
+      # Simulate the week after the move
+      hypothetical_meals =
+        current_meals
+        |> Enum.reject(&(&1.id == meal_id))
+        |> Enum.reject(fn m -> target_meal && m.id == target_meal.id end)
+        |> then(fn meals ->
+          # Add the moved meal at new position
+          [Map.merge(dragged_meal, %{scheduled_date: target_date, meal_type: target_meal_type}) | meals]
+        end)
+        |> then(fn meals ->
+          # If there was a swap, add the swapped meal at the dragged meal's old position
+          if target_meal do
+            [
+              Map.merge(target_meal, %{
+                scheduled_date: dragged_meal.scheduled_date,
+                meal_type: dragged_meal.meal_type
+              })
+              | meals
+            ]
+          else
+            meals
+          end
+        end)
+
+      # Calculate hypothetical grocery impact
+      hypothetical_impact =
+        GroceryPlanner.MealPlanning.GroceryImpact.calculate_impact(
+          hypothetical_meals,
+          socket.assigns.current_account.id,
+          socket.assigns.current_user
+        )
+
+      # Calculate delta
+      current_item_ids = MapSet.new(current_impact, & &1.grocery_item_id)
+      hypothetical_item_ids = MapSet.new(hypothetical_impact, & &1.grocery_item_id)
+
+      added = MapSet.difference(hypothetical_item_ids, current_item_ids) |> MapSet.to_list()
+      removed = MapSet.difference(current_item_ids, hypothetical_item_ids) |> MapSet.to_list()
+
+      %{
+        added: added,
+        removed: removed,
+        added_count: length(added),
+        removed_count: length(removed)
+      }
+    else
+      nil
+    end
   end
 
   defp resolve_meal_planner_layout(user) do

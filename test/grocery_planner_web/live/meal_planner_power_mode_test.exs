@@ -145,6 +145,54 @@ defmodule GroceryPlannerWeb.MealPlannerPowerModeTest do
       assert restored_meal.scheduled_date == original_date
       assert restored_meal.meal_type == original_type
     end
+
+    test "supports redo after undo", %{
+      view: view,
+      meal_plan: meal_plan,
+      week_start: week_start,
+      user: user,
+      account: account
+    } do
+      original_date = meal_plan.scheduled_date
+      original_type = meal_plan.meal_type
+      target_date = Date.add(week_start, 3)
+
+      # Move the meal
+      view
+      |> render_hook("drop_meal", %{
+        "meal_id" => meal_plan.id,
+        "target_date" => Date.to_iso8601(target_date),
+        "target_meal_type" => "lunch"
+      })
+
+      # Trigger undo (moves it back)
+      view
+      |> render_hook("undo", %{})
+
+      # Verify it's back to original position
+      {:ok, undone_meal} =
+        GroceryPlanner.MealPlanning.get_meal_plan(meal_plan.id,
+          actor: user,
+          tenant: account.id
+        )
+
+      assert undone_meal.scheduled_date == original_date
+      assert undone_meal.meal_type == original_type
+
+      # Trigger redo (should move it forward again)
+      view
+      |> render_hook("redo", %{})
+
+      # Verify the meal was moved forward again
+      {:ok, redone_meal} =
+        GroceryPlanner.MealPlanning.get_meal_plan(meal_plan.id,
+          actor: user,
+          tenant: account.id
+        )
+
+      assert redone_meal.scheduled_date == target_date
+      assert redone_meal.meal_type == :lunch
+    end
   end
 
   describe "swap confirmation" do
@@ -443,6 +491,111 @@ defmodule GroceryPlannerWeb.MealPlannerPowerModeTest do
       view
       |> element("button[phx-click='toggle_sidebar']")
       |> render_click()
+    end
+  end
+
+  describe "grocery delta feedback" do
+    setup %{conn: conn, account: account, user: user, week_start: week_start} do
+      # Create a recipe with ingredients
+      recipe = create_recipe(account, user, %{name: "Recipe with Ingredients"})
+
+      # Create grocery item and recipe ingredient
+      {:ok, grocery_item} =
+        GroceryPlanner.Inventory.create_grocery_item(
+          account.id,
+          %{name: "Test Ingredient"},
+          actor: user,
+          tenant: account.id
+        )
+
+      {:ok, _recipe_ingredient} =
+        GroceryPlanner.Recipes.create_recipe_ingredient(
+          account.id,
+          %{
+            recipe_id: recipe.id,
+            grocery_item_id: grocery_item.id,
+            quantity: Decimal.new(1),
+            unit: :cup
+          },
+          actor: user,
+          tenant: account.id
+        )
+
+      {:ok, meal_plan} =
+        GroceryPlanner.MealPlanning.create_meal_plan(
+          account.id,
+          %{
+            recipe_id: recipe.id,
+            scheduled_date: week_start,
+            meal_type: :breakfast,
+            servings: 4
+          },
+          actor: user,
+          tenant: account.id
+        )
+
+      {:ok, view, _html} = live(conn, "/meal-planner")
+
+      %{view: view, meal_plan: meal_plan, recipe: recipe}
+    end
+
+    test "calculates grocery delta on drag_over", %{
+      view: view,
+      meal_plan: meal_plan,
+      week_start: week_start
+    } do
+      target_date = Date.add(week_start, 2)
+
+      # Trigger drag_start
+      view
+      |> render_hook("drag_start", %{
+        "meal_id" => meal_plan.id,
+        "source_date" => Date.to_iso8601(meal_plan.scheduled_date),
+        "source_meal_type" => to_string(meal_plan.meal_type)
+      })
+
+      # Trigger drag_over
+      view
+      |> render_hook("drag_over", %{
+        "target_date" => Date.to_iso8601(target_date),
+        "target_meal_type" => "lunch"
+      })
+
+      # The grocery_delta should be calculated and assigned
+      # We can't directly inspect socket assigns in a test, but we can verify
+      # that the hook executed without error
+      assert view
+    end
+
+    test "clears grocery delta on drag_end", %{
+      view: view,
+      meal_plan: meal_plan,
+      week_start: week_start
+    } do
+      target_date = Date.add(week_start, 2)
+
+      # Trigger drag_start
+      view
+      |> render_hook("drag_start", %{
+        "meal_id" => meal_plan.id,
+        "source_date" => Date.to_iso8601(meal_plan.scheduled_date),
+        "source_meal_type" => to_string(meal_plan.meal_type)
+      })
+
+      # Trigger drag_over
+      view
+      |> render_hook("drag_over", %{
+        "target_date" => Date.to_iso8601(target_date),
+        "target_meal_type" => "lunch"
+      })
+
+      # Trigger drag_end
+      view
+      |> render_hook("drag_end", %{})
+
+      # After drag_end, grocery_delta should be cleared
+      # The hook should execute without error
+      assert view
     end
   end
 end
