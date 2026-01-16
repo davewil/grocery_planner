@@ -11,6 +11,8 @@ defmodule GroceryPlannerWeb.MealPlannerLive.ExplorerLayout do
     |> assign(:explorer_search, "")
     |> assign(:explorer_filter, "")
     |> assign(:explorer_difficulty, "")
+    |> assign(:explorer_cuisine, "")
+    |> assign(:explorer_dietary_needs, [])
     |> assign(:explorer_recipes, [])
     |> assign(:explorer_favorite_recipes, [])
     |> assign(:explorer_recent_recipes, [])
@@ -18,8 +20,27 @@ defmodule GroceryPlannerWeb.MealPlannerLive.ExplorerLayout do
     |> assign(:explorer_picking_recipe, nil)
     |> assign(:explorer_selected_slot, nil)
     |> assign(:expanded_day, Date.utc_today())
+    # Filter presets
+    |> assign(:filter_presets, [])
+    |> assign(:selected_preset_id, nil)
+    |> assign(:show_save_preset_modal, false)
+    |> assign(:preset_name_input, "")
+    |> load_filter_presets()
     |> DataLoader.load_all_recipes()
     |> load_explorer_recipes()
+  end
+
+  defp load_filter_presets(socket) do
+    case GroceryPlanner.Recipes.list_filter_presets(
+           actor: socket.assigns.current_user,
+           authorize?: true
+         ) do
+      {:ok, presets} ->
+        assign(socket, :filter_presets, presets)
+
+      {:error, _} ->
+        assign(socket, :filter_presets, [])
+    end
   end
 
   def render(assigns) do
@@ -49,6 +70,10 @@ defmodule GroceryPlannerWeb.MealPlannerLive.ExplorerLayout do
           explorer_filter={@explorer_filter}
           explorer_difficulty={@explorer_difficulty}
           explorer_search={@explorer_search}
+          explorer_cuisine={@explorer_cuisine}
+          explorer_dietary_needs={@explorer_dietary_needs}
+          filter_presets={@filter_presets}
+          selected_preset_id={@selected_preset_id}
         />
         
     <!-- Mobile Recipe Feed -->
@@ -210,10 +235,7 @@ defmodule GroceryPlannerWeb.MealPlannerLive.ExplorerLayout do
                 </div>
 
                 <button
-                  :if={
-                    @explorer_search != "" || @explorer_filter not in [nil, ""] ||
-                      @explorer_difficulty not in [nil, ""]
-                  }
+                  :if={has_active_filters?(assigns)}
                   phx-click="explorer_clear_filters"
                   class="btn btn-ghost btn-sm whitespace-nowrap"
                   id="explorer-clear-filters-top"
@@ -222,6 +244,66 @@ defmodule GroceryPlannerWeb.MealPlannerLive.ExplorerLayout do
                   Clear filters
                 </button>
               </div>
+            </div>
+            
+    <!-- Presets Row -->
+            <div class="mt-3 flex items-center gap-2">
+              <div class="dropdown">
+                <label tabindex="0" class="btn btn-sm btn-outline gap-1">
+                  <.icon name="hero-bookmark" class="w-4 h-4" />
+                  <%= if @selected_preset_id do %>
+                    <% preset = Enum.find(@filter_presets, &(&1.id == @selected_preset_id)) %>
+                    {(preset && preset.name) || "Presets"}
+                  <% else %>
+                    Presets
+                  <% end %>
+                  <.icon name="hero-chevron-down" class="w-3 h-3" />
+                </label>
+                <ul
+                  tabindex="0"
+                  class="dropdown-content z-20 menu p-2 shadow-lg bg-base-100 rounded-box w-56 border border-base-200"
+                >
+                  <%= if @filter_presets == [] do %>
+                    <li class="disabled">
+                      <span class="text-base-content/50 text-sm">No saved presets</span>
+                    </li>
+                  <% else %>
+                    <%= for preset <- @filter_presets do %>
+                      <li>
+                        <div class="flex items-center justify-between gap-2 w-full">
+                          <button
+                            phx-click="explorer_load_preset"
+                            phx-value-preset_id={preset.id}
+                            class={[
+                              "flex-1 text-left truncate",
+                              @selected_preset_id == preset.id && "font-semibold text-primary"
+                            ]}
+                          >
+                            {preset.name}
+                          </button>
+                          <button
+                            phx-click="explorer_delete_preset"
+                            phx-value-preset_id={preset.id}
+                            class="btn btn-ghost btn-xs text-error/60 hover:text-error"
+                            title="Delete preset"
+                          >
+                            <.icon name="hero-trash" class="w-3 h-3" />
+                          </button>
+                        </div>
+                      </li>
+                    <% end %>
+                  <% end %>
+                </ul>
+              </div>
+
+              <button
+                :if={has_active_filters?(assigns)}
+                phx-click="explorer_open_save_preset"
+                class="btn btn-sm btn-ghost gap-1"
+                id="explorer-save-preset-btn"
+              >
+                <.icon name="hero-bookmark-square" class="w-4 h-4" /> Save
+              </button>
             </div>
 
             <div class="mt-3 flex flex-wrap gap-2">
@@ -306,6 +388,55 @@ defmodule GroceryPlannerWeb.MealPlannerLive.ExplorerLayout do
                 Any
               </button>
             </div>
+            
+    <!-- Cuisine and Dietary Needs Row -->
+            <div class="mt-3 flex flex-wrap items-center gap-2">
+              <div class="relative">
+                <input
+                  id="explorer-cuisine-filter"
+                  type="text"
+                  name="cuisine"
+                  value={@explorer_cuisine}
+                  placeholder="Cuisine..."
+                  phx-keyup="explorer_cuisine"
+                  phx-debounce="300"
+                  class="input input-sm w-32"
+                />
+              </div>
+
+              <div class="dropdown">
+                <label tabindex="0" class="btn btn-sm btn-ghost gap-1">
+                  <.icon name="hero-funnel" class="w-4 h-4" /> Dietary
+                  <%= if length(@explorer_dietary_needs) > 0 do %>
+                    <span class="badge badge-sm badge-primary">
+                      {length(@explorer_dietary_needs)}
+                    </span>
+                  <% end %>
+                </label>
+                <div
+                  tabindex="0"
+                  class="dropdown-content z-20 p-3 shadow-lg bg-base-100 rounded-box w-64 border border-base-200"
+                >
+                  <div class="text-xs font-semibold text-base-content/60 uppercase tracking-wide mb-2">
+                    Dietary Needs
+                  </div>
+                  <div class="flex flex-wrap gap-2">
+                    <%= for need <- dietary_needs_options() do %>
+                      <button
+                        phx-click="explorer_dietary_toggle"
+                        phx-value-need={need}
+                        class={[
+                          "btn btn-xs",
+                          if(need in @explorer_dietary_needs, do: "btn-accent", else: "btn-ghost")
+                        ]}
+                      >
+                        {format_dietary_need(need)}
+                      </button>
+                    <% end %>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
 
           <div class="p-4 space-y-8 overflow-y-auto flex-1">
@@ -379,8 +510,75 @@ defmodule GroceryPlannerWeb.MealPlannerLive.ExplorerLayout do
           </div>
         </div>
       </div>
+      
+    <!-- Save Preset Modal -->
+      <.save_preset_modal :if={@show_save_preset_modal} />
     </div>
     """
+  end
+
+  defp save_preset_modal(assigns) do
+    ~H"""
+    <div class="modal modal-open" id="save-preset-modal">
+      <div class="modal-box max-w-sm">
+        <h3 class="font-bold text-lg mb-4">Save Filter Preset</h3>
+        <form phx-submit="explorer_save_preset">
+          <div class="form-control">
+            <label class="label">
+              <span class="label-text">Preset name</span>
+            </label>
+            <input
+              type="text"
+              name="name"
+              placeholder="e.g., Weeknight Quick Wins"
+              class="input input-bordered w-full"
+              required
+              autofocus
+            />
+          </div>
+          <div class="modal-action">
+            <button type="button" phx-click="explorer_close_save_preset" class="btn btn-ghost">
+              Cancel
+            </button>
+            <button type="submit" class="btn btn-primary">Save Preset</button>
+          </div>
+        </form>
+      </div>
+      <div class="modal-backdrop" phx-click="explorer_close_save_preset"></div>
+    </div>
+    """
+  end
+
+  defp has_active_filters?(assigns) do
+    (assigns[:explorer_search] || "") != "" ||
+      assigns[:explorer_filter] not in [nil, ""] ||
+      assigns[:explorer_difficulty] not in [nil, ""] ||
+      (assigns[:explorer_cuisine] || "") != "" ||
+      length(assigns[:explorer_dietary_needs] || []) > 0
+  end
+
+  defp dietary_needs_options do
+    [
+      :vegan,
+      :vegetarian,
+      :pescatarian,
+      :gluten_free,
+      :dairy_free,
+      :nut_free,
+      :halal,
+      :kosher,
+      :keto,
+      :paleo
+    ]
+  end
+
+  defp format_dietary_need(need) do
+    need
+    |> to_string()
+    |> String.replace("_", " ")
+    |> String.split(" ")
+    |> Enum.map(&String.capitalize/1)
+    |> Enum.join(" ")
   end
 
   defp mobile_header(assigns) do
@@ -542,6 +740,42 @@ defmodule GroceryPlannerWeb.MealPlannerLive.ExplorerLayout do
   defp mobile_filter_bar(assigns) do
     ~H"""
     <div class="flex gap-2 px-3 py-3 overflow-x-auto border-b border-base-300 bg-base-100 no-scrollbar">
+      <!-- Presets dropdown -->
+      <div class="dropdown flex-shrink-0">
+        <label tabindex="0" class="btn btn-xs rounded-full px-3 btn-outline border-base-300 gap-1">
+          <.icon name="hero-bookmark" class="w-3 h-3" />
+          <%= if @selected_preset_id do %>
+            <% preset = Enum.find(@filter_presets, &(&1.id == @selected_preset_id)) %>
+            <span class="max-w-[60px] truncate">{(preset && preset.name) || "Preset"}</span>
+          <% else %>
+            Presets
+          <% end %>
+        </label>
+        <ul
+          tabindex="0"
+          class="dropdown-content z-20 menu p-2 shadow-lg bg-base-100 rounded-box w-48 border border-base-200"
+        >
+          <%= if @filter_presets == [] do %>
+            <li class="disabled"><span class="text-xs text-base-content/50">No presets</span></li>
+          <% else %>
+            <%= for preset <- @filter_presets do %>
+              <li>
+                <button
+                  phx-click="explorer_load_preset"
+                  phx-value-preset_id={preset.id}
+                  class={[
+                    "text-sm",
+                    @selected_preset_id == preset.id && "font-semibold text-primary"
+                  ]}
+                >
+                  {preset.name}
+                </button>
+              </li>
+            <% end %>
+          <% end %>
+        </ul>
+      </div>
+
       <button
         phx-click="explorer_filter"
         phx-value-filter="quick"
@@ -592,8 +826,17 @@ defmodule GroceryPlannerWeb.MealPlannerLive.ExplorerLayout do
         Medium
       </button>
 
-      <%= if @explorer_filter != "" || @explorer_difficulty != "" || @explorer_search != "" do %>
-        <button phx-click="explorer_clear_filters" class="btn btn-xs btn-ghost text-error">
+      <%= if has_active_filters?(assigns) do %>
+        <button
+          phx-click="explorer_open_save_preset"
+          class="btn btn-xs rounded-full px-3 flex-shrink-0 btn-ghost"
+        >
+          <.icon name="hero-bookmark-square" class="w-3 h-3" />
+        </button>
+        <button
+          phx-click="explorer_clear_filters"
+          class="btn btn-xs btn-ghost text-error flex-shrink-0"
+        >
           Clear
         </button>
       <% end %>
@@ -859,9 +1102,142 @@ defmodule GroceryPlannerWeb.MealPlannerLive.ExplorerLayout do
       |> assign(:explorer_search, "")
       |> assign(:explorer_filter, "")
       |> assign(:explorer_difficulty, "")
+      |> assign(:explorer_cuisine, "")
+      |> assign(:explorer_dietary_needs, [])
+      |> assign(:selected_preset_id, nil)
       |> load_explorer_recipes()
 
     {:noreply, socket}
+  end
+
+  def handle_event("explorer_cuisine", %{"value" => cuisine}, socket) do
+    socket =
+      socket
+      |> assign(:explorer_cuisine, cuisine)
+      |> assign(:selected_preset_id, nil)
+      |> load_explorer_recipes()
+
+    {:noreply, socket}
+  end
+
+  def handle_event("explorer_dietary_toggle", %{"need" => need_str}, socket) do
+    need = String.to_existing_atom(need_str)
+    current = socket.assigns[:explorer_dietary_needs] || []
+
+    updated =
+      if need in current do
+        List.delete(current, need)
+      else
+        [need | current]
+      end
+
+    socket =
+      socket
+      |> assign(:explorer_dietary_needs, updated)
+      |> assign(:selected_preset_id, nil)
+      |> load_explorer_recipes()
+
+    {:noreply, socket}
+  end
+
+  # Filter Preset Events
+
+  def handle_event("explorer_load_preset", %{"preset_id" => preset_id}, socket) do
+    preset = Enum.find(socket.assigns.filter_presets, &(&1.id == preset_id))
+
+    if preset do
+      criteria = preset.criteria || %{}
+
+      socket =
+        socket
+        |> assign(:explorer_search, Map.get(criteria, "search", ""))
+        |> assign(:explorer_filter, Map.get(criteria, "filter", ""))
+        |> assign(:explorer_difficulty, Map.get(criteria, "difficulty", ""))
+        |> assign(:explorer_cuisine, Map.get(criteria, "cuisine", ""))
+        |> assign(
+          :explorer_dietary_needs,
+          parse_dietary_needs(Map.get(criteria, "dietary_needs"))
+        )
+        |> assign(:selected_preset_id, preset_id)
+        |> load_explorer_recipes()
+
+      {:noreply, socket}
+    else
+      {:noreply, socket}
+    end
+  end
+
+  def handle_event("explorer_open_save_preset", _params, socket) do
+    {:noreply,
+     socket
+     |> assign(:show_save_preset_modal, true)
+     |> assign(:preset_name_input, "")}
+  end
+
+  def handle_event("explorer_close_save_preset", _params, socket) do
+    {:noreply,
+     socket
+     |> assign(:show_save_preset_modal, false)
+     |> assign(:preset_name_input, "")}
+  end
+
+  def handle_event("explorer_save_preset", %{"name" => name}, socket) do
+    criteria = %{
+      "search" => socket.assigns.explorer_search,
+      "filter" => socket.assigns.explorer_filter,
+      "difficulty" => socket.assigns.explorer_difficulty,
+      "cuisine" => socket.assigns[:explorer_cuisine] || "",
+      "dietary_needs" => Enum.map(socket.assigns[:explorer_dietary_needs] || [], &to_string/1)
+    }
+
+    case GroceryPlanner.Recipes.create_filter_preset(
+           socket.assigns.current_user.id,
+           %{name: name, criteria: criteria},
+           actor: socket.assigns.current_user
+         ) do
+      {:ok, preset} ->
+        socket =
+          socket
+          |> assign(:filter_presets, [preset | socket.assigns.filter_presets])
+          |> assign(:selected_preset_id, preset.id)
+          |> assign(:show_save_preset_modal, false)
+          |> assign(:preset_name_input, "")
+          |> put_flash(:info, "Preset saved!")
+
+        {:noreply, socket}
+
+      {:error, _} ->
+        {:noreply, put_flash(socket, :error, "Failed to save preset")}
+    end
+  end
+
+  def handle_event("explorer_delete_preset", %{"preset_id" => preset_id}, socket) do
+    preset = Enum.find(socket.assigns.filter_presets, &(&1.id == preset_id))
+
+    if preset do
+      case GroceryPlanner.Recipes.destroy_filter_preset(preset,
+             actor: socket.assigns.current_user
+           ) do
+        :ok ->
+          updated_presets = Enum.reject(socket.assigns.filter_presets, &(&1.id == preset_id))
+
+          selected_id =
+            if socket.assigns.selected_preset_id == preset_id,
+              do: nil,
+              else: socket.assigns.selected_preset_id
+
+          {:noreply,
+           socket
+           |> assign(:filter_presets, updated_presets)
+           |> assign(:selected_preset_id, selected_id)
+           |> put_flash(:info, "Preset deleted")}
+
+        {:error, _} ->
+          {:noreply, put_flash(socket, :error, "Failed to delete preset")}
+      end
+    else
+      {:noreply, socket}
+    end
   end
 
   def handle_event("explorer_open_slot_picker", %{"recipe_id" => recipe_id} = params, socket) do
@@ -989,6 +1365,19 @@ defmodule GroceryPlannerWeb.MealPlannerLive.ExplorerLayout do
     handle_event("explorer_open_slot_picker", %{"recipe_id" => recipe_id}, socket)
   end
 
+  defp parse_dietary_needs(nil), do: []
+
+  defp parse_dietary_needs(list) when is_list(list) do
+    Enum.map(list, fn
+      s when is_binary(s) -> String.to_existing_atom(s)
+      a when is_atom(a) -> a
+    end)
+  rescue
+    _ -> []
+  end
+
+  defp parse_dietary_needs(_), do: []
+
   # Helper to load recipes with filters
   defp load_explorer_recipes(socket) do
     all_recipes = socket.assigns.available_recipes
@@ -996,12 +1385,16 @@ defmodule GroceryPlannerWeb.MealPlannerLive.ExplorerLayout do
     search_term = String.trim(socket.assigns.explorer_search || "")
     filter = socket.assigns.explorer_filter || ""
     difficulty = socket.assigns.explorer_difficulty || ""
+    cuisine = String.trim(socket.assigns[:explorer_cuisine] || "")
+    dietary_needs = socket.assigns[:explorer_dietary_needs] || []
 
     recipes =
       all_recipes
       |> maybe_filter_by_search(search_term)
       |> maybe_apply_explorer_filter(filter)
       |> maybe_filter_by_difficulty(difficulty)
+      |> maybe_filter_by_cuisine(cuisine)
+      |> maybe_filter_by_dietary_needs(dietary_needs)
 
     {favorite_recipes, other_recipes} =
       Enum.split_with(recipes, & &1.is_favorite)
@@ -1079,6 +1472,32 @@ defmodule GroceryPlannerWeb.MealPlannerLive.ExplorerLayout do
   end
 
   defp maybe_filter_by_difficulty(recipes, _), do: recipes
+
+  defp maybe_filter_by_cuisine(recipes, ""), do: recipes
+
+  defp maybe_filter_by_cuisine(recipes, cuisine) do
+    cuisine_lower = String.downcase(cuisine)
+
+    Enum.filter(recipes, fn recipe ->
+      recipe_cuisine = recipe.cuisine || ""
+      String.contains?(String.downcase(recipe_cuisine), cuisine_lower)
+    end)
+  end
+
+  defp maybe_filter_by_dietary_needs(recipes, []), do: recipes
+
+  defp maybe_filter_by_dietary_needs(recipes, dietary_needs) when is_list(dietary_needs) do
+    # Recipe must satisfy ALL selected dietary needs
+    dietary_set = MapSet.new(dietary_needs)
+
+    Enum.filter(recipes, fn recipe ->
+      recipe_dietary = recipe.dietary_needs || []
+      recipe_set = MapSet.new(recipe_dietary)
+      MapSet.subset?(dietary_set, recipe_set)
+    end)
+  end
+
+  defp maybe_filter_by_dietary_needs(recipes, _), do: recipes
 
   defp recent_recipe_ids_for_week(meal_plans) do
     meal_plans

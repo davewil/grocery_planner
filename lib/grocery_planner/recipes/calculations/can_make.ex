@@ -15,7 +15,6 @@ defmodule GroceryPlanner.Recipes.Calculations.CanMake do
 
       recipe.recipe_ingredients
       |> Enum.all?(fn ingredient ->
-        # Skip optional ingredients
         if ingredient.is_optional do
           true
         else
@@ -26,11 +25,17 @@ defmodule GroceryPlanner.Recipes.Calculations.CanMake do
               authorize?: false
             )
 
-          # Check if there's enough inventory
-          loaded_ingredient.grocery_item.inventory_entries
-          |> Enum.any?(fn entry ->
-            entry.status == :available && Decimal.compare(entry.quantity, Decimal.new(0)) == :gt
-          end)
+          case loaded_ingredient.grocery_item do
+            nil ->
+              false
+
+            grocery_item ->
+              grocery_item.inventory_entries
+              |> Enum.any?(fn entry ->
+                entry.status == :available &&
+                  Decimal.compare(entry.quantity, Decimal.new(0)) == :gt
+              end)
+          end
         end
       end)
     end)

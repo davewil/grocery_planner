@@ -12,6 +12,7 @@ defmodule GroceryPlanner.Recipes.Calculations.IngredientAvailability do
     Enum.map(records, fn record ->
       # Load recipe_ingredients with tenant context
       recipe = Ash.load!(record, [:recipe_ingredients], tenant: context.tenant, authorize?: false)
+
       total_ingredients = length(recipe.recipe_ingredients)
 
       if total_ingredients == 0 do
@@ -27,15 +28,17 @@ defmodule GroceryPlanner.Recipes.Calculations.IngredientAvailability do
                 authorize?: false
               )
 
-            # Check if there are any available inventory entries
-            has_inventory =
-              loaded_ingredient.grocery_item.inventory_entries
-              |> Enum.any?(fn entry ->
-                entry.status == :available &&
-                  Decimal.compare(entry.quantity, Decimal.new(0)) == :gt
-              end)
+            case loaded_ingredient.grocery_item do
+              nil ->
+                false
 
-            has_inventory
+              grocery_item ->
+                grocery_item.inventory_entries
+                |> Enum.any?(fn entry ->
+                  entry.status == :available &&
+                    Decimal.compare(entry.quantity, Decimal.new(0)) == :gt
+                end)
+            end
           end)
 
         # Calculate percentage

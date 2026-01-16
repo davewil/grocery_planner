@@ -71,7 +71,9 @@ defmodule GroceryPlanner.Recipes.Recipe do
         :parent_recipe_id,
         :freezable,
         :preservation_tip,
-        :waste_reduction_tip
+        :waste_reduction_tip,
+        :cuisine,
+        :dietary_needs
       ]
 
       argument :account_id, :uuid, allow_nil?: false
@@ -96,7 +98,9 @@ defmodule GroceryPlanner.Recipes.Recipe do
         :parent_recipe_id,
         :freezable,
         :preservation_tip,
-        :waste_reduction_tip
+        :waste_reduction_tip,
+        :cuisine,
+        :dietary_needs
       ]
 
       require_atomic? false
@@ -239,6 +243,30 @@ defmodule GroceryPlanner.Recipes.Recipe do
 
     attribute :waste_reduction_tip, :string do
       public? true
+    end
+
+    attribute :cuisine, :string do
+      public? true
+    end
+
+    attribute :dietary_needs, {:array, :atom} do
+      public? true
+      default []
+
+      constraints items: [
+                    one_of: [
+                      :vegan,
+                      :vegetarian,
+                      :pescatarian,
+                      :gluten_free,
+                      :dairy_free,
+                      :nut_free,
+                      :halal,
+                      :kosher,
+                      :keto,
+                      :paleo
+                    ]
+                  ]
     end
 
     attribute :account_id, :uuid do

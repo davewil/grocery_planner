@@ -780,7 +780,7 @@ defmodule GroceryPlannerWeb.MealPlannerLive do
     if empty_slots == [] do
       {:noreply, put_flash(socket, :info, "No empty slots to fill")}
     else
-      # Get recipes sorted by pantry availability (pantry-optimized)
+      # Sort by availability (can_make first, then by ingredient availability descending)
       {:ok, recipes} =
         GroceryPlanner.Recipes.list_recipes_for_meal_planner(
           actor: socket.assigns.current_user,

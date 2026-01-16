@@ -42,7 +42,9 @@ defmodule GroceryPlannerWeb.RecipeFormLive do
               "difficulty" => to_string(recipe.difficulty),
               "image_url" => recipe.image_url,
               "source" => recipe.source,
-              "is_favorite" => recipe.is_favorite
+              "is_favorite" => recipe.is_favorite,
+              "cuisine" => recipe.cuisine,
+              "dietary_needs" => recipe.dietary_needs || []
             }
 
             form = to_form(recipe_data, as: :recipe)
@@ -65,7 +67,14 @@ defmodule GroceryPlannerWeb.RecipeFormLive do
     recipe_params =
       recipe_params
       |> Map.put("is_favorite", Map.has_key?(recipe_params, "is_favorite"))
-      |> convert_empty_to_nil(["prep_time_minutes", "cook_time_minutes", "image_url", "source"])
+      |> convert_empty_to_nil([
+        "prep_time_minutes",
+        "cook_time_minutes",
+        "image_url",
+        "source",
+        "cuisine"
+      ])
+      |> convert_dietary_needs()
 
     # Include chain fields if creating a follow-up
     recipe_params =
@@ -165,5 +174,39 @@ defmodule GroceryPlannerWeb.RecipeFormLive do
         _other -> acc
       end
     end)
+  end
+
+  defp convert_dietary_needs(params) do
+    case Map.get(params, "dietary_needs") do
+      nil ->
+        params
+
+      needs when is_list(needs) ->
+        atoms =
+          needs
+          |> Enum.reject(&(&1 == ""))
+          |> Enum.map(&String.to_existing_atom/1)
+
+        Map.put(params, "dietary_needs", atoms)
+
+      _ ->
+        params
+    end
+  end
+
+  @doc false
+  def dietary_needs_options do
+    [
+      {"Vegan", :vegan},
+      {"Vegetarian", :vegetarian},
+      {"Pescatarian", :pescatarian},
+      {"Gluten-Free", :gluten_free},
+      {"Dairy-Free", :dairy_free},
+      {"Nut-Free", :nut_free},
+      {"Halal", :halal},
+      {"Kosher", :kosher},
+      {"Keto", :keto},
+      {"Paleo", :paleo}
+    ]
   end
 end

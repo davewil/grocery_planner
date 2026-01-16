@@ -43,5 +43,13 @@ defmodule GroceryPlanner.Recipes do
       define :list_recipe_taggings, action: :read
       define :destroy_recipe_tagging, action: :destroy
     end
+
+    resource GroceryPlanner.Recipes.FilterPreset do
+      define :create_filter_preset, action: :create, args: [:user_id]
+      define :list_filter_presets, action: :read
+      define :get_filter_preset, action: :read, get_by: [:id]
+      define :update_filter_preset, action: :update
+      define :destroy_filter_preset, action: :destroy
+    end
   end
 end
