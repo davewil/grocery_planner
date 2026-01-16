@@ -98,9 +98,9 @@ Legend:
 ### 3.1 Layout
 - [x] Desktop/tablet Kanban grid (columns=days, cards=meals)
 - [x] Drag/drop meals across days + reorder within day
-- [~] Mobile simplified pager (one day visible) with reorder
+- [x] Mobile simplified pager (one day visible) with reorder
   - [x] Horizontal scroll kanban on mobile (alternative approach)
-  - [ ] Single-day pager view (deferred)
+  - [x] Single-day pager view
 
 ### 3.2 Components
 - [x] Visible drop zones and highlights

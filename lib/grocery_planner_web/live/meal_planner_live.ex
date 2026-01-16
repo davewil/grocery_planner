@@ -106,10 +106,15 @@ defmodule GroceryPlannerWeb.MealPlannerLive do
     week_start = get_week_start(today)
 
     socket =
-      if socket.assigns.meal_planner_layout == "focus" do
-        assign(socket, :selected_day, today)
-      else
-        socket
+      cond do
+        socket.assigns.meal_planner_layout == "focus" ->
+          assign(socket, :selected_day, today)
+
+        socket.assigns.meal_planner_layout == "power" ->
+          assign(socket, :mobile_selected_date, today)
+
+        true ->
+          socket
       end
 
     refresh_week(socket, week_start)

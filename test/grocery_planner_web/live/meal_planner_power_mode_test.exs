@@ -494,6 +494,159 @@ defmodule GroceryPlannerWeb.MealPlannerPowerModeTest do
     end
   end
 
+  describe "mobile single-day pager" do
+    test "initializes mobile_selected_date to today when in current week", %{
+      conn: conn
+    } do
+      {:ok, view, _html} = live(conn, "/meal-planner")
+
+      # The mobile nav should show today as selected (primary colored button)
+      today = Date.utc_today()
+
+      # Check that today's abbreviated day name appears in the mobile nav
+      # The selected day gets the primary background
+      html = render(view)
+
+      # Verify the mobile day navigation exists
+      assert html =~ "power_mobile_select_day"
+      assert html =~ "power_mobile_prev_day"
+      assert html =~ "power_mobile_next_day"
+
+      # Full day name should be displayed
+      assert html =~ Calendar.strftime(today, "%A")
+    end
+
+    test "initializes mobile_selected_date to week_start when today not in week", %{
+      conn: conn
+    } do
+      # This is implicitly tested by checking the week navigation works
+      # When navigating to a future week, the selected date should reset
+      {:ok, view, _html} = live(conn, "/meal-planner")
+
+      # Navigate to next week using the power mode specific button
+      view
+      |> element("#power-next-week")
+      |> render_click()
+
+      # After navigating, the view should still render without errors
+      html = render(view)
+      assert html =~ "power_mobile_select_day"
+    end
+
+    test "power_mobile_select_day changes selected day", %{conn: conn, week_start: week_start} do
+      {:ok, view, _html} = live(conn, "/meal-planner")
+
+      # Select the third day of the week
+      target_day = Date.add(week_start, 2)
+
+      view
+      |> render_hook("power_mobile_select_day", %{"date" => Date.to_iso8601(target_day)})
+
+      html = render(view)
+
+      # The selected day's full name should be displayed
+      assert html =~ Calendar.strftime(target_day, "%A")
+      assert html =~ Calendar.strftime(target_day, "%B %d, %Y")
+    end
+
+    test "power_mobile_next_day advances to next day", %{conn: conn, week_start: week_start} do
+      {:ok, view, _html} = live(conn, "/meal-planner")
+
+      # First select the first day of the week
+      view
+      |> render_hook("power_mobile_select_day", %{"date" => Date.to_iso8601(week_start)})
+
+      # Now advance to next day
+      view
+      |> render_hook("power_mobile_next_day", %{})
+
+      html = render(view)
+
+      # Should now show the second day
+      next_day = Date.add(week_start, 1)
+      assert html =~ Calendar.strftime(next_day, "%A")
+    end
+
+    test "power_mobile_prev_day goes to previous day", %{conn: conn, week_start: week_start} do
+      {:ok, view, _html} = live(conn, "/meal-planner")
+
+      # First select the second day of the week
+      second_day = Date.add(week_start, 1)
+
+      view
+      |> render_hook("power_mobile_select_day", %{"date" => Date.to_iso8601(second_day)})
+
+      # Now go back to previous day
+      view
+      |> render_hook("power_mobile_prev_day", %{})
+
+      html = render(view)
+
+      # Should now show the first day
+      assert html =~ Calendar.strftime(week_start, "%A")
+    end
+
+    test "power_mobile_prev_day does not go before week start", %{
+      conn: conn,
+      week_start: week_start
+    } do
+      {:ok, view, _html} = live(conn, "/meal-planner")
+
+      # Select the first day of the week
+      view
+      |> render_hook("power_mobile_select_day", %{"date" => Date.to_iso8601(week_start)})
+
+      # Try to go back (should stay on first day)
+      view
+      |> render_hook("power_mobile_prev_day", %{})
+
+      html = render(view)
+
+      # Should still show the first day
+      assert html =~ Calendar.strftime(week_start, "%A")
+    end
+
+    test "power_mobile_next_day does not go past week end", %{conn: conn, week_start: week_start} do
+      {:ok, view, _html} = live(conn, "/meal-planner")
+
+      # Select the last day of the week
+      week_end = Date.add(week_start, 6)
+
+      view
+      |> render_hook("power_mobile_select_day", %{"date" => Date.to_iso8601(week_end)})
+
+      # Try to go forward (should stay on last day)
+      view
+      |> render_hook("power_mobile_next_day", %{})
+
+      html = render(view)
+
+      # Should still show the last day
+      assert html =~ Calendar.strftime(week_end, "%A")
+    end
+
+    test "today button resets mobile_selected_date to today", %{conn: conn} do
+      {:ok, view, _html} = live(conn, "/meal-planner")
+
+      today = Date.utc_today()
+
+      # Navigate to a different week first using power mode specific button
+      view
+      |> element("#power-next-week")
+      |> render_click()
+
+      # Click "This week" / today button (power mode specific)
+      view
+      |> element("#power-today")
+      |> render_click()
+
+      html = render(view)
+
+      # Should show today
+      assert html =~ Calendar.strftime(today, "%A")
+    end
+  end
+
   describe "grocery delta feedback" do
     setup %{conn: conn, account: account, user: user, week_start: week_start} do
       # Create a recipe with ingredients

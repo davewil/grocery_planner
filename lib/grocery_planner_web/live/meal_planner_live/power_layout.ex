@@ -12,6 +12,18 @@ defmodule GroceryPlannerWeb.MealPlannerLive.PowerLayout do
   import GroceryPlannerWeb.CoreComponents
 
   def init(socket) do
+    # Default mobile_selected_date to the first day of the week (or today if in the week)
+    week_start = socket.assigns.week_start
+    today = Date.utc_today()
+
+    mobile_selected_date =
+      if Date.compare(today, week_start) in [:gt, :eq] and
+           Date.compare(today, Date.add(week_start, 6)) in [:lt, :eq] do
+        today
+      else
+        week_start
+      end
+
     socket
     |> Phoenix.Component.assign(:sidebar_open, false)
     |> Phoenix.Component.assign(:selected_meals, MapSet.new())
@@ -19,6 +31,7 @@ defmodule GroceryPlannerWeb.MealPlannerLive.PowerLayout do
     |> Phoenix.Component.assign(:sidebar_search, "")
     |> Phoenix.Component.assign(:grocery_delta, nil)
     |> Phoenix.Component.assign(:dragging_meal_id, nil)
+    |> Phoenix.Component.assign(:mobile_selected_date, mobile_selected_date)
     |> load_sidebar_recipes()
   end
 
@@ -144,7 +157,8 @@ defmodule GroceryPlannerWeb.MealPlannerLive.PowerLayout do
       <div class="flex flex-1 overflow-hidden">
         <%!-- Kanban Board --%>
         <div class="flex-1 overflow-y-auto lg:overflow-hidden" id="power-week-board">
-          <div class="flex flex-col lg:flex-row lg:h-full h-auto gap-2 p-2 lg:min-w-[900px] lg:overflow-x-auto">
+          <%!-- Desktop: Full Week Grid --%>
+          <div class="hidden lg:flex lg:flex-row lg:h-full h-auto gap-2 p-2 lg:min-w-[900px] lg:overflow-x-auto">
             <%= for day <- @days do %>
               <.day_column
                 day={day}
@@ -152,6 +166,26 @@ defmodule GroceryPlannerWeb.MealPlannerLive.PowerLayout do
                 selected_meals={@selected_meals}
               />
             <% end %>
+          </div>
+
+          <%!-- Mobile: Single-Day Pager --%>
+          <div class="lg:hidden flex flex-col h-full">
+            <%!-- Mobile Day Navigation --%>
+            <.mobile_day_nav
+              mobile_selected_date={@mobile_selected_date}
+              week_start={@week_start}
+              days={@days}
+            />
+
+            <%!-- Mobile Day Content --%>
+            <div class="flex-1 overflow-y-auto p-3">
+              <.day_column
+                day={@mobile_selected_date}
+                week_meals={@week_meals}
+                selected_meals={@selected_meals}
+                mobile={true}
+              />
+            </div>
           </div>
         </div>
 
@@ -213,27 +247,107 @@ defmodule GroceryPlannerWeb.MealPlannerLive.PowerLayout do
     """
   end
 
+  defp mobile_day_nav(assigns) do
+    week_end = Date.add(assigns.week_start, 6)
+    is_first_day = Date.compare(assigns.mobile_selected_date, assigns.week_start) == :eq
+    is_last_day = Date.compare(assigns.mobile_selected_date, week_end) == :eq
+
+    assigns =
+      assigns
+      |> assign(:is_first_day, is_first_day)
+      |> assign(:is_last_day, is_last_day)
+
+    ~H"""
+    <div class="bg-base-200 border-b border-base-300 px-3 py-2">
+      <%!-- Day Pills / Week Strip --%>
+      <div class="flex items-center justify-center gap-1 mb-3">
+        <%= for day <- @days do %>
+          <button
+            phx-click="power_mobile_select_day"
+            phx-value-date={Date.to_iso8601(day)}
+            class={[
+              "w-9 h-9 rounded-full text-xs font-semibold transition-all",
+              Date.compare(day, @mobile_selected_date) == :eq &&
+                "bg-primary text-primary-content shadow-md",
+              Date.compare(day, @mobile_selected_date) != :eq &&
+                Date.compare(day, Date.utc_today()) == :eq &&
+                "bg-primary/20 text-primary ring-1 ring-primary/50",
+              Date.compare(day, @mobile_selected_date) != :eq &&
+                Date.compare(day, Date.utc_today()) != :eq &&
+                "bg-base-100 text-base-content/70 hover:bg-base-300"
+            ]}
+          >
+            {Calendar.strftime(day, "%a") |> String.slice(0, 1)}
+          </button>
+        <% end %>
+      </div>
+
+      <%!-- Prev/Next Navigation --%>
+      <div class="flex items-center justify-between">
+        <button
+          phx-click="power_mobile_prev_day"
+          disabled={@is_first_day}
+          class={[
+            "btn btn-ghost btn-sm gap-1",
+            @is_first_day && "opacity-40 cursor-not-allowed"
+          ]}
+        >
+          <.icon name="hero-chevron-left" class="w-4 h-4" /> Prev
+        </button>
+
+        <div class="text-center">
+          <div class="font-bold text-lg">
+            {Calendar.strftime(@mobile_selected_date, "%A")}
+          </div>
+          <div class="text-xs text-base-content/60">
+            {Calendar.strftime(@mobile_selected_date, "%B %d, %Y")}
+          </div>
+        </div>
+
+        <button
+          phx-click="power_mobile_next_day"
+          disabled={@is_last_day}
+          class={[
+            "btn btn-ghost btn-sm gap-1",
+            @is_last_day && "opacity-40 cursor-not-allowed"
+          ]}
+        >
+          Next <.icon name="hero-chevron-right" class="w-4 h-4" />
+        </button>
+      </div>
+    </div>
+    """
+  end
+
   defp day_column(assigns) do
     meal_count =
       Enum.count(assigns.week_meals[assigns.day] || %{}, fn {_type, meal} -> meal != nil end)
 
-    assigns = assign(assigns, :meal_count, meal_count)
+    mobile = Map.get(assigns, :mobile, false)
+
+    assigns =
+      assigns
+      |> assign(:meal_count, meal_count)
+      |> assign(:mobile, mobile)
 
     ~H"""
     <div class={[
       "flex-1 min-w-[120px] overflow-hidden flex flex-col w-full",
-      "lg:w-auto",
-      "lg:rounded-xl lg:border lg:border-base-200 lg:bg-base-100 lg:shadow-sm",
-      "max-lg:border-b max-lg:border-base-200/80 max-lg:pb-3",
-      if(Date.compare(@day, Date.utc_today()) == :eq, do: "lg:ring-2 lg:ring-primary/30")
+      !@mobile && "lg:w-auto",
+      !@mobile && "lg:rounded-xl lg:border lg:border-base-200 lg:bg-base-100 lg:shadow-sm",
+      !@mobile && "max-lg:border-b max-lg:border-base-200/80 max-lg:pb-3",
+      !@mobile && Date.compare(@day, Date.utc_today()) == :eq && "lg:ring-2 lg:ring-primary/30",
+      @mobile && "rounded-xl border border-base-200 bg-base-100 shadow-sm",
+      @mobile && Date.compare(@day, Date.utc_today()) == :eq && "ring-2 ring-primary/30"
     ]}>
-      <%!-- Day Header --%>
+      <%!-- Day Header (hidden on mobile pager since we have nav above) --%>
       <div class={[
         "px-3 py-2 flex items-center justify-between gap-2 flex-shrink-0",
-        "lg:border-b",
+        "border-b",
+        @mobile && "hidden",
         if(Date.compare(@day, Date.utc_today()) == :eq,
-          do: "bg-primary text-primary-content lg:border-transparent",
-          else: "bg-base-200 text-base-content lg:border-base-200"
+          do: "bg-primary text-primary-content border-transparent",
+          else: "bg-base-200 text-base-content border-base-200"
         )
       ]}>
         <div class="min-w-0">
@@ -262,13 +376,18 @@ defmodule GroceryPlannerWeb.MealPlannerLive.PowerLayout do
       </div>
 
       <%!-- Meal Slots --%>
-      <div class="flex-1 overflow-y-auto p-2 space-y-2">
+      <div class={[
+        "flex-1 overflow-y-auto p-2",
+        @mobile && "space-y-3",
+        !@mobile && "space-y-2"
+      ]}>
         <%= for meal_type <- [:breakfast, :lunch, :dinner, :snack] do %>
           <.meal_slot
             day={@day}
             meal_type={meal_type}
             meal={get_meal_plan(@day, meal_type, @week_meals)}
             selected_meals={@selected_meals}
+            mobile={@mobile}
           />
         <% end %>
       </div>
@@ -277,28 +396,47 @@ defmodule GroceryPlannerWeb.MealPlannerLive.PowerLayout do
   end
 
   defp meal_slot(assigns) do
+    mobile = Map.get(assigns, :mobile, false)
+    assigns = assign(assigns, :mobile, mobile)
+
     ~H"""
     <div
-      class="rounded-lg p-1.5 min-h-[52px] transition-colors border-2 border-dashed border-transparent hover:border-base-300"
+      class={[
+        "rounded-lg transition-colors border-2 border-dashed border-transparent hover:border-base-300",
+        @mobile && "p-2 min-h-[70px]",
+        !@mobile && "p-1.5 min-h-[52px]"
+      ]}
       data-drop-zone
       data-date={Date.to_iso8601(@day)}
       data-meal-type={@meal_type}
     >
-      <div class="text-[10px] uppercase text-base-content/50 mb-1 px-1 flex items-center gap-1">
-        <span class="text-sm leading-none">
+      <div class={[
+        "uppercase text-base-content/50 mb-1 px-1 flex items-center gap-1",
+        @mobile && "text-xs",
+        !@mobile && "text-[10px]"
+      ]}>
+        <span class={["leading-none", @mobile && "text-base", !@mobile && "text-sm"]}>
           {Terminology.meal_type_icon(@meal_type) |> Terminology.icon_to_emoji()}
         </span>
         <span class="capitalize">{@meal_type}</span>
       </div>
 
       <%= if @meal do %>
-        <.meal_card meal={@meal} selected={MapSet.member?(@selected_meals, @meal.id)} />
+        <.meal_card
+          meal={@meal}
+          selected={MapSet.member?(@selected_meals, @meal.id)}
+          mobile={@mobile}
+        />
       <% else %>
         <button
           phx-click="add_meal"
           phx-value-date={@day}
           phx-value-meal_type={@meal_type}
-          class="w-full h-9 rounded-lg border border-dashed border-base-300 text-base-content/30 hover:border-primary hover:text-primary hover:bg-primary/5 text-xs transition-colors flex items-center justify-center gap-1"
+          class={[
+            "w-full rounded-lg border border-dashed border-base-300 text-base-content/30 hover:border-primary hover:text-primary hover:bg-primary/5 transition-colors flex items-center justify-center gap-1",
+            @mobile && "h-12 text-sm",
+            !@mobile && "h-9 text-xs"
+          ]}
         >
           <.icon name="hero-plus" class="w-4 h-4" /> Add
         </button>
@@ -308,11 +446,16 @@ defmodule GroceryPlannerWeb.MealPlannerLive.PowerLayout do
   end
 
   defp meal_card(assigns) do
+    mobile = Map.get(assigns, :mobile, false)
+    assigns = assign(assigns, :mobile, mobile)
+
     ~H"""
     <div
       class={[
-        "bg-base-100 rounded-lg p-2 shadow-sm cursor-grab active:cursor-grabbing group border border-base-200 hover:border-primary/30 hover:shadow-md transition-all",
-        if(@selected, do: "ring-2 ring-primary bg-primary/5")
+        "bg-base-100 rounded-lg shadow-sm cursor-grab active:cursor-grabbing group border border-base-200 hover:border-primary/30 hover:shadow-md transition-all",
+        @selected && "ring-2 ring-primary bg-primary/5",
+        @mobile && "p-3",
+        !@mobile && "p-2"
       ]}
       data-draggable="meal"
       data-meal-id={@meal.id}
@@ -321,16 +464,22 @@ defmodule GroceryPlannerWeb.MealPlannerLive.PowerLayout do
     >
       <div class="flex items-start justify-between gap-1">
         <div class="flex-1 min-w-0">
-          <p class="text-xs font-medium truncate">{@meal.recipe.name}</p>
-          <p class="text-[10px] text-base-content/50 mt-0.5">
+          <p class={["font-medium truncate", @mobile && "text-sm", !@mobile && "text-xs"]}>
+            {@meal.recipe.name}
+          </p>
+          <p class={["text-base-content/50 mt-0.5", @mobile && "text-xs", !@mobile && "text-[10px]"]}>
             {@meal.servings} srv • {get_total_time(@meal.recipe)} min
           </p>
         </div>
 
-        <%!-- Selection checkbox (visible on hover) --%>
+        <%!-- Selection checkbox (always visible on mobile, hover on desktop) --%>
         <input
           type="checkbox"
-          class="checkbox checkbox-xs checkbox-primary opacity-0 group-hover:opacity-100 transition-opacity"
+          class={[
+            "checkbox checkbox-primary transition-opacity",
+            @mobile && "checkbox-sm opacity-100",
+            !@mobile && "checkbox-xs opacity-0 group-hover:opacity-100"
+          ]}
           checked={@selected}
           phx-click="toggle_meal_selection"
           phx-value-meal-id={@meal.id}
@@ -338,35 +487,39 @@ defmodule GroceryPlannerWeb.MealPlannerLive.PowerLayout do
       </div>
 
       <%!-- Availability indicator --%>
-      <div class="mt-1.5 flex items-center gap-1">
+      <div class={["flex items-center gap-1", @mobile && "mt-2", !@mobile && "mt-1.5"]}>
         <%= if recipe_ready?(@meal.recipe) do %>
-          <span class="badge badge-success badge-xs gap-0.5">
+          <span class={["badge badge-success gap-0.5", @mobile && "badge-sm", !@mobile && "badge-xs"]}>
             <.icon name="hero-check" class="w-3 h-3" /> Ready
           </span>
         <% else %>
-          <span class="badge badge-warning badge-xs gap-0.5">
+          <span class={["badge badge-warning gap-0.5", @mobile && "badge-sm", !@mobile && "badge-xs"]}>
             <.icon name="hero-shopping-cart" class="w-3 h-3" /> Need items
           </span>
         <% end %>
       </div>
 
-      <%!-- Quick actions on hover --%>
-      <div class="mt-2 pt-2 border-t border-base-200 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
+      <%!-- Quick actions (always visible on mobile, hover on desktop) --%>
+      <div class={[
+        "mt-2 pt-2 border-t border-base-200 flex items-center gap-1",
+        @mobile && "opacity-100",
+        !@mobile && "opacity-0 group-hover:opacity-100 transition-opacity"
+      ]}>
         <button
           phx-click="edit_meal"
           phx-value-id={@meal.id}
-          class="btn btn-ghost btn-xs flex-1"
+          class={["btn btn-ghost flex-1", @mobile && "btn-sm", !@mobile && "btn-xs"]}
           title="Edit"
         >
-          <.icon name="hero-pencil-square" class="w-3 h-3" />
+          <.icon name="hero-pencil-square" class={if @mobile, do: "w-4 h-4", else: "w-3 h-3"} />
         </button>
         <button
           phx-click="remove_meal"
           phx-value-id={@meal.id}
-          class="btn btn-ghost btn-xs text-error flex-1"
+          class={["btn btn-ghost text-error flex-1", @mobile && "btn-sm", !@mobile && "btn-xs"]}
           title="Remove"
         >
-          <.icon name="hero-trash" class="w-3 h-3" />
+          <.icon name="hero-trash" class={if @mobile, do: "w-4 h-4", else: "w-3 h-3"} />
         </button>
       </div>
     </div>
@@ -559,6 +712,41 @@ defmodule GroceryPlannerWeb.MealPlannerLive.PowerLayout do
     start_str = Calendar.strftime(week_start, "%b %d")
     end_str = Calendar.strftime(week_end, "%b %d")
     "#{start_str} - #{end_str}"
+  end
+
+  # Event handlers for mobile day navigation
+
+  def handle_event("power_mobile_select_day", %{"date" => date_str}, socket) do
+    {:ok, date} = Date.from_iso8601(date_str)
+    {:noreply, Phoenix.Component.assign(socket, :mobile_selected_date, date)}
+  end
+
+  def handle_event("power_mobile_prev_day", _params, socket) do
+    current = socket.assigns.mobile_selected_date
+    week_start = socket.assigns.week_start
+
+    new_date =
+      if Date.compare(current, week_start) == :gt do
+        Date.add(current, -1)
+      else
+        current
+      end
+
+    {:noreply, Phoenix.Component.assign(socket, :mobile_selected_date, new_date)}
+  end
+
+  def handle_event("power_mobile_next_day", _params, socket) do
+    current = socket.assigns.mobile_selected_date
+    week_end = Date.add(socket.assigns.week_start, 6)
+
+    new_date =
+      if Date.compare(current, week_end) == :lt do
+        Date.add(current, 1)
+      else
+        current
+      end
+
+    {:noreply, Phoenix.Component.assign(socket, :mobile_selected_date, new_date)}
   end
 
   def handle_event(_event, _params, socket), do: {:noreply, socket}
