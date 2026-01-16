@@ -244,4 +244,121 @@ defmodule GroceryPlannerWeb.MealPlannerExplorerLiveTest do
       assert html =~ "Mediterranean"
     end
   end
+
+  describe "mobile filter bottom sheet" do
+    test "shows filter button with count badge when filters active", %{conn: conn} do
+      {:ok, view, _html} = live(conn, "/meal-planner")
+
+      # Initially no badge (no active filters)
+      html = render(view)
+      refute html =~ ~r/<span[^>]*class="badge badge-xs badge-primary-content">/
+
+      # Apply a filter via the desktop quick button (more specific selector)
+      view
+      |> element("#explorer-filter-quick")
+      |> render_click()
+
+      html = render(view)
+      # Should now show the filter button with a badge
+      assert has_element?(view, "#mobile-filter-btn")
+      assert html =~ "badge badge-xs"
+    end
+
+    test "opens mobile filter sheet when clicking filter button", %{conn: conn} do
+      {:ok, view, _html} = live(conn, "/meal-planner")
+
+      # Click the filter button
+      view
+      |> element("#mobile-filter-btn")
+      |> render_click()
+
+      # Should show the filter sheet
+      assert has_element?(view, "#mobile-filter-sheet")
+      assert render(view) =~ "Filters &amp; Sort"
+    end
+
+    test "closes mobile filter sheet when clicking Apply", %{conn: conn} do
+      {:ok, view, _html} = live(conn, "/meal-planner")
+
+      # Open the sheet
+      view
+      |> element("#mobile-filter-btn")
+      |> render_click()
+
+      assert has_element?(view, "#mobile-filter-sheet")
+
+      # Click Apply to close
+      view
+      |> element("#mobile-filter-sheet button", "Apply")
+      |> render_click()
+
+      refute has_element?(view, "#mobile-filter-sheet")
+    end
+
+    test "can select sort option in filter sheet", %{conn: conn, account: account, user: user} do
+      _recipe1 = create_recipe(account, user, %{name: "Zebra Cake", prep_time_minutes: 10})
+      _recipe2 = create_recipe(account, user, %{name: "Apple Pie", prep_time_minutes: 30})
+
+      {:ok, view, _html} = live(conn, "/meal-planner")
+
+      # Open filter sheet
+      view
+      |> element("#mobile-filter-btn")
+      |> render_click()
+
+      # Click prep_time sort
+      view
+      |> element(
+        "#mobile-filter-sheet button[phx-click='explorer_sort'][phx-value-sort='prep_time']"
+      )
+      |> render_click()
+
+      # The prep_time button should be active
+      assert has_element?(
+               view,
+               "#mobile-filter-sheet button[phx-value-sort='prep_time'].btn-neutral"
+             )
+    end
+
+    test "filter sheet shows all dietary options", %{conn: conn} do
+      {:ok, view, _html} = live(conn, "/meal-planner")
+
+      # Open the sheet
+      view
+      |> element("#mobile-filter-btn")
+      |> render_click()
+
+      html = render(view)
+
+      # Should show dietary options
+      assert html =~ "Vegan"
+      assert html =~ "Vegetarian"
+      assert html =~ "Gluten Free"
+      assert html =~ "Dairy Free"
+    end
+
+    test "clear all in filter sheet resets filters and closes sheet", %{conn: conn} do
+      {:ok, view, _html} = live(conn, "/meal-planner")
+
+      # Apply some filters first using desktop button (has unique ID)
+      view
+      |> element("#explorer-filter-quick")
+      |> render_click()
+
+      # Open filter sheet
+      view
+      |> element("#mobile-filter-btn")
+      |> render_click()
+
+      # Click Clear All
+      view
+      |> element("#mobile-filter-sheet button", "Clear All")
+      |> render_click()
+
+      # Sheet should close and filters should be reset
+      refute has_element?(view, "#mobile-filter-sheet")
+      # Quick filter should no longer be active (check desktop button)
+      refute has_element?(view, "#explorer-filter-quick.btn-primary")
+    end
+  end
 end

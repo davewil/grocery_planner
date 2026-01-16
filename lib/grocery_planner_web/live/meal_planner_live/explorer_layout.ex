@@ -55,6 +55,7 @@ defmodule GroceryPlannerWeb.MealPlannerLive.ExplorerLayout do
     |> assign(:explorer_difficulty, "")
     |> assign(:explorer_cuisine, "")
     |> assign(:explorer_dietary_needs, [])
+    |> assign(:explorer_sort, "name")
     |> assign(:explorer_recipes, [])
     |> assign(:explorer_favorite_recipes, [])
     |> assign(:explorer_recent_recipes, [])
@@ -68,6 +69,8 @@ defmodule GroceryPlannerWeb.MealPlannerLive.ExplorerLayout do
     |> assign(:selected_preset_id, nil)
     |> assign(:show_save_preset_modal, false)
     |> assign(:preset_name_input, "")
+    # Mobile filter bottom sheet
+    |> assign(:show_mobile_filter_sheet, false)
     |> load_filter_presets()
     |> DataLoader.load_all_recipes()
     |> load_explorer_recipes()
@@ -115,6 +118,20 @@ defmodule GroceryPlannerWeb.MealPlannerLive.ExplorerLayout do
           explorer_search={@explorer_search}
           explorer_cuisine={@explorer_cuisine}
           explorer_dietary_needs={@explorer_dietary_needs}
+          explorer_sort={@explorer_sort}
+          filter_presets={@filter_presets}
+          system_presets={@system_presets}
+          selected_preset_id={@selected_preset_id}
+        />
+
+        <%!-- Mobile Filter Bottom Sheet --%>
+        <.mobile_filter_sheet
+          :if={@show_mobile_filter_sheet}
+          explorer_filter={@explorer_filter}
+          explorer_difficulty={@explorer_difficulty}
+          explorer_cuisine={@explorer_cuisine}
+          explorer_dietary_needs={@explorer_dietary_needs}
+          explorer_sort={@explorer_sort}
           filter_presets={@filter_presets}
           system_presets={@system_presets}
           selected_preset_id={@selected_preset_id}
@@ -127,6 +144,7 @@ defmodule GroceryPlannerWeb.MealPlannerLive.ExplorerLayout do
               search={@explorer_search}
               filter={@explorer_filter}
               difficulty={@explorer_difficulty}
+              id_prefix="mobile"
             />
           <% else %>
             <div class="space-y-6 pb-20">
@@ -563,6 +581,7 @@ defmodule GroceryPlannerWeb.MealPlannerLive.ExplorerLayout do
                   search={@explorer_search}
                   filter={@explorer_filter}
                   difficulty={@explorer_difficulty}
+                  id_prefix="desktop"
                 />
               <% else %>
                 <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-3" id="explorer-feed">
@@ -809,131 +828,366 @@ defmodule GroceryPlannerWeb.MealPlannerLive.ExplorerLayout do
   end
 
   defp mobile_filter_bar(assigns) do
-    ~H"""
-    <div class="flex gap-2 px-3 py-3 overflow-x-auto border-b border-base-300 bg-base-100 no-scrollbar">
-      <!-- Presets dropdown -->
-      <div class="dropdown flex-shrink-0">
-        <label tabindex="0" class="btn btn-xs rounded-full px-3 btn-outline border-base-300 gap-1">
-          <.icon name="hero-bookmark" class="w-3 h-3" />
-          <%= if @selected_preset_id do %>
-            <% preset = find_preset(@selected_preset_id, @filter_presets, @system_presets) %>
-            <span class="max-w-[60px] truncate">{(preset && preset.name) || "Preset"}</span>
-          <% else %>
-            Presets
-          <% end %>
-        </label>
-        <ul
-          tabindex="0"
-          class="dropdown-content z-20 menu p-2 shadow-lg bg-base-100 rounded-box w-52 border border-base-200"
-        >
-          <%!-- System presets --%>
-          <li class="menu-title text-[9px] uppercase tracking-wider text-base-content/50">
-            Built-in
-          </li>
-          <%= for preset <- @system_presets do %>
-            <li>
-              <button
-                phx-click="explorer_load_preset"
-                phx-value-preset_id={preset.id}
-                phx-value-system="true"
-                class={[
-                  "text-sm",
-                  @selected_preset_id == preset.id && "font-semibold text-primary"
-                ]}
-              >
-                <.icon name="hero-sparkles" class="w-3 h-3 opacity-50" />
-                {preset.name}
-              </button>
-            </li>
-          <% end %>
+    # Count active filters for badge
+    active_count = count_active_filters(assigns)
 
-          <%!-- User presets --%>
-          <%= if @filter_presets != [] do %>
-            <li class="menu-title text-[9px] uppercase tracking-wider text-base-content/50 pt-1 mt-1 border-t border-base-200">
-              My Presets
-            </li>
-            <%= for preset <- @filter_presets do %>
-              <li>
+    assigns = assign(assigns, :active_count, active_count)
+
+    ~H"""
+    <div class="flex gap-2 px-3 py-2.5 overflow-x-auto border-b border-base-300 bg-base-100 no-scrollbar items-center">
+      <%!-- Filter button that opens bottom sheet --%>
+      <button
+        phx-click="explorer_open_filter_sheet"
+        class={[
+          "btn btn-xs rounded-full px-3 flex-shrink-0 gap-1",
+          if(@active_count > 0, do: "btn-primary", else: "btn-outline border-base-300")
+        ]}
+        id="mobile-filter-btn"
+      >
+        <.icon name="hero-adjustments-horizontal" class="w-3.5 h-3.5" /> Filters
+        <span :if={@active_count > 0} class="badge badge-xs badge-primary-content">
+          {@active_count}
+        </span>
+      </button>
+
+      <%!-- Quick filter chips --%>
+      <button
+        phx-click="explorer_filter"
+        phx-value-filter={if @explorer_filter == "quick", do: "", else: "quick"}
+        class={[
+          "btn btn-xs rounded-full px-3 flex-shrink-0",
+          if(@explorer_filter == "quick",
+            do: "btn-primary",
+            else: "btn-ghost bg-base-200/50"
+          )
+        ]}
+      >
+        <.icon name="hero-clock" class="w-3 h-3" /> Quick
+      </button>
+      <button
+        phx-click="explorer_filter"
+        phx-value-filter={if @explorer_filter == "pantry", do: "", else: "pantry"}
+        class={[
+          "btn btn-xs rounded-full px-3 flex-shrink-0",
+          if(@explorer_filter == "pantry",
+            do: "btn-primary",
+            else: "btn-ghost bg-base-200/50"
+          )
+        ]}
+      >
+        <.icon name="hero-archive-box" class="w-3 h-3" /> Pantry
+      </button>
+
+      <%!-- Active filter indicators --%>
+      <span
+        :if={@explorer_difficulty != ""}
+        class="badge badge-sm badge-secondary gap-1 flex-shrink-0"
+      >
+        {String.capitalize(@explorer_difficulty)}
+        <button
+          phx-click="explorer_difficulty"
+          phx-value-difficulty=""
+          class="hover:text-secondary-content"
+        >
+          <.icon name="hero-x-mark" class="w-3 h-3" />
+        </button>
+      </span>
+      <span
+        :if={@explorer_cuisine != ""}
+        class="badge badge-sm badge-info gap-1 flex-shrink-0"
+      >
+        {@explorer_cuisine}
+        <button phx-click="explorer_cuisine" phx-value-value="" class="hover:text-info-content">
+          <.icon name="hero-x-mark" class="w-3 h-3" />
+        </button>
+      </span>
+      <%= for need <- Enum.take(@explorer_dietary_needs, 2) do %>
+        <span class="badge badge-sm badge-accent gap-1 flex-shrink-0">
+          {format_dietary_need(need)}
+          <button
+            phx-click="explorer_dietary_toggle"
+            phx-value-need={need}
+            class="hover:text-accent-content"
+          >
+            <.icon name="hero-x-mark" class="w-3 h-3" />
+          </button>
+        </span>
+      <% end %>
+      <span
+        :if={length(@explorer_dietary_needs) > 2}
+        class="badge badge-sm badge-ghost flex-shrink-0"
+      >
+        +{length(@explorer_dietary_needs) - 2}
+      </span>
+
+      <%!-- Clear all --%>
+      <button
+        :if={@active_count > 0}
+        phx-click="explorer_clear_filters"
+        class="btn btn-xs btn-ghost text-error flex-shrink-0 ml-auto"
+      >
+        Clear
+      </button>
+    </div>
+    """
+  end
+
+  defp count_active_filters(assigns) do
+    count = 0
+    count = if assigns[:explorer_filter] not in [nil, ""], do: count + 1, else: count
+    count = if assigns[:explorer_difficulty] not in [nil, ""], do: count + 1, else: count
+    count = if (assigns[:explorer_cuisine] || "") != "", do: count + 1, else: count
+    count = count + length(assigns[:explorer_dietary_needs] || [])
+    count
+  end
+
+  defp mobile_filter_sheet(assigns) do
+    ~H"""
+    <div class="fixed inset-0 z-50 lg:hidden" id="mobile-filter-sheet">
+      <%!-- Backdrop --%>
+      <div
+        class="absolute inset-0 bg-black/40 backdrop-blur-sm"
+        phx-click="explorer_close_filter_sheet"
+      >
+      </div>
+
+      <%!-- Sheet --%>
+      <div class="absolute bottom-0 left-0 right-0 bg-base-100 rounded-t-3xl shadow-2xl max-h-[85vh] flex flex-col animate-in slide-in-from-bottom duration-300">
+        <%!-- Handle --%>
+        <div class="flex justify-center py-3">
+          <div class="w-10 h-1 rounded-full bg-base-300"></div>
+        </div>
+
+        <%!-- Header --%>
+        <div class="flex items-center justify-between px-5 pb-3 border-b border-base-200">
+          <h3 class="text-lg font-bold">Filters & Sort</h3>
+          <button phx-click="explorer_close_filter_sheet" class="btn btn-sm btn-ghost btn-circle">
+            <.icon name="hero-x-mark" class="w-5 h-5" />
+          </button>
+        </div>
+
+        <%!-- Content --%>
+        <div class="flex-1 overflow-y-auto p-5 space-y-6">
+          <%!-- Presets Section --%>
+          <section>
+            <h4 class="text-xs font-bold uppercase tracking-wider text-base-content/50 mb-3">
+              Quick Presets
+            </h4>
+            <div class="flex flex-wrap gap-2">
+              <%= for preset <- @system_presets do %>
+                <button
+                  phx-click="explorer_load_preset"
+                  phx-value-preset_id={preset.id}
+                  phx-value-system="true"
+                  class={[
+                    "btn btn-sm gap-1",
+                    if(@selected_preset_id == preset.id, do: "btn-primary", else: "btn-outline")
+                  ]}
+                >
+                  <.icon name="hero-sparkles" class="w-3.5 h-3.5" />
+                  {preset.name}
+                </button>
+              <% end %>
+              <%= for preset <- @filter_presets do %>
                 <button
                   phx-click="explorer_load_preset"
                   phx-value-preset_id={preset.id}
                   class={[
-                    "text-sm",
-                    @selected_preset_id == preset.id && "font-semibold text-primary"
+                    "btn btn-sm",
+                    if(@selected_preset_id == preset.id, do: "btn-primary", else: "btn-outline")
                   ]}
                 >
                   {preset.name}
                 </button>
-              </li>
-            <% end %>
-          <% end %>
-        </ul>
+              <% end %>
+            </div>
+          </section>
+
+          <%!-- Time Filter --%>
+          <section>
+            <h4 class="text-xs font-bold uppercase tracking-wider text-base-content/50 mb-3">
+              Cooking Time
+            </h4>
+            <div class="flex gap-2">
+              <button
+                phx-click="explorer_filter"
+                phx-value-filter=""
+                class={[
+                  "btn btn-sm flex-1",
+                  if(@explorer_filter in [nil, ""], do: "btn-primary", else: "btn-outline")
+                ]}
+              >
+                Any
+              </button>
+              <button
+                phx-click="explorer_filter"
+                phx-value-filter="quick"
+                class={[
+                  "btn btn-sm flex-1",
+                  if(@explorer_filter == "quick", do: "btn-primary", else: "btn-outline")
+                ]}
+              >
+                Under 30 min
+              </button>
+              <button
+                phx-click="explorer_filter"
+                phx-value-filter="pantry"
+                class={[
+                  "btn btn-sm flex-1",
+                  if(@explorer_filter == "pantry", do: "btn-primary", else: "btn-outline")
+                ]}
+              >
+                Pantry-first
+              </button>
+            </div>
+          </section>
+
+          <%!-- Difficulty --%>
+          <section>
+            <h4 class="text-xs font-bold uppercase tracking-wider text-base-content/50 mb-3">
+              Difficulty
+            </h4>
+            <div class="flex gap-2">
+              <button
+                phx-click="explorer_difficulty"
+                phx-value-difficulty=""
+                class={[
+                  "btn btn-sm flex-1",
+                  if(@explorer_difficulty in [nil, ""], do: "btn-secondary", else: "btn-outline")
+                ]}
+              >
+                Any
+              </button>
+              <button
+                phx-click="explorer_difficulty"
+                phx-value-difficulty="easy"
+                class={[
+                  "btn btn-sm flex-1",
+                  if(@explorer_difficulty == "easy", do: "btn-secondary", else: "btn-outline")
+                ]}
+              >
+                Easy
+              </button>
+              <button
+                phx-click="explorer_difficulty"
+                phx-value-difficulty="medium"
+                class={[
+                  "btn btn-sm flex-1",
+                  if(@explorer_difficulty == "medium", do: "btn-secondary", else: "btn-outline")
+                ]}
+              >
+                Medium
+              </button>
+              <button
+                phx-click="explorer_difficulty"
+                phx-value-difficulty="hard"
+                class={[
+                  "btn btn-sm flex-1",
+                  if(@explorer_difficulty == "hard", do: "btn-secondary", else: "btn-outline")
+                ]}
+              >
+                Hard
+              </button>
+            </div>
+          </section>
+
+          <%!-- Cuisine --%>
+          <section>
+            <h4 class="text-xs font-bold uppercase tracking-wider text-base-content/50 mb-3">
+              Cuisine
+            </h4>
+            <input
+              type="text"
+              name="cuisine"
+              value={@explorer_cuisine}
+              placeholder="e.g., Italian, Mexican, Thai..."
+              phx-keyup="explorer_cuisine"
+              phx-debounce="300"
+              class="input input-bordered w-full"
+            />
+          </section>
+
+          <%!-- Dietary Needs --%>
+          <section>
+            <h4 class="text-xs font-bold uppercase tracking-wider text-base-content/50 mb-3">
+              Dietary Needs
+            </h4>
+            <div class="flex flex-wrap gap-2">
+              <%= for need <- dietary_needs_options() do %>
+                <button
+                  phx-click="explorer_dietary_toggle"
+                  phx-value-need={need}
+                  class={[
+                    "btn btn-sm",
+                    if(need in @explorer_dietary_needs, do: "btn-accent", else: "btn-outline")
+                  ]}
+                >
+                  {format_dietary_need(need)}
+                </button>
+              <% end %>
+            </div>
+          </section>
+
+          <%!-- Sort --%>
+          <section>
+            <h4 class="text-xs font-bold uppercase tracking-wider text-base-content/50 mb-3">
+              Sort By
+            </h4>
+            <div class="flex flex-wrap gap-2">
+              <button
+                phx-click="explorer_sort"
+                phx-value-sort="name"
+                class={[
+                  "btn btn-sm",
+                  if(@explorer_sort == "name", do: "btn-neutral", else: "btn-outline")
+                ]}
+              >
+                Name
+              </button>
+              <button
+                phx-click="explorer_sort"
+                phx-value-sort="newest"
+                class={[
+                  "btn btn-sm",
+                  if(@explorer_sort == "newest", do: "btn-neutral", else: "btn-outline")
+                ]}
+              >
+                Newest
+              </button>
+              <button
+                phx-click="explorer_sort"
+                phx-value-sort="prep_time"
+                class={[
+                  "btn btn-sm",
+                  if(@explorer_sort == "prep_time", do: "btn-neutral", else: "btn-outline")
+                ]}
+              >
+                Prep Time
+              </button>
+              <button
+                phx-click="explorer_sort"
+                phx-value-sort="difficulty"
+                class={[
+                  "btn btn-sm",
+                  if(@explorer_sort == "difficulty", do: "btn-neutral", else: "btn-outline")
+                ]}
+              >
+                Difficulty
+              </button>
+            </div>
+          </section>
+        </div>
+
+        <%!-- Footer actions --%>
+        <div class="p-4 border-t border-base-200 flex gap-3">
+          <button phx-click="explorer_clear_filters" class="btn btn-outline flex-1">
+            Clear All
+          </button>
+          <button phx-click="explorer_close_filter_sheet" class="btn btn-primary flex-1">
+            Apply
+          </button>
+        </div>
       </div>
-
-      <button
-        phx-click="explorer_filter"
-        phx-value-filter="quick"
-        class={[
-          "btn btn-xs rounded-full px-4 flex-shrink-0",
-          if(@explorer_filter == "quick",
-            do: "btn-primary",
-            else: "btn-outline border-base-300 text-base-content/70"
-          )
-        ]}
-      >
-        <.icon name="hero-clock" class="w-3 h-3 mr-1" /> Under 30 min
-      </button>
-      <button
-        phx-click="explorer_filter"
-        phx-value-filter="pantry"
-        class={[
-          "btn btn-xs rounded-full px-4 flex-shrink-0",
-          if(@explorer_filter == "pantry",
-            do: "btn-primary",
-            else: "btn-outline border-base-300 text-base-content/70"
-          )
-        ]}
-      >
-        <.icon name="hero-archive-box" class="w-3 h-3 mr-1" /> Pantry-first
-      </button>
-
-      <div class="w-px h-6 bg-base-200 mx-1"></div>
-
-      <button
-        phx-click="explorer_difficulty"
-        phx-value-difficulty="easy"
-        class={[
-          "btn btn-xs rounded-full px-3 flex-shrink-0",
-          if(@explorer_difficulty == "easy", do: "btn-secondary", else: "btn-ghost bg-base-200/50")
-        ]}
-      >
-        Easy
-      </button>
-      <button
-        phx-click="explorer_difficulty"
-        phx-value-difficulty="medium"
-        class={[
-          "btn btn-xs rounded-full px-3 flex-shrink-0",
-          if(@explorer_difficulty == "medium", do: "btn-secondary", else: "btn-ghost bg-base-200/50")
-        ]}
-      >
-        Medium
-      </button>
-
-      <%= if has_active_filters?(assigns) do %>
-        <button
-          phx-click="explorer_open_save_preset"
-          class="btn btn-xs rounded-full px-3 flex-shrink-0 btn-ghost"
-        >
-          <.icon name="hero-bookmark-square" class="w-3 h-3" />
-        </button>
-        <button
-          phx-click="explorer_clear_filters"
-          class="btn btn-xs btn-ghost text-error flex-shrink-0"
-        >
-          Clear
-        </button>
-      <% end %>
     </div>
     """
   end
@@ -1114,6 +1368,8 @@ defmodule GroceryPlannerWeb.MealPlannerLive.ExplorerLayout do
   end
 
   defp empty_state_message(assigns) do
+    assigns = assign_new(assigns, :id_prefix, fn -> "default" end)
+
     ~H"""
     <div class="py-12 text-center">
       <div class="mx-auto w-12 h-12 rounded-2xl bg-base-200 flex items-center justify-center">
@@ -1130,7 +1386,7 @@ defmodule GroceryPlannerWeb.MealPlannerLive.ExplorerLayout do
         }
         phx-click="explorer_clear_filters"
         class="btn btn-ghost btn-sm mt-4"
-        id="explorer-clear-filters"
+        id={"explorer-clear-filters-#{@id_prefix}"}
       >
         Clear filters
       </button>
@@ -1268,7 +1524,9 @@ defmodule GroceryPlannerWeb.MealPlannerLive.ExplorerLayout do
       |> assign(:explorer_difficulty, "")
       |> assign(:explorer_cuisine, "")
       |> assign(:explorer_dietary_needs, [])
+      |> assign(:explorer_sort, "name")
       |> assign(:selected_preset_id, nil)
+      |> assign(:show_mobile_filter_sheet, false)
       |> load_explorer_recipes()
 
     {:noreply, socket}
@@ -1299,6 +1557,27 @@ defmodule GroceryPlannerWeb.MealPlannerLive.ExplorerLayout do
       socket
       |> assign(:explorer_dietary_needs, updated)
       |> assign(:selected_preset_id, nil)
+      |> load_explorer_recipes()
+
+    {:noreply, socket}
+  end
+
+  # Mobile filter sheet events
+
+  def handle_event("explorer_open_filter_sheet", _params, socket) do
+    {:noreply, assign(socket, :show_mobile_filter_sheet, true)}
+  end
+
+  def handle_event("explorer_close_filter_sheet", _params, socket) do
+    {:noreply, assign(socket, :show_mobile_filter_sheet, false)}
+  end
+
+  # Sort event
+
+  def handle_event("explorer_sort", %{"sort" => sort}, socket) do
+    socket =
+      socket
+      |> assign(:explorer_sort, sort)
       |> load_explorer_recipes()
 
     {:noreply, socket}
@@ -1559,6 +1838,7 @@ defmodule GroceryPlannerWeb.MealPlannerLive.ExplorerLayout do
     difficulty = socket.assigns.explorer_difficulty || ""
     cuisine = String.trim(socket.assigns[:explorer_cuisine] || "")
     dietary_needs = socket.assigns[:explorer_dietary_needs] || []
+    sort = socket.assigns[:explorer_sort] || "name"
 
     recipes =
       all_recipes
@@ -1567,6 +1847,7 @@ defmodule GroceryPlannerWeb.MealPlannerLive.ExplorerLayout do
       |> maybe_filter_by_difficulty(difficulty)
       |> maybe_filter_by_cuisine(cuisine)
       |> maybe_filter_by_dietary_needs(dietary_needs)
+      |> apply_sort(sort)
 
     {favorite_recipes, other_recipes} =
       Enum.split_with(recipes, & &1.is_favorite)
@@ -1590,6 +1871,21 @@ defmodule GroceryPlannerWeb.MealPlannerLive.ExplorerLayout do
     |> assign(:explorer_recent_recipes, Enum.take(recent_recipes, 12))
     |> assign(:explorer_recipes, other_recipes)
   end
+
+  defp apply_sort(recipes, "name"), do: Enum.sort_by(recipes, & &1.name)
+
+  defp apply_sort(recipes, "newest"),
+    do: Enum.sort_by(recipes, & &1.inserted_at, {:desc, DateTime})
+
+  defp apply_sort(recipes, "prep_time"),
+    do: Enum.sort_by(recipes, &((&1.prep_time_minutes || 0) + (&1.cook_time_minutes || 0)))
+
+  defp apply_sort(recipes, "difficulty") do
+    difficulty_order = %{easy: 0, medium: 1, hard: 2}
+    Enum.sort_by(recipes, &Map.get(difficulty_order, &1.difficulty, 1))
+  end
+
+  defp apply_sort(recipes, _), do: recipes
 
   defp get_quick_picks(recipes, favorites, recents) do
     # Heuristic: 

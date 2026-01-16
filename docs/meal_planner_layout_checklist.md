@@ -66,7 +66,7 @@ Legend:
 - [x] Difficulty filter
 - [x] Sort options (Name/Newest/Prep Time/Difficulty)
 - [x] Saved presets (Weeknight quick wins, Mediterranean)
-- [ ] Mobile filter/sort bottom sheet
+- [x] Mobile filter/sort bottom sheet
 
 ---
 
