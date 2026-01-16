@@ -952,6 +952,73 @@ defmodule GroceryPlannerWeb.MealPlannerLive.ExplorerLayout do
     """
   end
 
+  defp recipe_tags(assigns) do
+    cuisine = Map.get(assigns.recipe, :cuisine)
+    dietary_needs = Map.get(assigns.recipe, :dietary_needs) || []
+
+    # Only show if there's something to display
+    has_tags = (cuisine && cuisine != "") || dietary_needs != []
+
+    assigns =
+      assigns
+      |> assign(:cuisine, cuisine)
+      |> assign(:dietary_needs, dietary_needs)
+      |> assign(:has_tags, has_tags)
+
+    ~H"""
+    <div :if={@has_tags} class={["flex flex-wrap gap-1", @compact && "mt-1", !@compact && "mt-1.5"]}>
+      <%!-- Cuisine tag --%>
+      <span
+        :if={@cuisine && @cuisine != ""}
+        class={[
+          "inline-flex items-center gap-0.5 rounded-full bg-info/10 text-info",
+          @compact && "px-1.5 py-0.5 text-[9px]",
+          !@compact && "px-2 py-0.5 text-[10px]"
+        ]}
+      >
+        <.icon name="hero-globe-alt" class={if @compact, do: "w-2.5 h-2.5", else: "w-3 h-3"} />
+        {@cuisine}
+      </span>
+      <%!-- Dietary needs tags (show first 2 on compact, first 3 on full) --%>
+      <%= for need <- Enum.take(@dietary_needs, if(@compact, do: 2, else: 3)) do %>
+        <span class={[
+          "inline-flex items-center rounded-full",
+          dietary_need_color(need),
+          @compact && "px-1.5 py-0.5 text-[9px]",
+          !@compact && "px-2 py-0.5 text-[10px]"
+        ]}>
+          {format_dietary_need(need)}
+        </span>
+      <% end %>
+      <%!-- Show +N if there are more --%>
+      <% remaining = length(@dietary_needs) - if(@compact, do: 2, else: 3) %>
+      <span
+        :if={remaining > 0}
+        class={[
+          "inline-flex items-center rounded-full bg-base-200 text-base-content/60",
+          @compact && "px-1.5 py-0.5 text-[9px]",
+          !@compact && "px-2 py-0.5 text-[10px]"
+        ]}
+      >
+        +{remaining}
+      </span>
+    </div>
+    """
+  end
+
+  defp dietary_need_color(need) do
+    case need do
+      :vegan -> "bg-success/10 text-success"
+      :vegetarian -> "bg-success/10 text-success"
+      :gluten_free -> "bg-warning/10 text-warning"
+      :dairy_free -> "bg-warning/10 text-warning"
+      :nut_free -> "bg-error/10 text-error"
+      :keto -> "bg-accent/10 text-accent"
+      :paleo -> "bg-accent/10 text-accent"
+      _ -> "bg-secondary/10 text-secondary"
+    end
+  end
+
   defp empty_state_message(assigns) do
     ~H"""
     <div class="py-12 text-center">
@@ -1032,6 +1099,9 @@ defmodule GroceryPlannerWeb.MealPlannerLive.ExplorerLayout do
             </button>
           <% end %>
         </div>
+
+        <%!-- Cuisine & Dietary Tags --%>
+        <.recipe_tags recipe={@recipe} compact={@compact} />
 
         <div class="mt-auto pt-2 flex gap-2 items-center">
           <%= if @compact do %>

@@ -51,7 +51,7 @@ Legend:
   - [x] Difficulty badge
   - [x] Time badge (total minutes)
   - [x] Ingredient availability / Shopping need badge
-  - [ ] Dietary/cuisine tags (if supported)
+  - [x] Dietary/cuisine tags (if supported)
 - [x] Primary CTA: Add to plan opens slot picker
 - [x] Secondary actions: favorite toggle + details link
 - [x] Favorites + Recents sections
