@@ -815,7 +815,7 @@ defmodule GroceryPlannerWeb.MealPlannerLive.FocusLayout do
     atom_meal_type = String.to_existing_atom(meal_type)
 
     socket
-    |> DataLoader.load_all_recipes()
+    |> DataLoader.load_all_recipes(force: true)
     |> DataLoader.load_recent_recipes()
     |> DataLoader.load_favorite_recipes()
     |> assign(:show_focus_quick_picker, true)
@@ -831,11 +831,20 @@ defmodule GroceryPlannerWeb.MealPlannerLive.FocusLayout do
   def handle_event("prevent_close_picker", _params, socket), do: {:noreply, socket}
 
   def handle_event("focus_search_recipes", %{"value" => query}, socket) do
-    {:ok, all_recipes} =
-      GroceryPlanner.Recipes.list_recipes_for_meal_planner(
-        actor: socket.assigns.current_user,
-        tenant: socket.assigns.current_account.id
-      )
+    # Shared search for the modal
+    # Use cached all_recipes if available, otherwise fetch
+    all_recipes =
+      if socket.assigns[:all_recipes_cache] do
+        socket.assigns.all_recipes_cache
+      else
+        {:ok, recipes} =
+          GroceryPlanner.Recipes.list_recipes_for_meal_planner(
+            actor: socket.assigns.current_user,
+            tenant: socket.assigns.current_account.id
+          )
+
+        recipes
+      end
 
     recipes =
       if String.trim(query) == "" do
@@ -851,6 +860,10 @@ defmodule GroceryPlannerWeb.MealPlannerLive.FocusLayout do
     socket
     |> assign(:available_recipes, recipes)
     |> assign(:focus_search_query, query)
+    # Ensure cache is populated if it wasn't
+    |> then(fn s ->
+      if s.assigns[:all_recipes_cache], do: s, else: assign(s, :all_recipes_cache, all_recipes)
+    end)
     |> then(&{:noreply, &1})
   end
 

@@ -32,23 +32,20 @@ defmodule GroceryPlannerWeb.MealPlannerLive.PowerLayout do
     |> Phoenix.Component.assign(:grocery_delta, nil)
     |> Phoenix.Component.assign(:dragging_meal_id, nil)
     |> Phoenix.Component.assign(:mobile_selected_date, mobile_selected_date)
+    |> DataLoader.load_all_recipes()
     |> load_sidebar_recipes()
   end
 
   defp load_sidebar_recipes(socket) do
-    # Load all recipes for the sidebar
-    {:ok, all_recipes} =
-      GroceryPlanner.Recipes.list_recipes_for_meal_planner(
-        actor: socket.assigns.current_user,
-        tenant: socket.assigns.current_account.id
-      )
+    # Load favorites (we still load these separately as they might not be in available_recipes if filtered?)
+    # Wait, explorer uses available_recipes to find favorites.
+    # But for now let's keep loading favorites separately to minimize changes, or unify it.
+    # Since ExplorerLayout filters favorites from available_recipes, we can do the same here.
 
-    # Load favorites
-    {:ok, favorites} =
-      GroceryPlanner.Recipes.list_favorite_recipes(
-        actor: socket.assigns.current_user,
-        tenant: socket.assigns.current_account.id
-      )
+    # We can rely on available_recipes loaded by DataLoader.load_all_recipes
+    all_recipes = socket.assigns.available_recipes
+
+    favorites = Enum.filter(all_recipes, & &1.is_favorite)
 
     socket
     |> Phoenix.Component.assign(:recipes, all_recipes)

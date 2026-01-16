@@ -77,14 +77,25 @@ defmodule GroceryPlannerWeb.MealPlannerLive.DataLoader do
     assign(socket, :recent_recipes, recent_recipes)
   end
 
-  def load_all_recipes(socket, _opts \\ []) do
-    {:ok, all_recipes} =
-      Recipes.list_recipes_for_meal_planner(
-        actor: socket.assigns.current_user,
-        tenant: socket.assigns.current_account.id
-      )
+  def load_all_recipes(socket, opts \\ []) do
+    force = Keyword.get(opts, :force, false)
 
-    assign(socket, :available_recipes, all_recipes)
+    socket =
+      if force || !socket.assigns[:recipes_loaded] do
+        {:ok, all_recipes} =
+          Recipes.list_recipes_for_meal_planner(
+            actor: socket.assigns.current_user,
+            tenant: socket.assigns.current_account.id
+          )
+
+        socket
+        |> assign(:all_recipes_cache, all_recipes)
+        |> assign(:recipes_loaded, true)
+      else
+        socket
+      end
+
+    assign(socket, :available_recipes, socket.assigns.all_recipes_cache)
   end
 
   def compute_shopping_needs(socket) do

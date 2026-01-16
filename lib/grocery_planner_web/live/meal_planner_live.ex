@@ -50,6 +50,7 @@ defmodule GroceryPlannerWeb.MealPlannerLive do
       |> assign(:explorer_selected_slot, nil)
       # Undo System
       |> assign(:undo_system, UndoSystem.new())
+      |> assign(:recipes_loaded, false)
       # Load data
       |> DataLoader.load_week_meals()
       # Layout specific init
@@ -141,7 +142,7 @@ defmodule GroceryPlannerWeb.MealPlannerLive do
     socket =
       socket
       # Ensure recipes are loaded for the picker
-      |> DataLoader.load_all_recipes()
+      |> DataLoader.load_all_recipes(force: true)
       |> assign(:show_add_meal_modal, true)
       |> assign(:selected_date, date)
       |> assign(:selected_meal_type, meal_type_atom)
@@ -169,11 +170,19 @@ defmodule GroceryPlannerWeb.MealPlannerLive do
 
   def handle_event("search_recipes", %{"value" => search_term}, socket) do
     # Shared search for the modal
-    {:ok, all_recipes} =
-      GroceryPlanner.Recipes.list_recipes_for_meal_planner(
-        actor: socket.assigns.current_user,
-        tenant: socket.assigns.current_account.id
-      )
+    # Use cached all_recipes if available, otherwise fetch
+    all_recipes =
+      if socket.assigns[:all_recipes_cache] do
+        socket.assigns.all_recipes_cache
+      else
+        {:ok, recipes} =
+          GroceryPlanner.Recipes.list_recipes_for_meal_planner(
+            actor: socket.assigns.current_user,
+            tenant: socket.assigns.current_account.id
+          )
+
+        recipes
+      end
 
     recipes =
       if String.trim(search_term) == "" do
@@ -186,7 +195,15 @@ defmodule GroceryPlannerWeb.MealPlannerLive do
         end)
       end
 
-    {:noreply, assign(socket, :available_recipes, recipes)}
+    socket =
+      socket
+      |> assign(:available_recipes, recipes)
+      # Ensure cache is populated if it wasn't
+      |> then(fn s ->
+        if s.assigns[:all_recipes_cache], do: s, else: assign(s, :all_recipes_cache, all_recipes)
+      end)
+
+    {:noreply, socket}
   end
 
   def handle_event("select_recipe", %{"id" => recipe_id}, socket) do
@@ -392,7 +409,7 @@ defmodule GroceryPlannerWeb.MealPlannerLive do
               |> assign(:selected_date, meal_plan.scheduled_date)
               |> assign(:selected_meal_type, meal_plan.meal_type)
               |> assign(:show_add_meal_modal, true)
-              |> DataLoader.load_all_recipes()
+              |> DataLoader.load_all_recipes(force: true)
 
             {:noreply, socket}
 
@@ -1018,10 +1035,9 @@ defmodule GroceryPlannerWeb.MealPlannerLive do
            ) do
       socket =
         socket
+        # Invalidate cache so recipes are reloaded with updated favorite status
+        |> assign(:recipes_loaded, false)
         |> maybe_refresh_layout()
-
-      # Note: we should probably refresh the layout recipes list.
-      # ExplorerLayout does load_explorer_recipes.
 
       {:noreply, socket}
     else
