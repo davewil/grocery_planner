@@ -40,20 +40,42 @@ import logging
 setup_structured_logging()
 logger = logging.getLogger("grocery-planner-ai")
 
+# Global classifier instance (initialized on startup if enabled)
+classifier = None
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan manager."""
+    global classifier
+
     # Initialize database
     logger.info("Initializing database...")
     init_db()
 
-    # Load models here (e.g. BERT, LayoutLM) when implementing real inference
+    # Load Zero-Shot Classification model if enabled
+    if settings.USE_REAL_CLASSIFICATION:
+        logger.info(f"Loading classification model: {settings.CLASSIFICATION_MODEL}...")
+        try:
+            from transformers import pipeline
+            classifier = pipeline(
+                "zero-shot-classification",
+                model=settings.CLASSIFICATION_MODEL,
+                device=-1  # CPU
+            )
+            logger.info("Classification model loaded successfully")
+        except Exception as e:
+            logger.error(f"Failed to load classification model: {e}")
+            classifier = None
+    else:
+        logger.info("Real classification disabled, using mock implementation")
+
     logger.info("AI Service starting up...")
 
     yield
 
     # Cleanup
+    classifier = None
     logger.info("AI Service shutting down...")
 
 
@@ -89,26 +111,56 @@ async def categorize_item(request: BaseRequest, db: Session = Depends(get_db)):
     Predicts the category for a given grocery item name.
 
     Uses zero-shot classification to match items to categories.
+    When USE_REAL_CLASSIFICATION=true, uses the Hugging Face transformers model.
+    Otherwise returns mock data for development.
     """
+    global classifier
     start_time = time.time()
-    model_id = "mock-classifier"
-    model_version = "1.0.0"
 
     try:
         payload = CategorizationRequestPayload(**request.payload)
 
-        # MOCK IMPLEMENTATION
-        # In real impl: self.classifier(payload.item_name, payload.candidate_labels)
-        predicted_category = "Produce"
-        confidence = 0.95
+        if settings.USE_REAL_CLASSIFICATION and classifier is not None:
+            # Real Zero-Shot Classification
+            model_id = settings.CLASSIFICATION_MODEL
+            model_version = "transformers"
 
-        item_lower = payload.item_name.lower()
-        if "milk" in item_lower:
-            predicted_category = "Dairy"
-        elif "bread" in item_lower:
-            predicted_category = "Bakery"
-        elif "chicken" in item_lower:
-            predicted_category = "Meat"
+            result = classifier(
+                payload.item_name,
+                candidate_labels=payload.candidate_labels,
+                multi_label=False
+            )
+
+            predicted_category = result["labels"][0]
+            confidence = result["scores"][0]
+
+            logger.info(
+                f"Classified '{payload.item_name}' as '{predicted_category}' "
+                f"with confidence {confidence:.2f}"
+            )
+        else:
+            # MOCK IMPLEMENTATION for development
+            model_id = "mock-classifier"
+            model_version = "1.0.0"
+
+            predicted_category = "Produce"
+            confidence = 0.95
+
+            item_lower = payload.item_name.lower()
+            if "milk" in item_lower:
+                predicted_category = "Dairy"
+            elif "bread" in item_lower:
+                predicted_category = "Bakery"
+            elif "chicken" in item_lower:
+                predicted_category = "Meat"
+
+        # Determine confidence level
+        if confidence >= 0.80:
+            confidence_level = "high"
+        elif confidence >= 0.50:
+            confidence_level = "medium"
+        else:
+            confidence_level = "low"
 
         response_payload = CategorizationResponsePayload(
             category=predicted_category,
@@ -125,7 +177,10 @@ async def categorize_item(request: BaseRequest, db: Session = Depends(get_db)):
             user_id=request.user_id,
             feature="categorization",
             input_payload=request.payload,
-            output_payload=response_payload.model_dump(),
+            output_payload={
+                **response_payload.model_dump(),
+                "confidence_level": confidence_level
+            },
             status="success",
             model_id=model_id,
             model_version=model_version,
@@ -134,7 +189,10 @@ async def categorize_item(request: BaseRequest, db: Session = Depends(get_db)):
 
         return BaseResponse(
             request_id=request.request_id,
-            payload=response_payload.model_dump()
+            payload={
+                **response_payload.model_dump(),
+                "confidence_level": confidence_level
+            }
         )
 
     except Exception as e:
@@ -151,8 +209,8 @@ async def categorize_item(request: BaseRequest, db: Session = Depends(get_db)):
             input_payload=request.payload,
             status="error",
             error_message=str(e),
-            model_id=model_id,
-            model_version=model_version,
+            model_id=settings.CLASSIFICATION_MODEL if settings.USE_REAL_CLASSIFICATION else "mock-classifier",
+            model_version="transformers" if settings.USE_REAL_CLASSIFICATION else "1.0.0",
             latency_ms=latency_ms,
         )
 

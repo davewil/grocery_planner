@@ -8,6 +8,10 @@ sqlalchemy>=2.0.36
 # HTTP client
 httpx==0.26.0
 
+# AI / ML - Zero-Shot Classification
+transformers>=4.30.0
+torch>=2.0.0
+
 # OpenAI-compatible client for vLLM
 openai>=1.0.0
 

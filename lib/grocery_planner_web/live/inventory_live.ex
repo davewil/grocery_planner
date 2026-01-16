@@ -67,6 +67,8 @@ defmodule GroceryPlannerWeb.InventoryLive do
                   managing_tags_for={@managing_tags_for}
                   categories={@categories}
                   selected_tag_ids={@selected_tag_ids}
+                  category_suggestion={@category_suggestion}
+                  category_suggestion_loading={@category_suggestion_loading}
                 />
               <% "inventory" -> %>
                 <.inventory_tab
@@ -233,6 +235,8 @@ defmodule GroceryPlannerWeb.InventoryLive do
   attr(:managing_tags_for, :any, default: nil)
   attr(:categories, :list, required: true)
   attr(:selected_tag_ids, :list, default: [])
+  attr(:category_suggestion, :map, default: nil)
+  attr(:category_suggestion_loading, :boolean, default: false)
 
   defp items_tab(assigns) do
     ~H"""
@@ -311,7 +315,13 @@ defmodule GroceryPlannerWeb.InventoryLive do
       </h3>
       <.form for={@form} id="item-form" phx-change="validate_item" phx-submit="save_item">
         <div class="space-y-4">
-          <.input field={@form[:name]} type="text" label="Name" required />
+          <.input
+            field={@form[:name]}
+            type="text"
+            label="Name"
+            required
+            phx-debounce="500"
+          />
           <.input field={@form[:description]} type="text" label="Description" />
           <.input
             field={@form[:default_unit]}
@@ -321,35 +331,76 @@ defmodule GroceryPlannerWeb.InventoryLive do
           />
           <.input field={@form[:barcode]} type="text" label="Barcode (optional)" />
 
-          <div class="flex items-end gap-2">
-            <div class="flex-1">
-              <.input
-                field={@form[:category_id]}
-                type="select"
-                label="Category"
-                options={[{"None", nil}] ++ Enum.map(@categories, fn c -> {c.name, c.id} end)}
-              />
-            </div>
-            <button
-              type="button"
-              phx-click="suggest_category"
-              class="btn btn-secondary btn-outline mb-[2px]"
-              title="Auto-detect category with AI"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 20 20"
-                fill="currentColor"
-                class="w-5 h-5"
-              >
-                <path
-                  fill-rule="evenodd"
-                  d="M10 1c3.866 0 7 1.789 7 4 0 1.657-1.745 3.104-4.363 3.655C12.449 8.924 12 9.208 12 9.5v1a.5.5 0 01-1 0v-1c0-.709.61-1.243 1.346-1.39C14.717 7.643 16 6.387 16 5c0-1.657-2.686-3-6-3S4 3.343 4 5c0 1.25 1.05 2.308 2.656 2.9.23.084.417.27.513.504l.5 1.25a.5.5 0 01-.928.372l-.5-1.25A1.47 1.47 0 005.5 8C3.12 7.258 2 5.753 2 5c0-2.211 3.134-4 7-4zm0 12a1 1 0 100 2 1 1 0 000-2z"
-                  clip-rule="evenodd"
+          <div>
+            <div class="flex items-end gap-2">
+              <div class="flex-1">
+                <.input
+                  field={@form[:category_id]}
+                  type="select"
+                  label="Category"
+                  options={[{"None", nil}] ++ Enum.map(@categories, fn c -> {c.name, c.id} end)}
                 />
-              </svg>
-              Suggest
-            </button>
+              </div>
+              <button
+                type="button"
+                phx-click="suggest_category"
+                class="btn btn-secondary btn-outline mb-[2px]"
+                title="Auto-detect category with AI"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                  class="w-5 h-5"
+                >
+                  <path
+                    fill-rule="evenodd"
+                    d="M10 1c3.866 0 7 1.789 7 4 0 1.657-1.745 3.104-4.363 3.655C12.449 8.924 12 9.208 12 9.5v1a.5.5 0 01-1 0v-1c0-.709.61-1.243 1.346-1.39C14.717 7.643 16 6.387 16 5c0-1.657-2.686-3-6-3S4 3.343 4 5c0 1.25 1.05 2.308 2.656 2.9.23.084.417.27.513.504l.5 1.25a.5.5 0 01-.928.372l-.5-1.25A1.47 1.47 0 005.5 8C3.12 7.258 2 5.753 2 5c0-2.211 3.134-4 7-4zm0 12a1 1 0 100 2 1 1 0 000-2z"
+                    clip-rule="evenodd"
+                  />
+                </svg>
+                Suggest
+              </button>
+            </div>
+
+            <%!-- AI Category Suggestion Chip --%>
+            <%= if @category_suggestion_loading do %>
+              <div class="mt-2 flex items-center gap-2 text-sm text-base-content/60">
+                <span class="loading loading-spinner loading-xs"></span>
+                <span>Analyzing item...</span>
+              </div>
+            <% end %>
+
+            <%= if @category_suggestion do %>
+              <div class="mt-2 flex items-center gap-2 flex-wrap">
+                <span class="text-sm text-base-content/70">Suggested:</span>
+                <button
+                  type="button"
+                  class="badge badge-primary cursor-pointer hover:badge-primary/80 transition gap-1"
+                  phx-click="accept_suggestion"
+                >
+                  <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
+                    />
+                  </svg>
+                  {@category_suggestion.category.name}
+                </button>
+                <span class={[
+                  "badge badge-sm",
+                  case @category_suggestion.confidence_level do
+                    "high" -> "badge-success"
+                    "medium" -> "badge-warning"
+                    _ -> "badge-ghost"
+                  end
+                ]}>
+                  {round(@category_suggestion.confidence * 100)}%
+                </span>
+              </div>
+            <% end %>
           </div>
 
           <%= if length(@tags) > 0 do %>
@@ -1296,6 +1347,9 @@ defmodule GroceryPlannerWeb.InventoryLive do
       |> assign(:inventory_per_page, @inventory_per_page)
       |> assign(:inventory_total_count, 0)
       |> assign(:inventory_total_pages, 1)
+      |> assign(:category_suggestion, nil)
+      |> assign(:category_suggestion_loading, false)
+      |> assign(:last_categorized_name, nil)
 
     {:ok, socket}
   end
@@ -1343,7 +1397,10 @@ defmodule GroceryPlannerWeb.InventoryLive do
        form: to_form(%{}, as: :item),
        form_params: %{},
        editing_id: nil,
-       selected_tag_ids: []
+       selected_tag_ids: [],
+       category_suggestion: nil,
+       category_suggestion_loading: false,
+       last_categorized_name: nil
      )}
   end
 
@@ -1364,7 +1421,15 @@ defmodule GroceryPlannerWeb.InventoryLive do
   end
 
   def handle_event("cancel_form", _, socket) do
-    {:noreply, assign(socket, show_form: nil, form: nil, editing_id: nil)}
+    {:noreply,
+     assign(socket,
+       show_form: nil,
+       form: nil,
+       editing_id: nil,
+       category_suggestion: nil,
+       category_suggestion_loading: false,
+       last_categorized_name: nil
+     )}
   end
 
   def handle_event("toggle_tag_filter", %{"tag-id" => tag_id}, socket) do
@@ -1467,7 +1532,10 @@ defmodule GroceryPlannerWeb.InventoryLive do
            form: form,
            form_params: form_params,
            editing_id: id,
-           selected_tag_ids: selected_tag_ids
+           selected_tag_ids: selected_tag_ids,
+           category_suggestion: nil,
+           category_suggestion_loading: false,
+           last_categorized_name: item.name
          )}
 
       {:error, _} ->
@@ -1491,7 +1559,38 @@ defmodule GroceryPlannerWeb.InventoryLive do
   def handle_event("validate_item", %{"item" => params}, socket) do
     new_params = Map.merge(socket.assigns.form_params || %{}, params)
     form = to_form(new_params, as: :item)
+
+    # Check if name has changed and trigger auto-categorization
+    new_name = params["name"] || ""
+    last_name = socket.assigns.last_categorized_name
+
+    socket =
+      if String.length(new_name) >= 3 && new_name != last_name && socket.assigns.categories != [] do
+        # Trigger async categorization
+        trigger_auto_categorization(socket, new_name)
+      else
+        socket
+      end
+
     {:noreply, assign(socket, form: form, form_params: new_params)}
+  end
+
+  def handle_event("accept_suggestion", _params, socket) do
+    case socket.assigns.category_suggestion do
+      %{category: category} ->
+        new_params = Map.put(socket.assigns.form_params, "category_id", category.id)
+        form = to_form(new_params, as: :item)
+
+        {:noreply,
+         assign(socket,
+           form: form,
+           form_params: new_params,
+           category_suggestion: nil
+         )}
+
+      _ ->
+        {:noreply, socket}
+    end
   end
 
   def handle_event("suggest_category", _params, socket) do
@@ -2103,6 +2202,73 @@ defmodule GroceryPlannerWeb.InventoryLive do
 
       {:noreply, socket}
     end
+  end
+
+  def handle_info({:category_suggestion_result, item_name, result}, socket) do
+    # Only process if the name still matches (user hasn't changed it)
+    current_name = get_in(socket.assigns, [:form_params, "name"]) || ""
+
+    if current_name == item_name do
+      socket =
+        case result do
+          {:ok, %{"payload" => %{"category" => predicted_category, "confidence" => confidence}}} ->
+            confidence_level =
+              get_in(result, [:ok, "payload", "confidence_level"]) ||
+                classify_confidence(confidence)
+
+            # Find the matching category
+            case Enum.find(socket.assigns.categories, fn c ->
+                   String.downcase(c.name) == String.downcase(predicted_category)
+                 end) do
+              nil ->
+                assign(socket, category_suggestion: nil, category_suggestion_loading: false)
+
+              category ->
+                assign(socket,
+                  category_suggestion: %{
+                    category: category,
+                    confidence: confidence,
+                    confidence_level: confidence_level
+                  },
+                  category_suggestion_loading: false
+                )
+            end
+
+          {:error, _} ->
+            assign(socket, category_suggestion: nil, category_suggestion_loading: false)
+        end
+
+      {:noreply, socket}
+    else
+      # Name changed, ignore stale result
+      {:noreply, socket}
+    end
+  end
+
+  defp classify_confidence(confidence) when confidence >= 0.80, do: "high"
+  defp classify_confidence(confidence) when confidence >= 0.50, do: "medium"
+  defp classify_confidence(_), do: "low"
+
+  defp trigger_auto_categorization(socket, item_name) do
+    categories = socket.assigns.categories
+    labels = Enum.map(categories, & &1.name)
+
+    context = %{
+      tenant_id: socket.assigns.current_account.id,
+      user_id: socket.assigns.current_user.id
+    }
+
+    # Send async task
+    pid = self()
+
+    Task.start(fn ->
+      result = AiClient.categorize_item(item_name, labels, context)
+      send(pid, {:category_suggestion_result, item_name, result})
+    end)
+
+    socket
+    |> assign(:category_suggestion_loading, true)
+    |> assign(:last_categorized_name, item_name)
   end
 
   defp handle_usage_log(socket, entry_id, reason) do

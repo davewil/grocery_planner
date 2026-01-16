@@ -6,6 +6,8 @@ Environment variables:
 - VLLM_MODEL: Model to use for OCR (default: nanonets/Nanonets-OCR-s)
 - OCR_MAX_TOKENS: Maximum tokens for OCR response (default: 4000)
 - OCR_TIMEOUT: Timeout in seconds for OCR requests (default: 60)
+- CLASSIFICATION_MODEL: Model for zero-shot classification (default: valhalla/distilbart-mnli-12-3)
+- USE_REAL_CLASSIFICATION: Enable real ML classification (default: false)
 """
 
 import os
@@ -21,6 +23,14 @@ class Settings:
 
     # Feature flags for gradual rollout
     USE_VLLM_OCR: bool = os.getenv("USE_VLLM_OCR", "false").lower() == "true"
+
+    # Zero-shot classification settings
+    CLASSIFICATION_MODEL: str = os.getenv(
+        "CLASSIFICATION_MODEL", "valhalla/distilbart-mnli-12-3"
+    )
+    USE_REAL_CLASSIFICATION: bool = os.getenv(
+        "USE_REAL_CLASSIFICATION", "false"
+    ).lower() == "true"
 
 
 settings = Settings()
