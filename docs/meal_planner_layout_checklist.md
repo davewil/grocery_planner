@@ -65,7 +65,7 @@ Legend:
   - [x] Implemented a pantry-first heuristic (sort by fewest ingredients)
 - [x] Difficulty filter
 - [x] Sort options (Name/Newest/Prep Time/Difficulty)
-- [ ] Saved presets (Weeknight quick wins, Mediterranean)
+- [x] Saved presets (Weeknight quick wins, Mediterranean)
 - [ ] Mobile filter/sort bottom sheet
 
 ---

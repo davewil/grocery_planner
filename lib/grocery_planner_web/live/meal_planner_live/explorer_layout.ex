@@ -5,6 +5,48 @@ defmodule GroceryPlannerWeb.MealPlannerLive.ExplorerLayout do
   alias GroceryPlannerWeb.MealPlannerLive.{DataLoader, Terminology}
   import GroceryPlannerWeb.CoreComponents
 
+  # Built-in system presets available to all users
+  @system_presets [
+    %{
+      id: "system-weeknight-quick-wins",
+      name: "Weeknight Quick Wins",
+      system?: true,
+      criteria: %{
+        "search" => "",
+        "filter" => "quick",
+        "difficulty" => "easy",
+        "cuisine" => "",
+        "dietary_needs" => []
+      }
+    },
+    %{
+      id: "system-mediterranean",
+      name: "Mediterranean",
+      system?: true,
+      criteria: %{
+        "search" => "",
+        "filter" => "",
+        "difficulty" => "",
+        "cuisine" => "Mediterranean",
+        "dietary_needs" => []
+      }
+    },
+    %{
+      id: "system-healthy-quick",
+      name: "Healthy & Quick",
+      system?: true,
+      criteria: %{
+        "search" => "",
+        "filter" => "quick",
+        "difficulty" => "",
+        "cuisine" => "",
+        "dietary_needs" => [:vegetarian]
+      }
+    }
+  ]
+
+  def system_presets, do: @system_presets
+
   # Initialize explorer-specific state
   def init(socket) do
     socket
@@ -20,8 +62,9 @@ defmodule GroceryPlannerWeb.MealPlannerLive.ExplorerLayout do
     |> assign(:explorer_picking_recipe, nil)
     |> assign(:explorer_selected_slot, nil)
     |> assign(:expanded_day, Date.utc_today())
-    # Filter presets
+    # Filter presets (user presets + system presets)
     |> assign(:filter_presets, [])
+    |> assign(:system_presets, @system_presets)
     |> assign(:selected_preset_id, nil)
     |> assign(:show_save_preset_modal, false)
     |> assign(:preset_name_input, "")
@@ -73,6 +116,7 @@ defmodule GroceryPlannerWeb.MealPlannerLive.ExplorerLayout do
           explorer_cuisine={@explorer_cuisine}
           explorer_dietary_needs={@explorer_dietary_needs}
           filter_presets={@filter_presets}
+          system_presets={@system_presets}
           selected_preset_id={@selected_preset_id}
         />
         
@@ -252,7 +296,7 @@ defmodule GroceryPlannerWeb.MealPlannerLive.ExplorerLayout do
                 <label tabindex="0" class="btn btn-sm btn-outline gap-1">
                   <.icon name="hero-bookmark" class="w-4 h-4" />
                   <%= if @selected_preset_id do %>
-                    <% preset = Enum.find(@filter_presets, &(&1.id == @selected_preset_id)) %>
+                    <% preset = find_preset(@selected_preset_id, @filter_presets, @system_presets) %>
                     {(preset && preset.name) || "Presets"}
                   <% else %>
                     Presets
@@ -263,11 +307,32 @@ defmodule GroceryPlannerWeb.MealPlannerLive.ExplorerLayout do
                   tabindex="0"
                   class="dropdown-content z-20 menu p-2 shadow-lg bg-base-100 rounded-box w-56 border border-base-200"
                 >
-                  <%= if @filter_presets == [] do %>
-                    <li class="disabled">
-                      <span class="text-base-content/50 text-sm">No saved presets</span>
+                  <%!-- System presets section --%>
+                  <li class="menu-title text-[10px] uppercase tracking-wider text-base-content/50 pt-1">
+                    Built-in
+                  </li>
+                  <%= for preset <- @system_presets do %>
+                    <li>
+                      <button
+                        phx-click="explorer_load_preset"
+                        phx-value-preset_id={preset.id}
+                        phx-value-system="true"
+                        class={[
+                          "text-left",
+                          @selected_preset_id == preset.id && "font-semibold text-primary"
+                        ]}
+                      >
+                        <.icon name="hero-sparkles" class="w-3.5 h-3.5 opacity-50" />
+                        {preset.name}
+                      </button>
                     </li>
-                  <% else %>
+                  <% end %>
+
+                  <%!-- User presets section --%>
+                  <%= if @filter_presets != [] do %>
+                    <li class="menu-title text-[10px] uppercase tracking-wider text-base-content/50 pt-2 mt-1 border-t border-base-200">
+                      My Presets
+                    </li>
                     <%= for preset <- @filter_presets do %>
                       <li>
                         <div class="flex items-center justify-between gap-2 w-full">
@@ -581,6 +646,12 @@ defmodule GroceryPlannerWeb.MealPlannerLive.ExplorerLayout do
     |> Enum.join(" ")
   end
 
+  # Find a preset by ID, checking both user presets and system presets
+  defp find_preset(preset_id, user_presets, system_presets) do
+    Enum.find(user_presets, &(&1.id == preset_id)) ||
+      Enum.find(system_presets, &(&1.id == preset_id || &1[:id] == preset_id))
+  end
+
   defp mobile_header(assigns) do
     ~H"""
     <div class="sticky top-0 z-10 bg-base-100 p-3 border-b border-base-300 shadow-sm">
@@ -745,7 +816,7 @@ defmodule GroceryPlannerWeb.MealPlannerLive.ExplorerLayout do
         <label tabindex="0" class="btn btn-xs rounded-full px-3 btn-outline border-base-300 gap-1">
           <.icon name="hero-bookmark" class="w-3 h-3" />
           <%= if @selected_preset_id do %>
-            <% preset = Enum.find(@filter_presets, &(&1.id == @selected_preset_id)) %>
+            <% preset = find_preset(@selected_preset_id, @filter_presets, @system_presets) %>
             <span class="max-w-[60px] truncate">{(preset && preset.name) || "Preset"}</span>
           <% else %>
             Presets
@@ -753,11 +824,34 @@ defmodule GroceryPlannerWeb.MealPlannerLive.ExplorerLayout do
         </label>
         <ul
           tabindex="0"
-          class="dropdown-content z-20 menu p-2 shadow-lg bg-base-100 rounded-box w-48 border border-base-200"
+          class="dropdown-content z-20 menu p-2 shadow-lg bg-base-100 rounded-box w-52 border border-base-200"
         >
-          <%= if @filter_presets == [] do %>
-            <li class="disabled"><span class="text-xs text-base-content/50">No presets</span></li>
-          <% else %>
+          <%!-- System presets --%>
+          <li class="menu-title text-[9px] uppercase tracking-wider text-base-content/50">
+            Built-in
+          </li>
+          <%= for preset <- @system_presets do %>
+            <li>
+              <button
+                phx-click="explorer_load_preset"
+                phx-value-preset_id={preset.id}
+                phx-value-system="true"
+                class={[
+                  "text-sm",
+                  @selected_preset_id == preset.id && "font-semibold text-primary"
+                ]}
+              >
+                <.icon name="hero-sparkles" class="w-3 h-3 opacity-50" />
+                {preset.name}
+              </button>
+            </li>
+          <% end %>
+
+          <%!-- User presets --%>
+          <%= if @filter_presets != [] do %>
+            <li class="menu-title text-[9px] uppercase tracking-wider text-base-content/50 pt-1 mt-1 border-t border-base-200">
+              My Presets
+            </li>
             <%= for preset <- @filter_presets do %>
               <li>
                 <button
@@ -1212,11 +1306,19 @@ defmodule GroceryPlannerWeb.MealPlannerLive.ExplorerLayout do
 
   # Filter Preset Events
 
-  def handle_event("explorer_load_preset", %{"preset_id" => preset_id}, socket) do
-    preset = Enum.find(socket.assigns.filter_presets, &(&1.id == preset_id))
+  def handle_event("explorer_load_preset", %{"preset_id" => preset_id} = params, socket) do
+    # Check if it's a system preset or user preset
+    is_system = params["system"] == "true" || String.starts_with?(preset_id, "system-")
+
+    preset =
+      if is_system do
+        Enum.find(@system_presets, &(&1.id == preset_id))
+      else
+        Enum.find(socket.assigns.filter_presets, &(&1.id == preset_id))
+      end
 
     if preset do
-      criteria = preset.criteria || %{}
+      criteria = preset.criteria || preset[:criteria] || %{}
 
       socket =
         socket

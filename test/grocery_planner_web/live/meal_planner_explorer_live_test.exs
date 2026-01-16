@@ -151,4 +151,97 @@ defmodule GroceryPlannerWeb.MealPlannerExplorerLiveTest do
       assert html =~ "+2"
     end
   end
+
+  describe "system filter presets" do
+    test "shows built-in system presets in dropdown", %{conn: conn} do
+      {:ok, _view, html} = live(conn, "/meal-planner")
+
+      # Check that system presets are visible
+      assert html =~ "Built-in"
+      assert html =~ "Weeknight Quick Wins"
+      assert html =~ "Mediterranean"
+      assert html =~ "Healthy &amp; Quick"
+    end
+
+    test "can load Weeknight Quick Wins preset", %{conn: conn, account: account, user: user} do
+      # Create recipes with various difficulties and prep times
+      _quick_easy =
+        create_recipe(account, user, %{
+          name: "Quick Easy Meal",
+          difficulty: :easy,
+          prep_time_minutes: 10,
+          cook_time_minutes: 15
+        })
+
+      _slow_hard =
+        create_recipe(account, user, %{
+          name: "Slow Hard Meal",
+          difficulty: :hard,
+          prep_time_minutes: 30,
+          cook_time_minutes: 60
+        })
+
+      {:ok, view, _html} = live(conn, "/meal-planner")
+
+      # Click the system preset (target desktop dropdown specifically)
+      view
+      |> element(
+        ".hidden.lg\\:grid button[phx-click='explorer_load_preset'][phx-value-preset_id='system-weeknight-quick-wins']"
+      )
+      |> render_click()
+
+      # Check that filters are applied - difficulty should be "easy" and filter should be "quick"
+      assert has_element?(view, "#explorer-difficulty-easy.btn-secondary")
+      assert has_element?(view, "#explorer-filter-quick.btn-primary")
+    end
+
+    test "can load Mediterranean preset", %{conn: conn, account: account, user: user} do
+      _mediterranean =
+        create_recipe(account, user, %{
+          name: "Greek Salad",
+          cuisine: "Mediterranean"
+        })
+
+      _asian =
+        create_recipe(account, user, %{
+          name: "Pad Thai",
+          cuisine: "Thai"
+        })
+
+      {:ok, view, _html} = live(conn, "/meal-planner")
+
+      # Click the Mediterranean preset (target desktop dropdown specifically)
+      view
+      |> element(
+        ".hidden.lg\\:grid button[phx-click='explorer_load_preset'][phx-value-preset_id='system-mediterranean']"
+      )
+      |> render_click()
+
+      # Check that cuisine filter is applied
+      assert has_element?(view, "#explorer-cuisine-filter[value='Mediterranean']")
+    end
+
+    test "system presets show sparkles icon", %{conn: conn} do
+      {:ok, _view, html} = live(conn, "/meal-planner")
+
+      # System presets should have the sparkles icon
+      assert html =~ "hero-sparkles"
+    end
+
+    test "preset dropdown shows selected preset name", %{conn: conn} do
+      {:ok, view, _html} = live(conn, "/meal-planner")
+
+      # Load a system preset (target desktop dropdown specifically)
+      view
+      |> element(
+        ".hidden.lg\\:grid button[phx-click='explorer_load_preset'][phx-value-preset_id='system-mediterranean']"
+      )
+      |> render_click()
+
+      html = render(view)
+
+      # The dropdown label should show the preset name
+      assert html =~ "Mediterranean"
+    end
+  end
 end
