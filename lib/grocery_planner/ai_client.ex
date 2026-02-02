@@ -26,6 +26,18 @@ defmodule GroceryPlanner.AiClient do
   end
 
   @doc """
+  Predicts categories for a batch of grocery items.
+  """
+  def categorize_batch(items, candidate_labels, context, opts \\ []) do
+    payload = %{
+      items: items,
+      candidate_labels: candidate_labels
+    }
+
+    post("/api/v1/categorize-batch", payload, "categorization_batch", context, opts)
+  end
+
+  @doc """
   Extracts items from a receipt image (Base64).
   """
   def extract_receipt(image_base64, context, opts \\ []) do

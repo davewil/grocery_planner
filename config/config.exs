@@ -69,7 +69,8 @@ config :grocery_planner,
     GroceryPlanner.MealPlanning,
     GroceryPlanner.Shopping,
     GroceryPlanner.Notifications,
-    GroceryPlanner.Analytics
+    GroceryPlanner.Analytics,
+    GroceryPlanner.AI
   ]
 
 # Configures the endpoint
