@@ -88,3 +88,6 @@ config :phoenix_live_view,
 
 # Disable swoosh api client as it is only required for production adapters.
 config :swoosh, :api_client, false
+
+# Enable AI categorization in development
+config :grocery_planner, :features, ai_categorization: true

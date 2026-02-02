@@ -455,3 +455,73 @@ def test_get_endpoint_requires_tenant_header(client):
     # Should return 400 for missing tenant
     assert response.status_code == 400
     assert "X-Tenant-ID" in response.json()["error"]
+
+
+# =============================================================================
+# Batch Categorization Tests
+# =============================================================================
+
+def test_categorize_batch(client):
+    """Test batch categorization returns predictions for all items."""
+    response = client.post("/api/v1/categorize-batch", json={
+        "request_id": "req_batch_1",
+        "tenant_id": "tenant_123",
+        "user_id": "user_456",
+        "feature": "categorization_batch",
+        "payload": {
+            "items": [
+                {"id": "1", "name": "Organic Whole Milk"},
+                {"id": "2", "name": "Sourdough Bread"},
+                {"id": "3", "name": "Fresh Chicken Breast"}
+            ],
+            "candidate_labels": ["Dairy", "Bakery", "Meat & Seafood", "Produce"]
+        }
+    })
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "success"
+    assert len(data["payload"]["predictions"]) == 3
+    assert data["payload"]["processing_time_ms"] >= 0
+
+    # Check each prediction has required fields
+    for pred in data["payload"]["predictions"]:
+        assert "id" in pred
+        assert "name" in pred
+        assert "predicted_category" in pred
+        assert "confidence" in pred
+        assert "confidence_level" in pred
+        assert pred["confidence_level"] in ("high", "medium", "low")
+
+
+def test_categorize_batch_creates_artifact(client):
+    """Test batch categorization stores artifact."""
+    response = client.post("/api/v1/categorize-batch", json={
+        "request_id": "req_batch_art",
+        "tenant_id": "tenant_batch_artifact",
+        "user_id": "user_456",
+        "feature": "categorization_batch",
+        "payload": {
+            "items": [
+                {"id": "1", "name": "Bananas"}
+            ],
+            "candidate_labels": ["Produce", "Dairy"]
+        }
+    })
+
+    assert response.status_code == 200
+
+    # Check artifact was created
+    artifacts_response = client.get(
+        "/api/v1/artifacts",
+        params={"tenant_id": "tenant_batch_artifact"},
+        headers={"X-Tenant-ID": "tenant_batch_artifact"}
+    )
+    assert artifacts_response.status_code == 200
+    artifacts = artifacts_response.json()["artifacts"]
+    assert len(artifacts) >= 1
+
+    artifact = next((a for a in artifacts if a["request_id"] == "req_batch_art"), None)
+    assert artifact is not None
+    assert artifact["feature"] == "categorization_batch"
+    assert artifact["status"] == "success"

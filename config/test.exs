@@ -44,3 +44,6 @@ config :grocery_planner, :the_meal_db_client, GroceryPlanner.External.TheMealDB
 config :grocery_planner, :the_meal_db_opts, plug: {Req.Test, GroceryPlanner.External.TheMealDB}
 
 config :bcrypt_elixir, log_rounds: 1
+
+# Disable AI categorization in tests by default
+config :grocery_planner, :features, ai_categorization: false

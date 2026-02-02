@@ -102,4 +102,58 @@ defmodule GroceryPlanner.AiClientTest do
       assert response["status"] == "succeeded"
     end
   end
+
+  describe "categorize_batch/4" do
+    test "successfully categorizes a batch of items" do
+      Req.Test.stub(AiClient, fn conn ->
+        assert conn.method == "POST"
+        assert conn.request_path == "/api/v1/categorize-batch"
+
+        {:ok, body, _conn} = Plug.Conn.read_body(conn)
+        params = Jason.decode!(body)
+
+        assert params["feature"] == "categorization_batch"
+        assert params["tenant_id"] == @context.tenant_id
+        assert length(params["payload"]["items"]) == 2
+        assert params["payload"]["candidate_labels"] == ["Dairy", "Produce"]
+
+        Req.Test.json(conn, %{
+          "request_id" => "req_batch",
+          "status" => "success",
+          "payload" => %{
+            "predictions" => [
+              %{
+                "id" => "1",
+                "name" => "Milk",
+                "predicted_category" => "Dairy",
+                "confidence" => 0.94,
+                "confidence_level" => "high"
+              },
+              %{
+                "id" => "2",
+                "name" => "Bananas",
+                "predicted_category" => "Produce",
+                "confidence" => 0.91,
+                "confidence_level" => "high"
+              }
+            ],
+            "processing_time_ms" => 150.5
+          }
+        })
+      end)
+
+      items = [
+        %{id: "1", name: "Milk"},
+        %{id: "2", name: "Bananas"}
+      ]
+
+      assert {:ok, response} =
+               AiClient.categorize_batch(items, ["Dairy", "Produce"], @context,
+                 plug: {Req.Test, AiClient}
+               )
+
+      assert response["status"] == "success"
+      assert length(response["payload"]["predictions"]) == 2
+    end
+  end
 end

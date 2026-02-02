@@ -85,7 +85,11 @@ defmodule GroceryPlanner.AI.Categorizer do
       user_id: opts[:user_id] || "system"
     }
 
-    case AiClient.categorize_item(item_name, candidate_labels, context, receive_timeout: timeout) do
+    # Forward plug option to AiClient
+    client_opts = [receive_timeout: timeout]
+    client_opts = if opts[:plug], do: Keyword.put(client_opts, :plug, opts[:plug]), else: client_opts
+
+    case AiClient.categorize_item(item_name, candidate_labels, context, client_opts) do
       {:ok, response} ->
         prediction = parse_prediction(response)
         {:ok, prediction}
@@ -143,7 +147,11 @@ defmodule GroceryPlanner.AI.Categorizer do
       Enum.with_index(item_names, 1)
       |> Enum.map(fn {name, idx} -> %{id: to_string(idx), name: name} end)
 
-    case AiClient.categorize_batch(items, candidate_labels, context, receive_timeout: timeout) do
+    # Forward plug option to AiClient
+    client_opts = [receive_timeout: timeout]
+    client_opts = if opts[:plug], do: Keyword.put(client_opts, :plug, opts[:plug]), else: client_opts
+
+    case AiClient.categorize_batch(items, candidate_labels, context, client_opts) do
       {:ok, response} ->
         results = parse_batch_response(response)
         {:ok, results}
@@ -183,21 +191,6 @@ defmodule GroceryPlanner.AI.Categorizer do
     end
   end
 
-  @doc """
-  Returns the Tailwind CSS badge class for a confidence level.
-
-  ## Examples
-
-      iex> Categorizer.confidence_badge_class(:high)
-      "bg-green-100 text-green-800"
-
-      iex> Categorizer.confidence_badge_class(:medium)
-      "bg-yellow-100 text-yellow-800"
-  """
-  @spec confidence_badge_class(confidence_level()) :: String.t()
-  def confidence_badge_class(:high), do: "bg-green-100 text-green-800"
-  def confidence_badge_class(:medium), do: "bg-yellow-100 text-yellow-800"
-  def confidence_badge_class(:low), do: "bg-gray-100 text-gray-600"
 
   @doc """
   Returns the default candidate labels for categorization.

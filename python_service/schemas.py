@@ -47,6 +47,33 @@ class CategorizationResponsePayload(BaseModel):
     confidence: float = Field(..., ge=0, le=1, description="Confidence score (0-1)")
 
 
+class BatchCategorizationItem(BaseModel):
+    """A single item in a batch categorization request."""
+    id: str = Field(..., description="Unique identifier for this item")
+    name: str = Field(..., description="Grocery item name to categorize")
+
+
+class BatchCategorizationRequestPayload(BaseModel):
+    """Payload for batch item categorization requests."""
+    items: List[BatchCategorizationItem] = Field(..., description="Items to categorize")
+    candidate_labels: List[str] = Field(..., description="List of possible category labels")
+
+
+class BatchPrediction(BaseModel):
+    """A single prediction in a batch categorization response."""
+    id: str = Field(..., description="Item identifier from request")
+    name: str = Field(..., description="Original item name")
+    predicted_category: str = Field(..., description="Predicted category")
+    confidence: float = Field(..., ge=0, le=1, description="Confidence score")
+    confidence_level: str = Field(..., description="Confidence level: high/medium/low")
+
+
+class BatchCategorizationResponsePayload(BaseModel):
+    """Payload for batch item categorization responses."""
+    predictions: List[BatchPrediction] = Field(..., description="Predictions for each item")
+    processing_time_ms: float = Field(..., description="Total processing time in milliseconds")
+
+
 # =============================================================================
 # Feature: Receipt Extraction
 # =============================================================================

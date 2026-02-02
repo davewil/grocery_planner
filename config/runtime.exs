@@ -20,6 +20,10 @@ if System.get_env("PHX_SERVER") do
   config :grocery_planner, GroceryPlannerWeb.Endpoint, server: true
 end
 
+# AI Feature Flags
+config :grocery_planner, :features,
+  ai_categorization: System.get_env("AI_CATEGORIZATION_ENABLED", "false") == "true"
+
 if config_env() == :prod do
   database_url =
     System.get_env("DATABASE_URL") ||

@@ -15,6 +15,8 @@ from sqlalchemy.orm import Session
 from schemas import (
     BaseRequest, BaseResponse,
     CategorizationRequestPayload, CategorizationResponsePayload,
+    BatchCategorizationRequestPayload, BatchCategorizationResponsePayload,
+    BatchPrediction, BatchCategorizationItem,
     ExtractionRequestPayload, ExtractionResponsePayload, ExtractedItem,
     EmbeddingRequestPayload, EmbeddingResponsePayload,
     JobSubmitRequest, JobStatusResponse, JobListResponse,
@@ -212,6 +214,125 @@ async def categorize_item(request: BaseRequest, db: Session = Depends(get_db)):
             model_id=settings.CLASSIFICATION_MODEL if settings.USE_REAL_CLASSIFICATION else "mock-classifier",
             model_version="transformers" if settings.USE_REAL_CLASSIFICATION else "1.0.0",
             latency_ms=latency_ms,
+        )
+
+        return BaseResponse(
+            request_id=request.request_id,
+            status="error",
+            payload={},
+            error=str(e)
+        )
+
+
+@app.post("/api/v1/categorize-batch", response_model=BaseResponse)
+async def categorize_batch(request: BaseRequest, db: Session = Depends(get_db)):
+    """
+    Predicts categories for a batch of grocery items.
+
+    Processes up to 50 items in a single request.
+    """
+    global classifier
+    start_time = time.time()
+
+    try:
+        payload = BatchCategorizationRequestPayload(**request.payload)
+
+        if len(payload.items) > 50:
+            raise ValueError("Batch size exceeds maximum of 50 items")
+
+        predictions = []
+
+        for item in payload.items:
+            if settings.USE_REAL_CLASSIFICATION and classifier is not None:
+                model_id = settings.CLASSIFICATION_MODEL
+                model_version = "transformers"
+
+                result = classifier(
+                    item.name,
+                    candidate_labels=payload.candidate_labels,
+                    multi_label=False
+                )
+
+                predicted_category = result["labels"][0]
+                confidence = result["scores"][0]
+            else:
+                # MOCK IMPLEMENTATION for development
+                model_id = "mock-classifier"
+                model_version = "1.0.0"
+
+                predicted_category = "Produce"
+                confidence = 0.95
+
+                item_lower = item.name.lower()
+                if "milk" in item_lower:
+                    predicted_category = "Dairy"
+                    confidence = 0.94
+                elif "bread" in item_lower:
+                    predicted_category = "Bakery"
+                    confidence = 0.91
+                elif "chicken" in item_lower:
+                    predicted_category = "Meat & Seafood"
+                    confidence = 0.88
+
+            # Determine confidence level
+            if confidence >= 0.80:
+                confidence_level = "high"
+            elif confidence >= 0.50:
+                confidence_level = "medium"
+            else:
+                confidence_level = "low"
+
+            predictions.append(BatchPrediction(
+                id=item.id,
+                name=item.name,
+                predicted_category=predicted_category,
+                confidence=confidence,
+                confidence_level=confidence_level,
+            ))
+
+        processing_time_ms = (time.time() - start_time) * 1000
+
+        response_payload = BatchCategorizationResponsePayload(
+            predictions=predictions,
+            processing_time_ms=processing_time_ms,
+        )
+
+        # Store artifact
+        create_artifact(
+            db=db,
+            request_id=request.request_id,
+            tenant_id=request.tenant_id,
+            user_id=request.user_id,
+            feature="categorization_batch",
+            input_payload=request.payload,
+            output_payload=response_payload.model_dump(),
+            status="success",
+            model_id=model_id if payload.items else "none",
+            model_version=model_version if payload.items else "none",
+            latency_ms=processing_time_ms,
+        )
+
+        return BaseResponse(
+            request_id=request.request_id,
+            payload=response_payload.model_dump()
+        )
+
+    except Exception as e:
+        processing_time_ms = (time.time() - start_time) * 1000
+        logger.error(f"Error processing batch request {request.request_id}: {str(e)}")
+
+        create_artifact(
+            db=db,
+            request_id=request.request_id,
+            tenant_id=request.tenant_id,
+            user_id=request.user_id,
+            feature="categorization_batch",
+            input_payload=request.payload,
+            status="error",
+            error_message=str(e),
+            model_id=settings.CLASSIFICATION_MODEL if settings.USE_REAL_CLASSIFICATION else "mock-classifier",
+            model_version="transformers" if settings.USE_REAL_CLASSIFICATION else "1.0.0",
+            latency_ms=processing_time_ms,
         )
 
         return BaseResponse(

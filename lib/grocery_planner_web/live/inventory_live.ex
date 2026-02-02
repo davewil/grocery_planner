@@ -3,7 +3,8 @@ defmodule GroceryPlannerWeb.InventoryLive do
 
   on_mount({GroceryPlannerWeb.Auth, :require_authenticated_user})
 
-  alias GroceryPlanner.AiClient
+  alias GroceryPlanner.AI.Categorizer
+  alias GroceryPlanner.AI.CategorizationFeedback
 
   @inventory_per_page 12
 
@@ -1603,13 +1604,14 @@ defmodule GroceryPlannerWeb.InventoryLive do
       categories = socket.assigns.categories
       labels = Enum.map(categories, & &1.name)
 
-      context = %{
+      opts = [
+        candidate_labels: labels,
         tenant_id: socket.assigns.current_account.id,
         user_id: socket.assigns.current_user.id
-      }
+      ]
 
-      case AiClient.categorize_item(name, labels, context) do
-        {:ok, %{"payload" => %{"category" => predicted_category}}} ->
+      case Categorizer.predict(name, opts) do
+        {:ok, %{category: predicted_category}} ->
           case Enum.find(categories, fn c ->
                  String.downcase(c.name) == String.downcase(predicted_category)
                end) do
@@ -1632,6 +1634,9 @@ defmodule GroceryPlannerWeb.InventoryLive do
 
               {:noreply, socket}
           end
+
+        {:error, :disabled} ->
+          {:noreply, put_flash(socket, :info, "AI categorization is not enabled")}
 
         {:error, _} ->
           {:noreply, put_flash(socket, :error, "Could not predict category")}
@@ -1681,12 +1686,21 @@ defmodule GroceryPlannerWeb.InventoryLive do
         # Sync tag associations
         sync_item_tags(item.id, socket.assigns.selected_tag_ids, socket)
 
+        # Log AI categorization feedback if a suggestion was active
+        log_categorization_feedback(socket, item)
+
         action = if socket.assigns.editing_id, do: "updated", else: "created"
 
         socket =
           socket
           |> load_data()
-          |> assign(show_form: nil, form: nil, editing_id: nil, selected_tag_ids: [])
+          |> assign(
+            show_form: nil,
+            form: nil,
+            editing_id: nil,
+            selected_tag_ids: [],
+            category_suggestion: nil
+          )
           |> put_flash(:info, "Grocery item #{action} successfully")
 
         {:noreply, socket}
@@ -2211,12 +2225,8 @@ defmodule GroceryPlannerWeb.InventoryLive do
     if current_name == item_name do
       socket =
         case result do
-          {:ok, %{"payload" => %{"category" => predicted_category, "confidence" => confidence}}} ->
-            confidence_level =
-              get_in(result, [:ok, "payload", "confidence_level"]) ||
-                classify_confidence(confidence)
-
-            # Find the matching category
+          {:ok, %{category: predicted_category, confidence: confidence, confidence_level: confidence_level}} ->
+            # Find the matching category record
             case Enum.find(socket.assigns.categories, fn c ->
                    String.downcase(c.name) == String.downcase(predicted_category)
                  end) do
@@ -2228,7 +2238,7 @@ defmodule GroceryPlannerWeb.InventoryLive do
                   category_suggestion: %{
                     category: category,
                     confidence: confidence,
-                    confidence_level: confidence_level
+                    confidence_level: to_string(confidence_level)
                   },
                   category_suggestion_loading: false
                 )
@@ -2245,30 +2255,67 @@ defmodule GroceryPlannerWeb.InventoryLive do
     end
   end
 
-  defp classify_confidence(confidence) when confidence >= 0.80, do: "high"
-  defp classify_confidence(confidence) when confidence >= 0.50, do: "medium"
-  defp classify_confidence(_), do: "low"
 
   defp trigger_auto_categorization(socket, item_name) do
     categories = socket.assigns.categories
     labels = Enum.map(categories, & &1.name)
 
-    context = %{
+    opts = [
+      candidate_labels: labels,
       tenant_id: socket.assigns.current_account.id,
-      user_id: socket.assigns.current_user.id
-    }
+      user_id: socket.assigns.current_user.id,
+      timeout: 3000
+    ]
 
     # Send async task
     pid = self()
 
     Task.start(fn ->
-      result = AiClient.categorize_item(item_name, labels, context)
+      result = Categorizer.predict(item_name, opts)
       send(pid, {:category_suggestion_result, item_name, result})
     end)
 
     socket
     |> assign(:category_suggestion_loading, true)
     |> assign(:last_categorized_name, item_name)
+  end
+
+  defp log_categorization_feedback(socket, item) do
+    suggestion = socket.assigns[:category_suggestion]
+
+    if suggestion do
+      predicted_name = suggestion.category.name
+      predicted_confidence = suggestion.confidence
+
+      # Find the actual category name that was saved
+      saved_category =
+        Enum.find(socket.assigns.categories, fn c -> c.id == item.category_id end)
+
+      saved_category_name = if saved_category, do: saved_category.name, else: "Unknown"
+      was_correction = String.downcase(predicted_name) != String.downcase(saved_category_name)
+
+      form_params = socket.assigns.form_params || %{}
+      item_name = form_params["name"] || ""
+
+      # Log asynchronously to avoid blocking the save
+      account_id = socket.assigns.current_account.id
+
+      Task.start(fn ->
+        try do
+          CategorizationFeedback.log_correction(
+            item_name,
+            predicted_name,
+            predicted_confidence,
+            saved_category_name,
+            %{was_correction: was_correction, account_id: account_id},
+            authorize?: false,
+            tenant: account_id
+          )
+        rescue
+          _ -> :ok
+        end
+      end)
+    end
   end
 
   defp handle_usage_log(socket, entry_id, reason) do
