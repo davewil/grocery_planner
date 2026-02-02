@@ -50,13 +50,35 @@ defmodule GroceryPlanner.AiClient do
 
   @doc """
   Generates an embedding for the given text.
+  Wraps the text in the batch format expected by the Python service.
   """
   def generate_embedding(text, context, opts \\ []) do
+    generate_embeddings([%{id: "1", text: text}], context, opts)
+  end
+
+  @doc """
+  Generates embeddings for the given texts.
+  Each text should be a map with :id and :text keys.
+  """
+  def generate_embeddings(texts, context, opts \\ []) do
     payload = %{
-      text: text
+      texts: texts
     }
 
     post("/api/v1/embed", payload, "embedding", context, opts)
+  end
+
+  @doc """
+  Generates embeddings for a batch of texts with configurable batch size.
+  Each text should be a map with :id and :text keys.
+  """
+  def generate_embeddings_batch(texts, context, opts \\ []) do
+    payload = %{
+      texts: texts,
+      batch_size: Keyword.get(opts, :batch_size, 32)
+    }
+
+    post("/api/v1/embed-batch", payload, "embedding_batch", context, opts)
   end
 
   @doc """

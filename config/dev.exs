@@ -90,4 +90,6 @@ config :phoenix_live_view,
 config :swoosh, :api_client, false
 
 # Enable AI categorization in development
-config :grocery_planner, :features, ai_categorization: true
+config :grocery_planner, :features,
+  ai_categorization: true,
+  semantic_search: true

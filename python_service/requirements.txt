@@ -12,6 +12,10 @@ httpx==0.26.0
 transformers>=4.30.0
 torch>=2.0.0
 
+# Embeddings
+sentence-transformers>=2.2.0
+numpy>=1.24.0
+
 # OpenAI-compatible client for vLLM
 openai>=1.0.0
 

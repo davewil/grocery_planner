@@ -10,6 +10,7 @@ defmodule GroceryPlanner.Application do
     children = [
       GroceryPlannerWeb.Telemetry,
       GroceryPlanner.Repo,
+      {Oban, Application.fetch_env!(:grocery_planner, Oban)},
       {DNSCluster, query: Application.get_env(:grocery_planner, :dns_cluster_query) || :ignore},
       {Phoenix.PubSub, name: GroceryPlanner.PubSub},
       # Start a worker by calling: GroceryPlanner.Worker.start_link(arg)

@@ -115,6 +115,42 @@ class EmbeddingResponsePayload(BaseModel):
     vector: List[float] = Field(..., description="Embedding vector")
 
 
+class EmbedTextItem(BaseModel):
+    """A single text item to embed."""
+    id: str = Field(..., description="Unique identifier for this text")
+    text: str = Field(..., description="Text to embed")
+
+
+class EmbedRequest(BaseModel):
+    """Request for generating embeddings."""
+    version: str = Field(default="1.0", description="API version")
+    request_id: str = Field(..., description="Unique request identifier")
+    texts: List[EmbedTextItem] = Field(..., description="List of texts to embed")
+
+
+class EmbedBatchRequest(BaseModel):
+    """Request for batch embedding generation with configurable batch size."""
+    version: str = Field(default="1.0", description="API version")
+    request_id: str = Field(..., description="Unique request identifier")
+    texts: List[EmbedTextItem] = Field(..., description="List of texts to embed")
+    batch_size: int = Field(default=32, description="Batch size for processing")
+
+
+class EmbeddingResult(BaseModel):
+    """A single embedding result."""
+    id: str = Field(..., description="Text identifier from request")
+    vector: List[float] = Field(..., description="Embedding vector")
+
+
+class EmbedResponse(BaseModel):
+    """Response containing generated embeddings."""
+    version: str = Field(default="1.0", description="API version")
+    request_id: str = Field(..., description="Original request identifier")
+    model: str = Field(..., description="Model name used for embeddings")
+    dimension: int = Field(..., description="Dimension of embedding vectors")
+    embeddings: List[EmbeddingResult] = Field(..., description="Generated embeddings")
+
+
 # =============================================================================
 # Job Management Schemas
 # =============================================================================

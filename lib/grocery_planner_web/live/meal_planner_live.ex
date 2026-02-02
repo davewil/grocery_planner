@@ -38,6 +38,8 @@ defmodule GroceryPlannerWeb.MealPlannerLive do
       |> assign(:selected_meal_type, nil)
       # Populated by DataLoader or specific searches
       |> assign(:available_recipes, [])
+      # Semantic search feature flag
+      |> assign(:semantic_search_enabled, GroceryPlanner.AI.Embeddings.enabled?())
       # Chain suggestion state
       |> assign(:show_chain_suggestion_modal, false)
       |> assign(:chain_suggestion_base_recipe, nil)
@@ -188,11 +190,7 @@ defmodule GroceryPlannerWeb.MealPlannerLive do
       if String.trim(search_term) == "" do
         all_recipes
       else
-        search_lower = String.downcase(search_term)
-
-        Enum.filter(all_recipes, fn recipe ->
-          String.contains?(String.downcase(recipe.name), search_lower)
-        end)
+        filter_recipes_by_query(all_recipes, search_term, socket.assigns.current_account.id)
       end
 
     socket =
@@ -1005,6 +1003,54 @@ defmodule GroceryPlannerWeb.MealPlannerLive do
     else
       {:noreply, socket}
     end
+  end
+
+  # Private helpers for recipe filtering
+  defp filter_recipes_by_query(all_recipes, search_term, account_id)
+       when byte_size(search_term) >= 3 do
+    alias GroceryPlanner.AI.Embeddings
+
+    if Embeddings.enabled?() do
+      case Embeddings.hybrid_search(search_term, account_id: account_id, limit: 50) do
+        results when is_list(results) and results != [] ->
+          # Map search results back to full recipe structs
+          result_map =
+            Map.new(results, fn %{recipe_id: id} ->
+              # Handle both string and binary UUIDs
+              {to_string(id), true}
+            end)
+
+          matched =
+            Enum.filter(all_recipes, fn r ->
+              Map.has_key?(result_map, to_string(r.id))
+            end)
+
+          # Fallback to keyword search if no matches (e.g., embeddings not ready yet)
+          if matched == [] do
+            filter_recipes_by_name(all_recipes, search_term)
+          else
+            matched
+          end
+
+        _ ->
+          filter_recipes_by_name(all_recipes, search_term)
+      end
+    else
+      filter_recipes_by_name(all_recipes, search_term)
+    end
+  end
+
+  defp filter_recipes_by_query(all_recipes, search_term, _account_id) do
+    # Query too short, use keyword search
+    filter_recipes_by_name(all_recipes, search_term)
+  end
+
+  defp filter_recipes_by_name(all_recipes, search_term) do
+    search_lower = String.downcase(search_term)
+
+    Enum.filter(all_recipes, fn recipe ->
+      String.contains?(String.downcase(recipe.name), search_lower)
+    end)
   end
 
   # Messages from Layouts

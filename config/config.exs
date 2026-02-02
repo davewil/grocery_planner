@@ -73,6 +73,10 @@ config :grocery_planner,
     GroceryPlanner.AI
   ]
 
+config :grocery_planner, Oban,
+  repo: GroceryPlanner.Repo,
+  queues: [default: 10, ai_jobs: 5]
+
 # Configures the endpoint
 config :grocery_planner, GroceryPlannerWeb.Endpoint,
   url: [host: "localhost"],

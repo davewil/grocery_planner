@@ -4,7 +4,12 @@ defmodule GroceryPlanner.Repo do
 
   @impl true
   def installed_extensions do
-    ["ash-functions", "citext", AshMoney.AshPostgresExtension]
+    ["ash-functions", "citext", "vector", AshMoney.AshPostgresExtension]
+  end
+
+  @impl true
+  def init(_type, config) do
+    {:ok, Keyword.put(config, :types, GroceryPlanner.PostgrexTypes)}
   end
 
   # Don't open unnecessary transactions

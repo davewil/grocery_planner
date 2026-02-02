@@ -6,6 +6,7 @@ Features include categorization, receipt extraction, embeddings, and more.
 """
 
 import time
+import os
 from contextlib import asynccontextmanager
 from typing import Optional
 
@@ -19,6 +20,7 @@ from schemas import (
     BatchPrediction, BatchCategorizationItem,
     ExtractionRequestPayload, ExtractionResponsePayload, ExtractedItem,
     EmbeddingRequestPayload, EmbeddingResponsePayload,
+    EmbedRequest, EmbedResponse, EmbedBatchRequest, EmbeddingResult,
     JobSubmitRequest, JobStatusResponse, JobListResponse,
     ArtifactResponse, ArtifactListResponse,
     FeedbackRequest, FeedbackResponse,
@@ -44,6 +46,25 @@ logger = logging.getLogger("grocery-planner-ai")
 
 # Global classifier instance (initialized on startup if enabled)
 classifier = None
+
+# Global embedding model instance (lazy-loaded on first use)
+_embedding_model = None
+
+
+def get_embedding_model():
+    """Lazy-load the sentence transformer model for embeddings."""
+    global _embedding_model
+    if _embedding_model is None:
+        model_name = os.environ.get("EMBEDDING_MODEL", "sentence-transformers/all-MiniLM-L6-v2")
+        logger.info(f"Loading embedding model: {model_name}...")
+        try:
+            from sentence_transformers import SentenceTransformer
+            _embedding_model = SentenceTransformer(model_name)
+            logger.info("Embedding model loaded successfully")
+        except Exception as e:
+            logger.error(f"Failed to load embedding model: {e}")
+            raise
+    return _embedding_model
 
 
 @asynccontextmanager
@@ -459,71 +480,111 @@ async def extract_receipt_endpoint(request: BaseRequest, db: Session = Depends(g
         )
 
 
-@app.post("/api/v1/embed", response_model=BaseResponse)
-async def generate_embedding(request: BaseRequest, db: Session = Depends(get_db)):
+@app.post("/api/v1/embed", response_model=EmbedResponse)
+async def generate_embeddings(request: EmbedRequest):
     """
-    Generates a vector embedding for the given text.
+    Generates vector embeddings for the given texts.
 
-    Uses sentence transformers to create semantic embeddings for search.
+    Uses sentence-transformers/all-MiniLM-L6-v2 model to create 384-dimensional
+    semantic embeddings for search and similarity tasks.
     """
     start_time = time.time()
-    model_id = "mock-embedder"
-    model_version = "1.0.0"
 
     try:
-        _ = EmbeddingRequestPayload(**request.payload)
+        if not request.texts:
+            raise ValueError("At least one text item required")
 
-        # MOCK IMPLEMENTATION (384 dimensions for MiniLM)
-        mock_vector = [0.1] * 384
+        # Load embedding model (lazy initialization)
+        model = get_embedding_model()
 
-        response_payload = EmbeddingResponsePayload(vector=mock_vector)
+        # Extract texts in order
+        texts = [item.text for item in request.texts]
+
+        # Generate embeddings with normalization
+        vectors = model.encode(texts, normalize_embeddings=True)
+
+        # Build response
+        embeddings = [
+            EmbeddingResult(id=item.id, vector=vec.tolist())
+            for item, vec in zip(request.texts, vectors)
+        ]
 
         latency_ms = (time.time() - start_time) * 1000
 
-        # Store artifact (note: we don't store the full vector to save space)
-        create_artifact(
-            db=db,
-            request_id=request.request_id,
-            tenant_id=request.tenant_id,
-            user_id=request.user_id,
-            feature="embedding",
-            input_payload=request.payload,
-            output_payload={"vector_dim": len(mock_vector)},  # Just store dimensions
-            status="success",
-            model_id=model_id,
-            model_version=model_version,
-            latency_ms=latency_ms,
+        logger.info(
+            f"Generated {len(embeddings)} embeddings in {latency_ms:.2f}ms "
+            f"(request_id={request.request_id})"
         )
 
-        return BaseResponse(
+        return EmbedResponse(
+            version=request.version,
             request_id=request.request_id,
-            payload=response_payload.model_dump()
+            model="all-MiniLM-L6-v2",
+            dimension=vectors.shape[1],
+            embeddings=embeddings
         )
 
     except Exception as e:
         latency_ms = (time.time() - start_time) * 1000
-        logger.error(f"Error generating embedding {request.request_id}: {str(e)}")
+        logger.error(f"Error generating embeddings {request.request_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 
-        create_artifact(
-            db=db,
-            request_id=request.request_id,
-            tenant_id=request.tenant_id,
-            user_id=request.user_id,
-            feature="embedding",
-            input_payload=request.payload,
-            status="error",
-            error_message=str(e),
-            model_id=model_id,
-            model_version=model_version,
-            latency_ms=latency_ms,
+
+@app.post("/api/v1/embed/batch", response_model=EmbedResponse)
+async def generate_embeddings_batch(request: EmbedBatchRequest):
+    """
+    Generates vector embeddings for a large batch of texts.
+
+    Processes texts in configurable batches for memory efficiency.
+    Useful for bulk embedding operations with hundreds or thousands of texts.
+    """
+    start_time = time.time()
+
+    try:
+        if not request.texts:
+            raise ValueError("At least one text item required")
+
+        if request.batch_size < 1:
+            raise ValueError("batch_size must be >= 1")
+
+        # Load embedding model (lazy initialization)
+        model = get_embedding_model()
+
+        # Extract texts in order
+        texts = [item.text for item in request.texts]
+
+        # Process in batches for memory efficiency
+        all_vectors = []
+        for i in range(0, len(texts), request.batch_size):
+            batch = texts[i:i + request.batch_size]
+            vectors = model.encode(batch, normalize_embeddings=True)
+            all_vectors.extend(vectors)
+
+        # Build response
+        embeddings = [
+            EmbeddingResult(id=item.id, vector=vec.tolist())
+            for item, vec in zip(request.texts, all_vectors)
+        ]
+
+        latency_ms = (time.time() - start_time) * 1000
+
+        logger.info(
+            f"Generated {len(embeddings)} embeddings in batches of {request.batch_size} "
+            f"in {latency_ms:.2f}ms (request_id={request.request_id})"
         )
 
-        return BaseResponse(
+        return EmbedResponse(
+            version=request.version,
             request_id=request.request_id,
-            status="error",
-            payload={},
-            error=str(e)
+            model="all-MiniLM-L6-v2",
+            dimension=384,
+            embeddings=embeddings
         )
+
+    except Exception as e:
+        latency_ms = (time.time() - start_time) * 1000
+        logger.error(f"Error generating batch embeddings {request.request_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 # =============================================================================

@@ -22,7 +22,8 @@ end
 
 # AI Feature Flags
 config :grocery_planner, :features,
-  ai_categorization: System.get_env("AI_CATEGORIZATION_ENABLED", "false") == "true"
+  ai_categorization: System.get_env("AI_CATEGORIZATION_ENABLED", "false") == "true",
+  semantic_search: System.get_env("SEMANTIC_SEARCH_ENABLED", "false") == "true"
 
 if config_env() == :prod do
   database_url =
