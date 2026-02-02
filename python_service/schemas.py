@@ -251,3 +251,66 @@ class FeedbackResponse(BaseModel):
     artifact_id: Optional[str] = Field(default=None, description="Associated artifact ID")
     job_id: Optional[str] = Field(default=None, description="Associated job ID")
     created_at: Optional[str] = Field(default=None, description="Creation timestamp")
+
+
+# =============================================================================
+# Feature: Receipt OCR Extraction
+# =============================================================================
+
+class ReceiptExtractRequest(BaseModel):
+    """Request for OCR receipt extraction."""
+    version: str = Field(default="1.0", description="API version")
+    request_id: str = Field(..., description="Unique request identifier")
+    account_id: str = Field(..., description="Account ID for multi-tenancy")
+    image_path: str = Field(..., description="Local file path to receipt image")
+    options: Dict[str, Any] = Field(default_factory=dict, description="Optional processing options")
+
+
+class MerchantInfo(BaseModel):
+    """Extracted merchant information."""
+    name: Optional[str] = Field(default=None, description="Merchant name")
+    confidence: float = Field(default=0.0, ge=0, le=1, description="Confidence score")
+
+
+class DateInfo(BaseModel):
+    """Extracted date information."""
+    value: Optional[str] = Field(default=None, description="Date string")
+    confidence: float = Field(default=0.0, ge=0, le=1, description="Confidence score")
+
+
+class MoneyInfo(BaseModel):
+    """Extracted monetary amount."""
+    amount: Optional[str] = Field(default=None, description="Amount as string")
+    currency: str = Field(default="USD", description="Currency code")
+    confidence: float = Field(default=0.0, ge=0, le=1, description="Confidence score")
+
+
+class LineItem(BaseModel):
+    """A single line item from receipt."""
+    raw_text: str = Field(..., description="Raw OCR text for this line")
+    parsed_name: Optional[str] = Field(default=None, description="Parsed item name")
+    quantity: Optional[float] = Field(default=None, description="Item quantity")
+    unit: Optional[str] = Field(default=None, description="Unit of measure")
+    unit_price: Optional[MoneyInfo] = Field(default=None, description="Price per unit")
+    total_price: Optional[MoneyInfo] = Field(default=None, description="Total line price")
+    confidence: float = Field(default=0.0, ge=0, le=1, description="Confidence score")
+
+
+class ExtractionResult(BaseModel):
+    """Complete extraction result."""
+    merchant: MerchantInfo = Field(default_factory=MerchantInfo, description="Merchant info")
+    date: DateInfo = Field(default_factory=DateInfo, description="Transaction date")
+    total: MoneyInfo = Field(default_factory=MoneyInfo, description="Receipt total")
+    line_items: List[LineItem] = Field(default_factory=list, description="Extracted line items")
+    raw_ocr_text: str = Field(default="", description="Full raw OCR output")
+    overall_confidence: float = Field(default=0.0, ge=0, le=1, description="Overall extraction quality")
+
+
+class ReceiptExtractResponse(BaseModel):
+    """Response containing receipt extraction results."""
+    version: str = Field(default="1.0", description="API version")
+    request_id: str = Field(..., description="Original request identifier")
+    status: str = Field(default="success", description="Processing status")
+    processing_time_ms: float = Field(..., description="Processing time in milliseconds")
+    model_version: str = Field(default="tesseract-5.x", description="OCR engine version")
+    extraction: ExtractionResult = Field(..., description="Extraction results")

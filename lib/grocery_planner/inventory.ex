@@ -64,8 +64,18 @@ defmodule GroceryPlanner.Inventory do
       define :create_receipt, action: :create, args: [:account_id]
       define :list_receipts, action: :list_all
       define :get_receipt, action: :read, get_by: [:id]
+      define :find_receipt_by_hash, action: :find_by_hash, args: [:file_hash], get?: true
       define :update_receipt, action: :update
       define :destroy_receipt, action: :destroy
+    end
+
+    resource GroceryPlanner.Inventory.ReceiptItem do
+      define :create_receipt_item, action: :create, args: [:receipt_id, :account_id]
+      define :list_receipt_items, action: :read
+      define :list_receipt_items_for_receipt, action: :list_for_receipt, args: [:receipt_id]
+      define :get_receipt_item, action: :read, get_by: [:id]
+      define :update_receipt_item, action: :update
+      define :destroy_receipt_item, action: :destroy
     end
   end
 end

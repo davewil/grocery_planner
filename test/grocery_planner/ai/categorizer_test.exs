@@ -32,7 +32,10 @@ defmodule GroceryPlanner.AI.CategorizerTest do
 
     test "returns true when feature flag is enabled" do
       original = Application.get_env(:grocery_planner, :features)
-      Application.put_env(:grocery_planner, :features, ai_categorization: true)
+      Application.put_env(:grocery_planner, :features,
+        ai_categorization: true,
+        semantic_search: false
+      )
 
       assert Categorizer.enabled?()
 
@@ -47,7 +50,10 @@ defmodule GroceryPlanner.AI.CategorizerTest do
 
     test "returns prediction when feature flag is on" do
       original = Application.get_env(:grocery_planner, :features)
-      Application.put_env(:grocery_planner, :features, ai_categorization: true)
+      Application.put_env(:grocery_planner, :features,
+        ai_categorization: true,
+        semantic_search: false
+      )
 
       Req.Test.stub(AiClient, fn conn ->
         Req.Test.json(conn, %{
@@ -78,7 +84,10 @@ defmodule GroceryPlanner.AI.CategorizerTest do
 
     test "returns error on AI service failure" do
       original = Application.get_env(:grocery_planner, :features)
-      Application.put_env(:grocery_planner, :features, ai_categorization: true)
+      Application.put_env(:grocery_planner, :features,
+        ai_categorization: true,
+        semantic_search: false
+      )
 
       Req.Test.stub(AiClient, fn conn ->
         Plug.Conn.send_resp(conn, 500, "Internal Server Error")
@@ -102,7 +111,11 @@ defmodule GroceryPlanner.AI.CategorizerTest do
 
     test "returns {:error, :batch_too_large} for more than 50 items" do
       original = Application.get_env(:grocery_planner, :features)
-      Application.put_env(:grocery_planner, :features, ai_categorization: true)
+
+      Application.put_env(:grocery_planner, :features,
+        ai_categorization: true,
+        semantic_search: false
+      )
 
       items = for i <- 1..51, do: "Item #{i}"
       assert {:error, :batch_too_large} = Categorizer.predict_batch(items)

@@ -305,8 +305,13 @@ defmodule GroceryPlanner.AI.EmbeddingsTest do
 
   describe "search_recipes/2" do
     test "returns error when semantic search is disabled" do
+      original = Application.get_env(:grocery_planner, :features, [])
+      Application.put_env(:grocery_planner, :features, Keyword.put(original, :semantic_search, false))
+
       assert {:error, :disabled} =
                Embeddings.search_recipes("test", account_id: Ecto.UUID.generate())
+
+      Application.put_env(:grocery_planner, :features, original)
     end
   end
 

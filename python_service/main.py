@@ -24,6 +24,7 @@ from schemas import (
     JobSubmitRequest, JobStatusResponse, JobListResponse,
     ArtifactResponse, ArtifactListResponse,
     FeedbackRequest, FeedbackResponse,
+    ReceiptExtractRequest, ReceiptExtractResponse,
 )
 from database import init_db, get_db, JobStatus
 from jobs import submit_job, get_job, list_jobs, job_to_dict, register_job_handler
@@ -585,6 +586,84 @@ async def generate_embeddings_batch(request: EmbedBatchRequest):
         latency_ms = (time.time() - start_time) * 1000
         logger.error(f"Error generating batch embeddings {request.request_id}: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/v1/receipts/extract", response_model=ReceiptExtractResponse)
+async def extract_receipt_ocr(request: ReceiptExtractRequest):
+    """
+    Extract structured data from receipt image using Tesseract OCR.
+
+    This is the MVP implementation using Tesseract + regex parsing.
+    Processes local image files and returns extracted merchant, date, total, and line items.
+
+    Future: Will be enhanced with LayoutLM for better accuracy.
+    """
+    start_time = time.time()
+
+    try:
+        from receipt_ocr import process_receipt
+
+        logger.info(
+            f"Processing receipt OCR request {request.request_id} "
+            f"for account {request.account_id}, image: {request.image_path}"
+        )
+
+        # Process the receipt
+        extraction_result = process_receipt(request.image_path, request.options)
+
+        processing_time_ms = (time.time() - start_time) * 1000
+
+        # Get Tesseract version for model_version field
+        try:
+            import pytesseract
+            tesseract_version = pytesseract.get_tesseract_version()
+            model_version = f"tesseract-{tesseract_version.major}.{tesseract_version.minor}"
+        except Exception:
+            model_version = "tesseract-5.x"
+
+        response = ReceiptExtractResponse(
+            version=request.version,
+            request_id=request.request_id,
+            status="success",
+            processing_time_ms=processing_time_ms,
+            model_version=model_version,
+            extraction=extraction_result
+        )
+
+        logger.info(
+            f"Receipt OCR completed in {processing_time_ms:.2f}ms, "
+            f"confidence={extraction_result.overall_confidence:.2f}, "
+            f"items={len(extraction_result.line_items)}"
+        )
+
+        return response
+
+    except FileNotFoundError as e:
+        processing_time_ms = (time.time() - start_time) * 1000
+        logger.error(f"File not found for request {request.request_id}: {str(e)}")
+        raise HTTPException(status_code=404, detail=f"Image file not found: {str(e)}")
+
+    except RuntimeError as e:
+        processing_time_ms = (time.time() - start_time) * 1000
+        error_msg = str(e)
+        logger.error(f"Runtime error for request {request.request_id}: {error_msg}")
+
+        if "Tesseract" in error_msg:
+            raise HTTPException(
+                status_code=503,
+                detail="OCR service unavailable. Tesseract is not installed."
+            )
+        raise HTTPException(status_code=500, detail=error_msg)
+
+    except ValueError as e:
+        processing_time_ms = (time.time() - start_time) * 1000
+        logger.error(f"Invalid image for request {request.request_id}: {str(e)}")
+        raise HTTPException(status_code=400, detail=f"Invalid or corrupt image: {str(e)}")
+
+    except Exception as e:
+        processing_time_ms = (time.time() - start_time) * 1000
+        logger.error(f"Unexpected error processing receipt {request.request_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Receipt processing failed: {str(e)}")
 
 
 # =============================================================================

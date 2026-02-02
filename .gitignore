@@ -35,6 +35,10 @@ grocery_planner-*.tar
 npm-debug.log
 /assets/node_modules/
 
+# Uploaded receipt files
+/priv/uploads/receipts/*
+!/priv/uploads/receipts/.gitkeep
+
 # AI agent prompt transcripts
 *-userprompt.txt
 

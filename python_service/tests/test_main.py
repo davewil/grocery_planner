@@ -606,3 +606,152 @@ def test_categorize_batch_creates_artifact(client):
     assert artifact is not None
     assert artifact["feature"] == "categorization_batch"
     assert artifact["status"] == "success"
+
+
+# =============================================================================
+# Receipt OCR Extraction Tests
+# =============================================================================
+
+def test_receipt_ocr_endpoint_file_not_found(client):
+    """Test receipt OCR endpoint with missing file."""
+    response = client.post("/api/v1/receipts/extract", json={
+        "version": "1.0",
+        "request_id": "req_ocr_1",
+        "account_id": "account_123",
+        "image_path": "/nonexistent/path/receipt.jpg",
+        "options": {}
+    })
+
+    assert response.status_code == 404
+    assert "not found" in response.json()["detail"].lower()
+
+
+def test_receipt_ocr_endpoint_success(client):
+    """Test receipt OCR endpoint with mocked processing."""
+    import tempfile
+    from PIL import Image
+    import numpy as np
+    from unittest.mock import patch
+
+    # Create a temporary test image
+    with tempfile.NamedTemporaryFile(suffix=".jpg", delete=False) as tmp_file:
+        test_image_path = tmp_file.name
+        # Create a simple test image
+        img = Image.fromarray(np.uint8(np.random.rand(100, 100, 3) * 255))
+        img.save(test_image_path)
+
+    try:
+        # Mock the OCR processing to return predictable results
+        with patch('receipt_ocr.extract_text') as mock_extract:
+            mock_extract.return_value = """WALMART SUPERCENTER
+Store #1234
+01/15/2024
+
+MILK                    3.99
+BREAD                   2.49
+
+TOTAL                  6.48
+"""
+
+            response = client.post("/api/v1/receipts/extract", json={
+                "version": "1.0",
+                "request_id": "req_ocr_success",
+                "account_id": "account_123",
+                "image_path": test_image_path,
+                "options": {}
+            })
+
+            assert response.status_code == 200
+            data = response.json()
+
+            # Check response structure
+            assert data["version"] == "1.0"
+            assert data["request_id"] == "req_ocr_success"
+            assert data["status"] == "success"
+            assert "processing_time_ms" in data
+            assert "model_version" in data
+            assert "tesseract" in data["model_version"].lower()
+
+            # Check extraction results
+            extraction = data["extraction"]
+            assert extraction["merchant"]["name"] == "WALMART SUPERCENTER"
+            assert extraction["merchant"]["confidence"] > 0.5
+            assert extraction["date"]["value"] == "01/15/2024"
+            assert extraction["date"]["confidence"] > 0.7
+            assert extraction["total"]["amount"] == "6.48"
+            assert extraction["total"]["confidence"] > 0.8
+            assert extraction["total"]["currency"] == "USD"
+            assert len(extraction["line_items"]) >= 1
+            assert extraction["overall_confidence"] > 0.0
+            assert "raw_ocr_text" in extraction
+
+    finally:
+        # Cleanup
+        import os
+        if os.path.exists(test_image_path):
+            os.unlink(test_image_path)
+
+
+def test_receipt_ocr_endpoint_corrupt_image(client):
+    """Test receipt OCR endpoint with corrupt image."""
+    import tempfile
+
+    # Create a file with invalid image data
+    with tempfile.NamedTemporaryFile(suffix=".jpg", delete=False) as tmp_file:
+        test_image_path = tmp_file.name
+        tmp_file.write(b"not an image, just garbage data")
+
+    try:
+        response = client.post("/api/v1/receipts/extract", json={
+            "version": "1.0",
+            "request_id": "req_ocr_corrupt",
+            "account_id": "account_123",
+            "image_path": test_image_path,
+            "options": {}
+        })
+
+        assert response.status_code == 400
+        assert "corrupt" in response.json()["detail"].lower() or "invalid" in response.json()["detail"].lower()
+
+    finally:
+        # Cleanup
+        import os
+        if os.path.exists(test_image_path):
+            os.unlink(test_image_path)
+
+
+def test_receipt_ocr_endpoint_tesseract_not_installed(client):
+    """Test receipt OCR endpoint when Tesseract is not available."""
+    import tempfile
+    from PIL import Image
+    import numpy as np
+    from unittest.mock import patch
+    import pytesseract
+
+    # Create a temporary test image
+    with tempfile.NamedTemporaryFile(suffix=".jpg", delete=False) as tmp_file:
+        test_image_path = tmp_file.name
+        img = Image.fromarray(np.uint8(np.random.rand(100, 100, 3) * 255))
+        img.save(test_image_path)
+
+    try:
+        # Mock Tesseract to simulate it not being installed
+        with patch('receipt_ocr.pytesseract.image_to_string') as mock_tesseract:
+            mock_tesseract.side_effect = pytesseract.TesseractNotFoundError()
+
+            response = client.post("/api/v1/receipts/extract", json={
+                "version": "1.0",
+                "request_id": "req_ocr_no_tesseract",
+                "account_id": "account_123",
+                "image_path": test_image_path,
+                "options": {}
+            })
+
+            assert response.status_code == 503
+            assert "unavailable" in response.json()["detail"].lower() or "tesseract" in response.json()["detail"].lower()
+
+    finally:
+        # Cleanup
+        import os
+        if os.path.exists(test_image_path):
+            os.unlink(test_image_path)
