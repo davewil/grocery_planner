@@ -653,7 +653,12 @@ defmodule GroceryPlannerWeb.MealPlannerLive do
   end
 
   def handle_event("search_sidebar", %{"query" => query}, socket) do
-    {:noreply, assign(socket, :sidebar_search, query)}
+    socket =
+      socket
+      |> assign(:sidebar_search, query)
+      |> PowerLayout.filter_sidebar_recipes(query)
+
+    {:noreply, socket}
   end
 
   def handle_event("toggle_meal_selection", %{"meal-id" => meal_id}, socket) do

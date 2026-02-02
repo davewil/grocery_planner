@@ -48,9 +48,38 @@ defmodule GroceryPlannerWeb.MealPlannerLive.PowerLayout do
     favorites = Enum.filter(all_recipes, & &1.is_favorite)
 
     socket
+    |> Phoenix.Component.assign(:all_sidebar_recipes, all_recipes)
+    |> Phoenix.Component.assign(:all_sidebar_favorites, favorites)
     |> Phoenix.Component.assign(:recipes, all_recipes)
     |> Phoenix.Component.assign(:favorites, favorites)
     |> DataLoader.load_recent_recipes()
+    |> then(fn s ->
+      Phoenix.Component.assign(s, :all_recent_recipes, s.assigns[:recent_recipes] || [])
+    end)
+  end
+
+  def filter_sidebar_recipes(socket, "") do
+    socket
+    |> Phoenix.Component.assign(:recipes, socket.assigns[:all_sidebar_recipes] || [])
+    |> Phoenix.Component.assign(:favorites, socket.assigns[:all_sidebar_favorites] || [])
+    |> Phoenix.Component.assign(
+      :recent_recipes,
+      socket.assigns[:all_recent_recipes] || socket.assigns[:recent_recipes] || []
+    )
+  end
+
+  def filter_sidebar_recipes(socket, query) do
+    query_down = String.downcase(query)
+    filter_fn = fn recipe -> String.contains?(String.downcase(recipe.name), query_down) end
+
+    all_recipes = socket.assigns[:all_sidebar_recipes] || []
+    all_favorites = socket.assigns[:all_sidebar_favorites] || []
+    all_recent = socket.assigns[:all_recent_recipes] || socket.assigns[:recent_recipes] || []
+
+    socket
+    |> Phoenix.Component.assign(:recipes, Enum.filter(all_recipes, filter_fn))
+    |> Phoenix.Component.assign(:favorites, Enum.filter(all_favorites, filter_fn))
+    |> Phoenix.Component.assign(:recent_recipes, Enum.filter(all_recent, filter_fn))
   end
 
   def render(assigns) do

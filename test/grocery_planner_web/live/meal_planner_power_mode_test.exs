@@ -751,4 +751,66 @@ defmodule GroceryPlannerWeb.MealPlannerPowerModeTest do
       assert view
     end
   end
+
+  describe "sidebar search filtering" do
+    setup %{conn: conn, account: account, user: user} do
+      # Create several recipes with distinct names for search testing
+      _recipe_pasta = create_recipe(account, user, %{name: "Creamy Pasta Carbonara"})
+      _recipe_chicken = create_recipe(account, user, %{name: "Grilled Chicken Salad"})
+      _recipe_soup = create_recipe(account, user, %{name: "Tomato Basil Soup"})
+
+      {:ok, view, _html} = live(conn, "/meal-planner")
+
+      # Open sidebar first
+      view |> element("button[phx-click='toggle_sidebar']") |> render_click()
+
+      %{view: view}
+    end
+
+    test "filters sidebar recipes by search query", %{view: view} do
+      # Initially all recipes should be visible
+      html = render(view)
+      assert html =~ "Creamy Pasta Carbonara"
+      assert html =~ "Grilled Chicken Salad"
+      assert html =~ "Tomato Basil Soup"
+
+      # Search for "pasta" - should filter to only matching recipe
+      html =
+        view
+        |> element("input[name='query']")
+        |> render_change(%{"query" => "pasta"})
+
+      assert html =~ "Creamy Pasta Carbonara"
+      refute html =~ "Grilled Chicken Salad"
+      refute html =~ "Tomato Basil Soup"
+    end
+
+    test "search is case-insensitive", %{view: view} do
+      html =
+        view
+        |> element("input[name='query']")
+        |> render_change(%{"query" => "CHICKEN"})
+
+      refute html =~ "Creamy Pasta Carbonara"
+      assert html =~ "Grilled Chicken Salad"
+      refute html =~ "Tomato Basil Soup"
+    end
+
+    test "clearing search restores all recipes", %{view: view} do
+      # First search to filter
+      view
+      |> element("input[name='query']")
+      |> render_change(%{"query" => "pasta"})
+
+      # Then clear search
+      html =
+        view
+        |> element("input[name='query']")
+        |> render_change(%{"query" => ""})
+
+      assert html =~ "Creamy Pasta Carbonara"
+      assert html =~ "Grilled Chicken Salad"
+      assert html =~ "Tomato Basil Soup"
+    end
+  end
 end

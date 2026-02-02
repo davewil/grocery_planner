@@ -87,7 +87,9 @@ defmodule GroceryPlanner.AI.Categorizer do
 
     # Forward plug option to AiClient
     client_opts = [receive_timeout: timeout]
-    client_opts = if opts[:plug], do: Keyword.put(client_opts, :plug, opts[:plug]), else: client_opts
+
+    client_opts =
+      if opts[:plug], do: Keyword.put(client_opts, :plug, opts[:plug]), else: client_opts
 
     case AiClient.categorize_item(item_name, candidate_labels, context, client_opts) do
       {:ok, response} ->
@@ -149,7 +151,9 @@ defmodule GroceryPlanner.AI.Categorizer do
 
     # Forward plug option to AiClient
     client_opts = [receive_timeout: timeout]
-    client_opts = if opts[:plug], do: Keyword.put(client_opts, :plug, opts[:plug]), else: client_opts
+
+    client_opts =
+      if opts[:plug], do: Keyword.put(client_opts, :plug, opts[:plug]), else: client_opts
 
     case AiClient.categorize_batch(items, candidate_labels, context, client_opts) do
       {:ok, response} ->
@@ -190,7 +194,6 @@ defmodule GroceryPlanner.AI.Categorizer do
       true -> :low
     end
   end
-
 
   @doc """
   Returns the default candidate labels for categorization.
