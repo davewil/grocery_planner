@@ -73,9 +73,14 @@ config :grocery_planner,
     GroceryPlanner.AI
   ]
 
+config :grocery_planner, :receipt_upload_dir, "priv/uploads/receipts"
+
 config :grocery_planner, Oban,
   repo: GroceryPlanner.Repo,
+  plugins: [{Oban.Plugins.Cron, []}],
   queues: [default: 10, ai_jobs: 5]
+
+config :ash_oban, :domains, [GroceryPlanner.Inventory]
 
 # Configures the endpoint
 config :grocery_planner, GroceryPlannerWeb.Endpoint,

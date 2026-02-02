@@ -50,4 +50,4 @@ config :grocery_planner, :features,
   ai_categorization: false,
   semantic_search: false
 
-config :grocery_planner, Oban, testing: :inline
+config :grocery_planner, Oban, testing: :manual

@@ -32,6 +32,7 @@ defmodule GroceryPlanner.AI.CategorizerTest do
 
     test "returns true when feature flag is enabled" do
       original = Application.get_env(:grocery_planner, :features)
+
       Application.put_env(:grocery_planner, :features,
         ai_categorization: true,
         semantic_search: false
@@ -50,6 +51,7 @@ defmodule GroceryPlanner.AI.CategorizerTest do
 
     test "returns prediction when feature flag is on" do
       original = Application.get_env(:grocery_planner, :features)
+
       Application.put_env(:grocery_planner, :features,
         ai_categorization: true,
         semantic_search: false
@@ -84,6 +86,7 @@ defmodule GroceryPlanner.AI.CategorizerTest do
 
     test "returns error on AI service failure" do
       original = Application.get_env(:grocery_planner, :features)
+
       Application.put_env(:grocery_planner, :features,
         ai_categorization: true,
         semantic_search: false

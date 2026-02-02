@@ -92,4 +92,5 @@ config :swoosh, :api_client, false
 # Enable AI categorization in development
 config :grocery_planner, :features,
   ai_categorization: true,
-  semantic_search: true
+  semantic_search: true,
+  receipt_processing: true

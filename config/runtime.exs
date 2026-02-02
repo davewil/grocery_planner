@@ -23,7 +23,13 @@ end
 # AI Feature Flags
 config :grocery_planner, :features,
   ai_categorization: System.get_env("AI_CATEGORIZATION_ENABLED", "false") == "true",
-  semantic_search: System.get_env("SEMANTIC_SEARCH_ENABLED", "false") == "true"
+  semantic_search: System.get_env("SEMANTIC_SEARCH_ENABLED", "false") == "true",
+  receipt_processing: System.get_env("RECEIPT_PROCESSING_ENABLED", "false") == "true"
+
+# Receipt processing
+config :grocery_planner,
+       :receipt_upload_dir,
+       System.get_env("RECEIPT_STORAGE_PATH", "priv/uploads/receipts")
 
 if config_env() == :prod do
   database_url =

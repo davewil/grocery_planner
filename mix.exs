@@ -84,7 +84,7 @@ defmodule GroceryPlanner.MixProject do
       {:castore, "~> 1.0"},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:pgvector, "~> 0.3.0"},
-      {:oban, "~> 2.18"}
+      {:ash_oban, "~> 0.7"}
     ]
   end
 
