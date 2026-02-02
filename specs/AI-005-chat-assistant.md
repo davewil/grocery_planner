@@ -867,3 +867,106 @@ CHAT_MAX_CONVERSATION_LENGTH=50
 - [Claude Tool Use Documentation](https://docs.anthropic.com/en/docs/build-with-claude/tool-use)
 - [AI Backlog - AST-01](../docs/ai_backlog.md)
 - [AI Integration Plan](../docs/ai_integration_plan.md)
+
+## Implementation Status
+
+**Status:** NOT YET IMPLEMENTED
+
+All user stories (US-001 through US-005) and the UI/UX specifications remain valid requirements. However, the technical implementation approach described in the "Technical Specification" section above should be **superseded by AshAI** — see the AshAI Migration Plan below.
+
+The safety guardrails, confirmation flow, and grounding requirements remain unchanged regardless of implementation approach.
+
+## AshAI Migration Plan
+
+[AshAI](https://hexdocs.pm/ash_ai/readme.html) (`ash_ai` hex package) provides native tool exposure, chat generation, and MCP server capabilities for Ash resources. This dramatically simplifies the planned implementation by replacing hand-rolled infrastructure with declarative Ash patterns.
+
+### What AshAI Replaces
+
+| Planned Component | Current Spec Approach | AshAI Approach |
+|---|---|---|
+| **Tool definitions** | Hand-crafted JSON schemas (6 tools, ~150 lines of JSON) | Ash actions automatically exposed as tools via `expose_as: :tool` on action definitions |
+| **Tool executor** | Custom `ToolExecutor` module dispatching to domain functions | AshAI executes exposed actions directly — no manual dispatch needed |
+| **Claude API client** | Custom `GroceryPlanner.AI.Claude` module with Req HTTP calls | AshAI handles LLM communication, including tool-call loops |
+| **Conversation management** | Custom `Conversation` module building message arrays | `mix ash_ai.gen.chat` generates conversation management with persistence |
+| **Chat UI** | Must build from scratch | `mix ash_ai.gen.chat` scaffolds a working LiveView chat interface |
+| **MCP server** | Not planned | AshAI provides a free MCP server exposing all tool-enabled actions |
+
+### What Stays the Same
+
+These spec requirements are **unchanged** regardless of implementation approach:
+
+- **User stories** (US-001 through US-005) — all requirements remain valid
+- **Safety guardrails** — grounding, confirmation flows, no-deletion rules
+- **Database schema** — `chat_conversations`, `chat_messages`, `chat_feedback` tables (AshAI may generate these or similar)
+- **UI/UX design** — chat interface layout, suggested prompts, confirmation banners, streaming
+- **Tool behavior** — the 6 tools still query the same domain functions, just exposed declaratively
+
+### Revised Implementation Approach
+
+#### Step 1: Add AshAI dependency
+
+```elixir
+# mix.exs
+{:ash_ai, "~> 0.x"}
+```
+
+#### Step 2: Expose actions as tools
+
+Instead of defining JSON schemas, annotate existing Ash read actions:
+
+```elixir
+# Example: In the InventoryEntry resource or a dedicated AI domain
+# The exact AshAI DSL may vary — consult docs at implementation time
+actions do
+  read :get_expiring_items do
+    argument :days, :integer, default: 7
+    argument :limit, :integer, default: 10
+    # ... filter logic ...
+  end
+end
+```
+
+Each of the 6 tools maps to an existing (or new) Ash action:
+1. `get_expiring_items` → `InventoryEntry` read action with date filter
+2. `search_recipes` → `Recipe` read action (leverages AI-002 hybrid search)
+3. `get_recipe_details` → `Recipe` read action with ingredient loading
+4. `get_meal_plan` → `MealPlanEntry` read action with date range filter
+5. `draft_shopping_list` → Custom action returning a preview (no persist)
+6. `propose_meal_plan_entry` → Custom action returning a proposal (no persist)
+
+#### Step 3: Generate chat scaffolding
+
+```bash
+mix ash_ai.gen.chat
+```
+
+This generates conversation resources, LiveView components, and tool-calling infrastructure. Customize the generated code to match the UI/UX specifications in this document.
+
+#### Step 4: Add safety layer
+
+The system prompt and safety rules from the "Safety & Guardrails" section should be applied to the AshAI chat configuration. The confirmation flow for write operations (draft_shopping_list, propose_meal_plan_entry) needs custom handling on top of the generated scaffolding.
+
+#### Step 5: Streaming and polish
+
+AshAI's chat generation may include streaming support. If not, add streaming on top of the generated infrastructure using the patterns described in the "Streaming Responses" section of this spec.
+
+### Rollout Plan (Revised)
+
+The original 6-phase rollout remains valid but implementation effort is significantly reduced:
+
+1. **Phase 1:** Add AshAI, run `mix ash_ai.gen.chat`, configure system prompt
+2. **Phase 2:** Expose read-only actions as tools (expiring items, recipe search, meal plan view)
+3. **Phase 3:** Add proposal actions (draft shopping list, propose meal plan entry)
+4. **Phase 4:** Implement confirmation flow on top of generated UI
+5. **Phase 5:** Streaming responses (may come free with AshAI)
+6. **Phase 6:** Conversation history, feedback, and MCP server
+
+### Open Questions (AshAI-Specific)
+
+1. Does `mix ash_ai.gen.chat` generate conversation persistence, or do we still need the `chat_conversations`/`chat_messages` schema?
+2. How does AshAI handle the confirmation/proposal pattern for write operations?
+3. Can AshAI's tool exposure enforce read-only vs. write-with-confirmation semantics?
+4. What LLM providers does AshAI support? (Claude is required for this spec)
+5. How mature is the AshAI streaming support?
+
+These questions should be answered by consulting the AshAI documentation and source code before implementation begins.

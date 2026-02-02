@@ -571,6 +571,55 @@ end
 3. Should we support multiple embedding models for A/B testing?
 4. How do we handle recipes with very short descriptions?
 
+## Implementation Status
+
+### Phase 1: Core Semantic Search (COMPLETE)
+
+Implemented in commit `e3f3070`. The following components are working:
+
+- **pgvector extension** enabled in PostgreSQL with HNSW indexes on `recipes` and `grocery_items`
+- **`GroceryPlanner.AI.Embeddings`** module with `generate/2`, `generate_batch/2`, `search_recipes/2`, `hybrid_search/2`, `build_recipe_text/1`
+- **Python FastAPI service** at `python_service/` generating embeddings via `sentence-transformers/all-MiniLM-L6-v2` (384 dimensions)
+- **`EmbeddingWorker`** and **`EmbeddingBackfillWorker`** Oban jobs for background embedding generation
+- **Hybrid search** combining keyword (ILIKE) + semantic (cosine distance) with configurable weights
+- **Feature flag** `semantic_search: true/false` controlling availability
+- **`AshPostgres.Extensions.Vector`** for pgvector type registration (migrated from `Pgvector.Extensions.Vector`)
+
+**What's working:** All user stories (US-001 through US-004) have basic implementations. Embedding generation, batch processing, recipe search, and hybrid search are functional. Tests pass (473 total, 0 failures).
+
+**What's NOT yet done:**
+- Similar recipe discovery UI (US-003 UI portion)
+- Search result relevance indicators in UI
+- Golden test validation against expected similarity scores
+- Performance testing at scale (1000+ recipes)
+
+### Phase 2: AshAI Migration (PENDING)
+
+AshAI (`ash_ai` hex package) provides native vector search integration for Ash resources, which would replace the current hand-rolled implementation with declarative Ash patterns.
+
+**Current approach (Phase 1):**
+- Custom `Embeddings` module with raw Ecto/SQL queries for vector operations
+- Manual `Pgvector.Ecto.Query` imports for `cosine_distance`
+- Plain Oban workers (`EmbeddingWorker`, `EmbeddingBackfillWorker`) — not yet migrated to AshOban
+- Custom `build_recipe_text/1` for text construction
+
+**AshAI approach (Phase 2):**
+- Declare vector attributes directly on Ash resources with `AshAI` extension
+- Vector search as native Ash query operations (no raw SQL)
+- Embedding generation integrated into Ash resource lifecycle (e.g., after create/update)
+- AshOban triggers for background embedding jobs (replacing plain Oban workers)
+- Potential for AshAI's built-in text construction from resource attributes
+
+**Migration tasks:**
+1. Add `ash_ai` dependency to `mix.exs`
+2. Add `AshAI` extension to Recipe resource with vector search configuration
+3. Replace `Embeddings.search_recipes/2` raw SQL with Ash vector search actions
+4. Migrate `EmbeddingWorker` and `EmbeddingBackfillWorker` to AshOban triggers
+5. Update `hybrid_search/2` to use Ash-native query composition
+6. Verify all existing tests still pass after migration
+
+**Reference:** [AshAI Documentation](https://hexdocs.pm/ash_ai/readme.html)
+
 ## References
 
 - [pgvector Documentation](https://github.com/pgvector/pgvector)
