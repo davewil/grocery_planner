@@ -16,6 +16,8 @@ defmodule GroceryPlanner.AI.CategorizationFeedback do
   code_interface do
     define :create
     define :read
+    define :list_for_export, args: [:since]
+    define :corrections_only
 
     define :log_correction,
       action: :create,
@@ -24,6 +26,21 @@ defmodule GroceryPlanner.AI.CategorizationFeedback do
 
   actions do
     defaults [:read, :destroy]
+
+    read :list_for_export do
+      argument :since, :utc_datetime, allow_nil?: true
+
+      prepare fn query, _context ->
+        case Ash.Changeset.get_argument(query, :since) do
+          nil -> query
+          since -> Ash.Query.filter(query, expr(created_at >= ^since))
+        end
+      end
+    end
+
+    read :corrections_only do
+      filter expr(was_correction == true)
+    end
 
     create :create do
       accept [

@@ -135,6 +135,7 @@ async def categorize_item(request: BaseRequest, db: Session = Depends(get_db)):
 
             predicted_category = result["labels"][0]
             confidence = result["scores"][0]
+            all_scores = dict(zip(result["labels"], [round(s, 4) for s in result["scores"]]))
 
             logger.info(
                 f"Classified '{payload.item_name}' as '{predicted_category}' "
@@ -155,6 +156,10 @@ async def categorize_item(request: BaseRequest, db: Session = Depends(get_db)):
                 predicted_category = "Bakery"
             elif "chicken" in item_lower:
                 predicted_category = "Meat"
+
+            # Build mock all_scores
+            all_scores = {label: 0.02 for label in payload.candidate_labels}
+            all_scores[predicted_category] = confidence
 
         # Determine confidence level
         if confidence >= 0.80:
@@ -181,7 +186,9 @@ async def categorize_item(request: BaseRequest, db: Session = Depends(get_db)):
             input_payload=request.payload,
             output_payload={
                 **response_payload.model_dump(),
-                "confidence_level": confidence_level
+                "confidence_level": confidence_level,
+                "all_scores": all_scores,
+                "processing_time_ms": round(latency_ms, 2)
             },
             status="success",
             model_id=model_id,
@@ -193,7 +200,9 @@ async def categorize_item(request: BaseRequest, db: Session = Depends(get_db)):
             request_id=request.request_id,
             payload={
                 **response_payload.model_dump(),
-                "confidence_level": confidence_level
+                "confidence_level": confidence_level,
+                "all_scores": all_scores,
+                "processing_time_ms": round(latency_ms, 2)
             }
         )
 

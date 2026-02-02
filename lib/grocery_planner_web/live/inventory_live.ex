@@ -391,13 +391,24 @@ defmodule GroceryPlannerWeb.InventoryLive do
                   {@category_suggestion.category.name}
                 </button>
                 <span class={[
-                  "badge badge-sm",
+                  "badge badge-sm gap-1",
                   case @category_suggestion.confidence_level do
                     "high" -> "badge-success"
                     "medium" -> "badge-warning"
                     _ -> "badge-ghost"
                   end
                 ]}>
+                  <%= case @category_suggestion.confidence_level do %>
+                    <% "high" -> %>
+                      <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                      </svg>
+                    <% "medium" -> %>
+                      <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01" />
+                      </svg>
+                    <% _ -> %>
+                  <% end %>
                   {round(@category_suggestion.confidence * 100)}%
                 </span>
               </div>
@@ -2225,7 +2236,12 @@ defmodule GroceryPlannerWeb.InventoryLive do
     if current_name == item_name do
       socket =
         case result do
-          {:ok, %{category: predicted_category, confidence: confidence, confidence_level: confidence_level}} ->
+          {:ok,
+           %{
+             category: predicted_category,
+             confidence: confidence,
+             confidence_level: confidence_level
+           }} ->
             # Find the matching category record
             case Enum.find(socket.assigns.categories, fn c ->
                    String.downcase(c.name) == String.downcase(predicted_category)
@@ -2254,7 +2270,6 @@ defmodule GroceryPlannerWeb.InventoryLive do
       {:noreply, socket}
     end
   end
-
 
   defp trigger_auto_categorization(socket, item_name) do
     categories = socket.assigns.categories
