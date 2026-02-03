@@ -33,6 +33,7 @@ defmodule GroceryPlanner.Inventory do
       define :get_item_by_name, action: :by_name, args: [:name], get?: true
       define :update_grocery_item, action: :update
       define :destroy_grocery_item, action: :destroy
+      define :sync_grocery_items, action: :sync, args: [:since]
     end
 
     resource GroceryPlanner.Inventory.InventoryEntry do
@@ -42,6 +43,7 @@ defmodule GroceryPlanner.Inventory do
       define :get_inventory_entry, action: :read, get_by: [:id]
       define :update_inventory_entry, action: :update
       define :destroy_inventory_entry, action: :destroy
+      define :sync_inventory_entries, action: :sync, args: [:since]
     end
 
     resource GroceryPlanner.Inventory.GroceryItemTag do

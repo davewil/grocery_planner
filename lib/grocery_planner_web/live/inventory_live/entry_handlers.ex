@@ -68,14 +68,6 @@ defmodule GroceryPlannerWeb.InventoryLive.EntryHandlers do
 
             {:noreply, socket}
 
-          :ok ->
-            socket =
-              socket
-              |> GroceryPlannerWeb.InventoryLive.load_data()
-              |> put_flash(:info, "Inventory entry deleted successfully")
-
-            {:noreply, socket}
-
           {:error, _} ->
             {:noreply, put_flash(socket, :error, "Failed to delete inventory entry")}
         end

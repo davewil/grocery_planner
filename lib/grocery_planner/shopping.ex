@@ -22,6 +22,8 @@ defmodule GroceryPlanner.Shopping do
       define :generate_shopping_list_from_meal_plans,
         action: :generate_from_meal_plans,
         args: [:account_id, :start_date, :end_date]
+
+      define :sync_shopping_lists, action: :sync, args: [:since]
     end
 
     resource GroceryPlanner.Shopping.ShoppingListItem do
@@ -31,6 +33,7 @@ defmodule GroceryPlanner.Shopping do
       define :update_shopping_list_item, action: :update
       define :destroy_shopping_list_item, action: :destroy
       define :toggle_shopping_list_item_check, action: :toggle_check
+      define :sync_shopping_list_items, action: :sync, args: [:since]
     end
   end
 end

@@ -236,7 +236,7 @@ defmodule GroceryPlannerWeb.MealPlannerLive do
         case GroceryPlanner.MealPlanning.destroy_meal_plan(meal_plan,
                actor: socket.assigns.current_user
              ) do
-          :ok ->
+          {:ok, _} ->
             undo_system =
               UndoSystem.push_undo(
                 socket.assigns.undo_system,
@@ -400,7 +400,7 @@ defmodule GroceryPlannerWeb.MealPlannerLive do
         case GroceryPlanner.MealPlanning.destroy_meal_plan(meal_plan,
                actor: socket.assigns.current_user
              ) do
-          :ok ->
+          {:ok, _} ->
             socket =
               socket
               |> DataLoader.load_week_meals()

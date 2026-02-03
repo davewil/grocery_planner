@@ -267,5 +267,55 @@
 - `lib/grocery_planner_web/plugs/api_auth.ex` - Updated 401 error response to JSON:API format
 - `test/grocery_planner_web/controllers/api/error_responses_test.exs` - 10 behavioral tests for error responses
 
+---
+
+## 2026-02-03: US-008 - Offline Sync Support (Soft Deletes & Sync Actions)
+
+### What was implemented:
+- Added `deleted_at` column to all 11 syncable tables via migration
+- Added indexes on `deleted_at` and `updated_at` for sync query performance
+- Converted all 11 resources from hard delete to soft delete (`soft? true`)
+- Added `:sync` read action to all 11 resources with `since` argument
+- Added `filter expr(is_nil(deleted_at))` to all custom read actions
+- Made `created_at` and `updated_at` timestamps public on all resources
+- Added sync code_interface definitions to all 4 domain modules
+
+### Resources modified (11 total):
+- **Inventory**: GroceryItem, InventoryEntry
+- **Shopping**: ShoppingList, ShoppingListItem
+- **Recipes**: Recipe, RecipeIngredient
+- **MealPlanning**: MealPlan, MealPlanTemplate, MealPlanTemplateEntry, MealPlanVoteSession, MealPlanVoteEntry
+
+### Key learnings:
+
+1. **Soft delete pattern in Ash**: Use `soft? true` on the destroy action with `change set_attribute(:deleted_at, &DateTime.utc_now/0)`. The primary read action must filter with `filter expr(is_nil(deleted_at))` and `primary_read_warning?: false` suppresses the warning about filtered primary reads.
+
+2. **`defaults []` requires explicit primary actions**: When using `defaults []` (no auto-generated actions), you must add `primary? true` to both your custom `:read` and `:destroy` actions. Without this, Ash raises `NoPrimaryAction` errors.
+
+3. **Custom read actions don't inherit primary read filters**: Each custom read action (e.g., `:favorites`, `:list_with_tags`, `:by_date_range`) needs its own `filter expr(is_nil(deleted_at))`. They do NOT inherit the filter from the primary `:read` action.
+
+4. **Soft delete changes return value**: Soft delete returns `{:ok, record}` instead of `:ok`. All domain tests and LiveView handlers that matched on `:ok` needed updating to `{:ok, _}`.
+
+5. **AshOban requires keyset pagination**: When a resource has AshOban triggers with `worker_read_action(:read)`, the read action must have `pagination keyset?: true, required?: false`. Without this, AshOban fails with "Limit is required" error.
+
+6. **Sync action pattern**: The sync action uses a conditional filter that returns all records when `since` is nil, or only modified/deleted records after the timestamp. Results are sorted by `updated_at` ascending.
+
+7. **MealPlanVoteEntry needed update_timestamp**: This resource only had `create_timestamp :created_at` - the `:sync` action requires `update_timestamp :updated_at` for tracking modifications.
+
+### Files changed:
+- `priv/repo/migrations/20260203230001_add_soft_deletes_for_sync.exs` - Migration for deleted_at columns and indexes
+- All 11 resource files - Soft delete, sync actions, filtered custom reads, public timestamps
+- `lib/grocery_planner/inventory.ex` - Added sync code interfaces
+- `lib/grocery_planner/shopping.ex` - Added sync code interfaces
+- `lib/grocery_planner/recipes.ex` - Added sync code interfaces
+- `lib/grocery_planner/meal_planning.ex` - Added sync code interfaces
+- 4 domain test files - Fixed `:ok` to `{:ok, _}` for soft delete returns
+- 7 LiveView handler files - Fixed `:ok ->` to `{:ok, _} ->` for soft delete returns
+- `test/grocery_planner/sync/offline_sync_test.exs` - 14 behavioral tests for sync
+
+### Remaining US-008 items (future):
+- Sync metadata (server timestamp, has_more flag) in responses
+- Conflict detection via If-Unmodified-Since header support
+
 ### Next priorities:
-- US-008: Offline Sync Support
+- US-009: Bulk Operations for Sync Efficiency

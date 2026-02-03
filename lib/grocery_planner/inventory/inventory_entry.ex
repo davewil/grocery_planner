@@ -4,7 +4,8 @@ defmodule GroceryPlanner.Inventory.InventoryEntry do
     domain: GroceryPlanner.Inventory,
     data_layer: AshPostgres.DataLayer,
     authorizers: [Ash.Policy.Authorizer],
-    extensions: [AshJsonApi.Resource]
+    extensions: [AshJsonApi.Resource],
+    primary_read_warning?: false
 
   postgres do
     table "inventory_entries"
@@ -35,11 +36,38 @@ defmodule GroceryPlanner.Inventory.InventoryEntry do
   end
 
   actions do
-    defaults [:read, :destroy]
+    defaults []
+
+    read :read do
+      primary? true
+      filter expr(is_nil(deleted_at))
+    end
+
+    destroy :destroy do
+      primary? true
+      soft? true
+      change set_attribute(:deleted_at, &DateTime.utc_now/0)
+    end
+
+    read :sync do
+      argument :since, :utc_datetime_usec
+
+      filter expr(
+               if is_nil(^arg(:since)) do
+                 true
+               else
+                 updated_at >= ^arg(:since) or
+                   (not is_nil(deleted_at) and deleted_at >= ^arg(:since))
+               end
+             )
+
+      prepare build(sort: [updated_at: :asc])
+    end
 
     read :list_by_grocery_item do
       argument :grocery_item_id, :uuid, allow_nil?: false
 
+      filter expr(is_nil(deleted_at))
       filter expr(grocery_item_id == ^arg(:grocery_item_id))
     end
 
@@ -49,6 +77,7 @@ defmodule GroceryPlanner.Inventory.InventoryEntry do
 
       prepare build(load: [:grocery_item, :storage_location, :days_until_expiry, :is_expired])
 
+      filter expr(is_nil(deleted_at))
       filter expr(status == ^arg(:status))
 
       filter expr(
@@ -290,8 +319,12 @@ defmodule GroceryPlanner.Inventory.InventoryEntry do
       public? true
     end
 
-    create_timestamp :created_at
-    update_timestamp :updated_at
+    attribute :deleted_at, :utc_datetime_usec do
+      public? true
+    end
+
+    create_timestamp :created_at, public?: true
+    update_timestamp :updated_at, public?: true
   end
 
   relationships do

@@ -158,14 +158,6 @@ defmodule GroceryPlannerWeb.InventoryLive.ItemHandlers do
 
             {:noreply, socket}
 
-          :ok ->
-            socket =
-              socket
-              |> GroceryPlannerWeb.InventoryLive.load_data()
-              |> put_flash(:info, "Item deleted successfully")
-
-            {:noreply, socket}
-
           {:error, _} ->
             {:noreply, put_flash(socket, :error, "Failed to delete item")}
         end

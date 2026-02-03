@@ -4,7 +4,8 @@ defmodule GroceryPlanner.MealPlanning.MealPlanVoteSession do
     domain: GroceryPlanner.MealPlanning,
     data_layer: AshPostgres.DataLayer,
     authorizers: [Ash.Policy.Authorizer],
-    extensions: [AshJsonApi.Resource]
+    extensions: [AshJsonApi.Resource],
+    primary_read_warning?: false
 
   postgres do
     table "meal_plan_vote_sessions"
@@ -29,7 +30,33 @@ defmodule GroceryPlanner.MealPlanning.MealPlanVoteSession do
   end
 
   actions do
-    defaults [:read, :destroy]
+    defaults []
+
+    read :read do
+      primary? true
+      filter expr(is_nil(deleted_at))
+    end
+
+    destroy :destroy do
+      primary? true
+      soft? true
+      change set_attribute(:deleted_at, &DateTime.utc_now/0)
+    end
+
+    read :sync do
+      argument :since, :utc_datetime_usec
+
+      filter expr(
+               if is_nil(^arg(:since)) do
+                 true
+               else
+                 updated_at >= ^arg(:since) or
+                   (not is_nil(deleted_at) and deleted_at >= ^arg(:since))
+               end
+             )
+
+      prepare build(sort: [updated_at: :asc])
+    end
 
     create :start do
       accept []
@@ -125,8 +152,12 @@ defmodule GroceryPlanner.MealPlanning.MealPlanVoteSession do
       public? true
     end
 
-    create_timestamp :created_at
-    update_timestamp :updated_at
+    attribute :deleted_at, :utc_datetime_usec do
+      public? true
+    end
+
+    create_timestamp :created_at, public?: true
+    update_timestamp :updated_at, public?: true
   end
 
   relationships do

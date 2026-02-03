@@ -233,10 +233,12 @@ MealPlan (Aggregate Root)
 **So that** I can use the app in areas with poor signal (like grocery stores)
 
 **Acceptance Criteria:**
-- [ ] All resources include `updated_at` in responses
-- [ ] `GET` endpoints support `?filter[updated_at][gte]=timestamp` parameter
-- [ ] Deleted resources use soft delete with `deleted_at` timestamp
-- [ ] `GET` endpoints support `?filter[include_deleted]=true` for sync
+- [x] All resources include `updated_at` in responses
+- [x] Deleted resources use soft delete with `deleted_at` timestamp
+- [x] Dedicated `:sync` read action on all 11 syncable resources with `since` argument
+- [x] Sync action returns all records (including soft-deleted) when `since` is nil
+- [x] Sync action returns only records modified after `since` timestamp
+- [x] Normal read actions and custom reads exclude soft-deleted records
 - [ ] Responses include sync metadata (server timestamp, has_more flag)
 - [ ] Conflict detection via `If-Unmodified-Since` header support
 

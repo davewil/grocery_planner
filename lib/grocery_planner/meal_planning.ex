@@ -22,6 +22,7 @@ defmodule GroceryPlanner.MealPlanning do
       define :destroy_meal_plan, action: :destroy
       define :complete_meal_plan, action: :complete
       define :skip_meal_plan, action: :skip
+      define :sync_meal_plans, action: :sync, args: [:since]
     end
 
     resource GroceryPlanner.MealPlanning.MealPlanTemplate do
@@ -32,6 +33,7 @@ defmodule GroceryPlanner.MealPlanning do
       define :activate_meal_plan_template, action: :activate
       define :deactivate_meal_plan_template, action: :deactivate
       define :list_meal_plan_templates, action: :read
+      define :sync_meal_plan_templates, action: :sync, args: [:since]
     end
 
     resource GroceryPlanner.MealPlanning.MealPlanTemplateEntry do
@@ -41,6 +43,7 @@ defmodule GroceryPlanner.MealPlanning do
       define :list_entries_by_template, action: :list_by_template, args: [:template_id]
       define :update_meal_plan_template_entry, action: :update
       define :destroy_meal_plan_template_entry, action: :destroy
+      define :sync_meal_plan_template_entries, action: :sync, args: [:since]
     end
 
     resource GroceryPlanner.MealPlanning.MealPlanVoteSession do
@@ -52,6 +55,7 @@ defmodule GroceryPlanner.MealPlanning do
       define :close_vote_session, action: :close
       define :mark_session_processed, action: :mark_processed
       define :destroy_vote_session, action: :destroy
+      define :sync_vote_sessions, action: :sync, args: [:since]
     end
 
     resource GroceryPlanner.MealPlanning.MealPlanVoteEntry do
@@ -64,6 +68,7 @@ defmodule GroceryPlanner.MealPlanning do
       define :list_vote_entries_by_session, action: :list_by_session, args: [:vote_session_id]
       define :list_entries_for_session, action: :by_session, args: [:vote_session_id]
       define :destroy_vote_entry, action: :destroy
+      define :sync_vote_entries, action: :sync, args: [:since]
     end
   end
 end

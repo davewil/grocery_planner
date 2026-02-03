@@ -75,10 +75,6 @@ defmodule GroceryPlannerWeb.VotingLive do
           socket = load_recipes_and_votes(socket)
           {:noreply, socket}
 
-        :ok ->
-          socket = load_recipes_and_votes(socket)
-          {:noreply, socket}
-
         {:error, _} ->
           {:noreply, put_flash(socket, :error, "Failed to update vote")}
       end

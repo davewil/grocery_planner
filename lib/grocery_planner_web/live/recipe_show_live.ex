@@ -63,14 +63,6 @@ defmodule GroceryPlannerWeb.RecipeShowLive do
 
         {:noreply, socket}
 
-      :ok ->
-        socket =
-          socket
-          |> put_flash(:info, "Recipe deleted successfully")
-          |> push_navigate(to: "/recipes")
-
-        {:noreply, socket}
-
       {:error, _} ->
         {:noreply, put_flash(socket, :error, "Failed to delete recipe")}
     end

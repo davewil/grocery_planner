@@ -158,7 +158,7 @@ defmodule GroceryPlannerWeb.ShoppingLive do
            tenant: socket.assigns.current_account.id,
            actor: socket.assigns.current_user
          ) do
-      :ok ->
+      {:ok, _} ->
         socket =
           socket
           |> put_flash(:info, "Shopping list deleted")
@@ -450,7 +450,7 @@ defmodule GroceryPlannerWeb.ShoppingLive do
            tenant: socket.assigns.current_account.id,
            actor: socket.assigns.current_user
          ) do
-      :ok ->
+      {:ok, _} ->
         {:ok, list} =
           GroceryPlanner.Shopping.get_shopping_list(
             socket.assigns.selected_list.id,
