@@ -15,16 +15,16 @@ defmodule GroceryPlanner.Recipes.RecipeIngredient do
     type "recipe_ingredient"
 
     routes do
-      base "/recipes/:recipe_id/ingredients"
+      base("/recipes/:recipe_id/ingredients")
 
       index :read do
-        derive_filter? true
+        derive_filter?(true)
       end
 
-      get :read
-      post :create_from_api
-      patch :update
-      delete :destroy
+      get(:read)
+      post(:create_from_api)
+      patch(:update)
+      delete(:destroy)
     end
   end
 

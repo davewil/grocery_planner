@@ -51,7 +51,11 @@ defmodule GroceryPlanner.ShoppingTestHelpers do
   end
 
   def create_shopping_list_item(account, _user, shopping_list, attrs \\ %{}) do
-    default_attrs = %{name: "Test Item #{System.unique_integer()}", shopping_list_id: shopping_list.id}
+    default_attrs = %{
+      name: "Test Item #{System.unique_integer()}",
+      shopping_list_id: shopping_list.id
+    }
+
     attrs = Map.merge(default_attrs, attrs)
 
     GroceryPlanner.Shopping.create_shopping_list_item!(

@@ -43,7 +43,9 @@ defmodule GroceryPlannerWeb.Api.RecipeIngredientTest do
       grocery_item: grocery_item
     } do
       ingredient =
-        create_recipe_ingredient(account, user, recipe, grocery_item, %{quantity: Decimal.new("2")})
+        create_recipe_ingredient(account, user, recipe, grocery_item, %{
+          quantity: Decimal.new("2")
+        })
 
       conn =
         conn
@@ -64,7 +66,9 @@ defmodule GroceryPlannerWeb.Api.RecipeIngredientTest do
       {other_account, other_user} = create_account_and_user()
       other_recipe = create_recipe(other_account, other_user)
       other_item = create_grocery_item(other_account, other_user)
-      _other_ingredient = create_recipe_ingredient(other_account, other_user, other_recipe, other_item)
+
+      _other_ingredient =
+        create_recipe_ingredient(other_account, other_user, other_recipe, other_item)
 
       conn =
         conn
@@ -207,7 +211,9 @@ defmodule GroceryPlannerWeb.Api.RecipeIngredientTest do
       {other_account, other_user} = create_account_and_user()
       other_recipe = create_recipe(other_account, other_user)
       other_item = create_grocery_item(other_account, other_user)
-      other_ingredient = create_recipe_ingredient(other_account, other_user, other_recipe, other_item)
+
+      other_ingredient =
+        create_recipe_ingredient(other_account, other_user, other_recipe, other_item)
 
       conn =
         conn

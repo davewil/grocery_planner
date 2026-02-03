@@ -79,10 +79,11 @@ defmodule GroceryPlannerWeb.Api.ShoppingListItemTest do
       assert our_item.id in item_ids
     end
 
-    test "returns empty list when accessing another account's shopping list (tenant isolation)", %{
-      conn: conn,
-      token: token
-    } do
+    test "returns empty list when accessing another account's shopping list (tenant isolation)",
+         %{
+           conn: conn,
+           token: token
+         } do
       {other_account, other_user} = create_account_and_user()
       other_list = create_shopping_list(other_account, other_user)
       _other_item = create_shopping_list_item(other_account, other_user, other_list)

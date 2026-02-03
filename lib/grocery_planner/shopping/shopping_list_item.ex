@@ -15,20 +15,20 @@ defmodule GroceryPlanner.Shopping.ShoppingListItem do
     type "shopping_list_item"
 
     routes do
-      base "/shopping_lists/:shopping_list_id/items"
+      base("/shopping_lists/:shopping_list_id/items")
 
       index :read do
-        derive_filter? true
+        derive_filter?(true)
       end
 
-      get :read
-      post :create_from_api
-      patch :update
-      delete :destroy
+      get(:read)
+      post(:create_from_api)
+      patch(:update)
+      delete(:destroy)
 
-      patch :check, route: "/:id/check"
-      patch :uncheck, route: "/:id/uncheck"
-      patch :toggle_check, route: "/:id/toggle"
+      patch(:check, route: "/:id/check")
+      patch(:uncheck, route: "/:id/uncheck")
+      patch(:toggle_check, route: "/:id/toggle")
     end
   end
 
