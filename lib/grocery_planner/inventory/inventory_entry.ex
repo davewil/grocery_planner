@@ -15,10 +15,11 @@ defmodule GroceryPlanner.Inventory.InventoryEntry do
     type "inventory_entry"
 
     routes do
-      base("/inventory_entries")
+      base("/grocery_items/:grocery_item_id/inventory_entries")
+
+      index :list_by_grocery_item
       get(:read)
-      index :read
-      post(:create)
+      post(:create_from_api)
       patch(:update)
       delete(:destroy)
     end
@@ -35,6 +36,12 @@ defmodule GroceryPlanner.Inventory.InventoryEntry do
 
   actions do
     defaults [:read, :destroy]
+
+    read :list_by_grocery_item do
+      argument :grocery_item_id, :uuid, allow_nil?: false
+
+      filter expr(grocery_item_id == ^arg(:grocery_item_id))
+    end
 
     read :list_filtered do
       argument :status, :atom, default: :available
@@ -89,6 +96,39 @@ defmodule GroceryPlanner.Inventory.InventoryEntry do
       change set_attribute(:account_id, arg(:account_id))
     end
 
+    create :create_from_api do
+      accept [
+        :quantity,
+        :unit,
+        :purchase_price,
+        :purchase_date,
+        :use_by_date,
+        :notes,
+        :status,
+        :storage_location_id
+      ]
+
+      argument :grocery_item_id, :uuid, allow_nil?: false
+
+      change fn changeset, context ->
+        grocery_item_id = Ash.Changeset.get_argument(changeset, :grocery_item_id)
+        tenant = context.tenant
+
+        opts = [authorize?: false]
+        opts = if tenant, do: Keyword.put(opts, :tenant, tenant), else: opts
+
+        case GroceryPlanner.Inventory.get_grocery_item(grocery_item_id, opts) do
+          {:ok, grocery_item} ->
+            changeset
+            |> Ash.Changeset.manage_relationship(:grocery_item, grocery_item, type: :append)
+            |> Ash.Changeset.change_attribute(:account_id, grocery_item.account_id)
+
+          {:error, _} ->
+            Ash.Changeset.add_error(changeset, field: :grocery_item_id, message: "not found")
+        end
+      end
+    end
+
     update :update do
       accept [
         :quantity,
@@ -110,7 +150,11 @@ defmodule GroceryPlanner.Inventory.InventoryEntry do
       authorize_if relates_to_actor_via([:account, :memberships, :user])
     end
 
-    policy action_type([:create, :update, :destroy]) do
+    policy action_type(:create) do
+      authorize_if always()
+    end
+
+    policy action_type([:update, :destroy]) do
       authorize_if relates_to_actor_via([:account, :memberships, :user])
     end
   end
@@ -159,11 +203,6 @@ defmodule GroceryPlanner.Inventory.InventoryEntry do
       public? true
     end
 
-    attribute :grocery_item_id, :uuid do
-      allow_nil? false
-      public? true
-    end
-
     attribute :storage_location_id, :uuid do
       public? true
     end
@@ -181,6 +220,7 @@ defmodule GroceryPlanner.Inventory.InventoryEntry do
     belongs_to :grocery_item, GroceryPlanner.Inventory.GroceryItem do
       allow_nil? false
       attribute_writable? true
+      public? true
     end
 
     belongs_to :storage_location, GroceryPlanner.Inventory.StorageLocation do

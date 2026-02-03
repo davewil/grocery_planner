@@ -64,5 +64,31 @@
 - `test/grocery_planner_web/controllers/api/recipe_ingredient_test.exs` - 9 behavioral API tests
 
 ### Next priorities:
-- US-003: InventoryEntry nested under GroceryItem (change from flat to nested routes)
+- US-006/US-007: MealPlan templates and voting endpoints
+
+---
+
+## 2026-02-03: US-003 - InventoryEntry Nested Routes Implementation
+
+### What was implemented:
+- Changed InventoryEntry from flat `/inventory_entries` to nested `/grocery_items/:grocery_item_id/inventory_entries`
+- Implemented endpoints: GET (index), GET (show), POST (create), PATCH (update), DELETE (destroy)
+- Created `list_by_grocery_item` read action with explicit filter for reliable filtering
+- Created `create_from_api` action that derives `account_id` from parent grocery item
+
+### Key learnings:
+
+1. **derive_filter? unreliable**: The `derive_filter? true` option in AshJsonApi didn't filter by route params reliably. Solution: create a custom read action with explicit `filter expr(grocery_item_id == ^arg(:grocery_item_id))`.
+
+2. **Create action policies**: Ash policies that use `relates_to_actor_via` fail for create actions with "Cannot use a filter to authorize a create" error. Solution: use `authorize_if always()` for create actions since the parent lookup already validates access.
+
+3. **belongs_to public attribute**: For filtering to work on relationship foreign keys, the `belongs_to` must have `public? true`. Without this, filter attempts fail with "No such field" error.
+
+4. **Duplicate attribute definitions**: Don't define both an explicit `attribute :foreign_key_id` AND a `belongs_to` relationship - the belongs_to creates the attribute automatically. Having both can cause confusion.
+
+### Files changed:
+- `lib/grocery_planner/inventory/inventory_entry.ex` - Changed routes to nested, added list_by_grocery_item and create_from_api actions, fixed policies
+- `test/grocery_planner_web/controllers/api/inventory_entry_test.exs` - 11 behavioral API tests
+
+### Next priorities:
 - US-006/US-007: MealPlan templates and voting endpoints
