@@ -224,6 +224,15 @@
 - `lib/grocery_planner/shopping/shopping_list_item.ex` - Added add_to_inventory action and route
 - `test/grocery_planner_web/controllers/api/custom_actions_test.exs` - 10 behavioral tests
 
+### Refactored to RESTful pattern (same day):
+- Changed from RPC-style `PATCH /add_to_inventory` to RESTful `POST /grocery_items/:id/inventory_entries` with optional `shopping_list_item_id`
+- This follows REST best practice: HTTP method indicates action (POST=create), URL indicates resource
+
+### Additional learnings:
+5. **RESTful vs RPC-style**: Avoid verb-based URLs like `/add_to_inventory`. Instead use standard resource creation with optional source parameters. Mobile clients benefit from predictable resource-oriented APIs.
+
+6. **Cross-resource data derivation**: When creating a resource from another (InventoryEntry from ShoppingListItem), accept the source ID as an optional argument and derive values in a change module.
+
 ### Next priorities:
 - US-005: Consistent Error Responses
 - US-008: Offline Sync Support
