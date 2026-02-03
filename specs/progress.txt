@@ -1,0 +1,45 @@
+# API-001 Implementation Progress
+
+## 2026-02-03: US-001 - ShoppingListItem JSON:API Implementation
+
+### What was implemented:
+- Added AshJsonApi.Resource extension to ShoppingListItem resource
+- Created nested routes under `/api/json/shopping_lists/:shopping_list_id/items`
+- Implemented endpoints: GET (index), GET (show), POST (create), PATCH (update), DELETE (destroy)
+- Added custom action routes: `/check`, `/uncheck`, `/toggle`
+- Created `create_from_api` action that derives `account_id` from parent shopping list
+
+### Key learnings:
+
+1. **AshJsonApi nested routes**: Use `base "/parent/:parent_id/children"` pattern for DDD aggregate roots. The `derive_filter? true` option helps filter index results by route params.
+
+2. **Action arguments from routes**: For nested POST routes, the parent ID from the URL is passed as an action argument. Use `argument :parent_id, :uuid` to capture it.
+
+3. **Deriving attributes from parent**: When creating a child resource, you can derive the tenant (`account_id`) from the parent by:
+   - Fetching the parent via domain code interface: `Domain.get_parent(id, opts)`
+   - Using `Ash.Changeset.change_attribute(:account_id, parent.account_id)`
+   - NEVER use `Ash.get/read/write` directly - always go through domain code interfaces
+
+4. **Context in Ash changes**: The context parameter in `change fn changeset, context -> ...` is an `Ash.Resource.Change.Context` struct, NOT a map. Access fields via struct syntax `context.tenant`, not `context[:tenant]`.
+
+5. **Relationship vs attribute management**: Use `manage_relationship/4` for actual relationships (belongs_to/has_many), use `change_attribute/3` for attribute fields like `account_id`.
+
+6. **JSON:API PATCH requests**: All PATCH requests in JSON:API require a `data` payload with `type` and `id`, even for custom actions that don't accept any attributes.
+
+7. **Multitenancy isolation**: Tenant-isolated resources return empty results (not 403) when accessing data outside the user's tenant. This is the expected behavior for attribute-based multitenancy.
+
+8. **Test patterns for JSON:API**:
+   - Use `put_req_header("accept", "application/vnd.api+json")`
+   - Use `put_req_header("content-type", "application/vnd.api+json")` for POST/PATCH
+   - JWT token via `Phoenix.Token.sign(Endpoint, "user auth", user.id)`
+   - DELETE returns 200 with resource data by default in AshJsonApi
+
+### Files changed:
+- `lib/grocery_planner/shopping/shopping_list_item.ex` - Added AshJsonApi extension and create_from_api action
+- `test/support/shopping_test_helpers.ex` - New test helpers for Shopping domain
+- `test/grocery_planner_web/controllers/api/shopping_list_item_test.exs` - 14 behavioral API tests
+
+### Next priorities (from API-001):
+- US-002: RecipeIngredient JSON:API (same pattern)
+- US-003: InventoryEntry nested under GroceryItem
+- US-006/US-007: MealPlan templates and voting endpoints

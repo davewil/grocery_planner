@@ -3,11 +3,33 @@ defmodule GroceryPlanner.Shopping.ShoppingListItem do
   use Ash.Resource,
     domain: GroceryPlanner.Shopping,
     data_layer: AshPostgres.DataLayer,
-    authorizers: [Ash.Policy.Authorizer]
+    authorizers: [Ash.Policy.Authorizer],
+    extensions: [AshJsonApi.Resource]
 
   postgres do
     table "shopping_list_items"
     repo GroceryPlanner.Repo
+  end
+
+  json_api do
+    type "shopping_list_item"
+
+    routes do
+      base "/shopping_lists/:shopping_list_id/items"
+
+      index :read do
+        derive_filter? true
+      end
+
+      get :read
+      post :create_from_api
+      patch :update
+      delete :destroy
+
+      patch :check, route: "/:id/check"
+      patch :uncheck, route: "/:id/uncheck"
+      patch :toggle_check, route: "/:id/toggle"
+    end
   end
 
   code_interface do
@@ -41,6 +63,38 @@ defmodule GroceryPlanner.Shopping.ShoppingListItem do
 
       change manage_relationship(:shopping_list_id, :shopping_list, type: :append)
       change manage_relationship(:account_id, :account, type: :append)
+    end
+
+    create :create_from_api do
+      accept [
+        :grocery_item_id,
+        :name,
+        :quantity,
+        :unit,
+        :price,
+        :notes,
+        :checked
+      ]
+
+      argument :shopping_list_id, :uuid, allow_nil?: false
+
+      change fn changeset, context ->
+        shopping_list_id = Ash.Changeset.get_argument(changeset, :shopping_list_id)
+        tenant = context.tenant
+
+        opts = [authorize?: false]
+        opts = if tenant, do: Keyword.put(opts, :tenant, tenant), else: opts
+
+        case GroceryPlanner.Shopping.get_shopping_list(shopping_list_id, opts) do
+          {:ok, shopping_list} ->
+            changeset
+            |> Ash.Changeset.manage_relationship(:shopping_list, shopping_list, type: :append)
+            |> Ash.Changeset.change_attribute(:account_id, shopping_list.account_id)
+
+          {:error, _} ->
+            Ash.Changeset.add_error(changeset, field: :shopping_list_id, message: "not found")
+        end
+      end
     end
 
     update :update do

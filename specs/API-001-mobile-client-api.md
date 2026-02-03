@@ -77,18 +77,25 @@ MealPlan (Aggregate Root)
 
 ## User Stories
 
-### US-001: Manage Shopping List Items via API
+### US-001: Manage Shopping List Items via API ✅ IMPLEMENTED
 **As a** mobile app user
 **I want** to add, edit, check, and remove items from my shopping list via API
 **So that** I can manage my shopping list from my phone
 
 **Acceptance Criteria:**
-- [ ] `GET /shopping_lists/:id/items` returns all items in a list
-- [ ] `POST /shopping_lists/:id/items` adds a new item to the list
-- [ ] `PATCH /shopping_lists/:id/items/:item_id` updates an item
-- [ ] `PATCH /shopping_lists/:id/items/:item_id/check` toggles item checked state
-- [ ] `DELETE /shopping_lists/:id/items/:item_id` removes an item
-- [ ] All operations respect tenant isolation via `account_id`
+- [x] `GET /shopping_lists/:id/items` returns all items in a list
+- [x] `POST /shopping_lists/:id/items` adds a new item to the list
+- [x] `PATCH /shopping_lists/:id/items/:item_id` updates an item
+- [x] `PATCH /shopping_lists/:id/items/:item_id/check` toggles item checked state
+- [x] `DELETE /shopping_lists/:id/items/:item_id` removes an item
+- [x] All operations respect tenant isolation via `account_id`
+
+**Implementation Notes (2026-02-03):**
+- Added AshJsonApi.Resource extension to ShoppingListItem
+- Created nested routes under `/shopping_lists/:shopping_list_id/items`
+- Added `create_from_api` action that derives `account_id` from parent shopping list
+- Custom routes for `/check`, `/uncheck`, `/toggle` actions
+- 14 behavioral tests covering all CRUD operations and tenant isolation
 
 ### US-002: Manage Recipe Ingredients via API
 **As a** mobile app user
