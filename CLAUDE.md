@@ -15,6 +15,18 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `mix test --failed` - Run only previously failed tests
 - `mix precommit` - Full pre-commit check: compile with warnings as errors, clean unused deps, format code, and run tests
 
+### Git Workflow (MANDATORY)
+After every `git push`, you MUST:
+1. Wait for CI to start: `sleep 10`
+2. Watch CI until completion: `gh run watch --exit-status`
+3. If CI fails:
+   - View failed logs: `gh run view --log-failed`
+   - Fix the issues
+   - Run `mix precommit` locally to verify
+   - Commit and push the fix
+   - Repeat until CI passes
+4. Do NOT consider a task complete until CI passes
+
 ### Database Management
 - `mix ash.setup` - Create database, run migrations (uses Ash's database setup)
 - `mix ash.reset` - Drop and recreate database
