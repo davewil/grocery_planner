@@ -35,8 +35,7 @@ defmodule GroceryPlannerWeb.InventoryLive do
               </p>
             </div>
             <.link navigate="/receipts/scan" class="btn btn-primary gap-2 flex-shrink-0">
-              <.icon name="hero-camera" class="w-5 h-5" />
-              Scan Receipt
+              <.icon name="hero-camera" class="w-5 h-5" /> Scan Receipt
             </.link>
           </div>
           <%= if @expiring_filter do %>
