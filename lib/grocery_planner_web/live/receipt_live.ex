@@ -46,7 +46,6 @@ defmodule GroceryPlannerWeb.ReceiptLive do
       flash={@flash}
       current_user={@current_user}
       current_account={@current_account}
-      current_scope={@current_scope}
     >
       <div class="px-4 py-10 sm:px-6 lg:px-8">
         <div class="max-w-4xl mx-auto">

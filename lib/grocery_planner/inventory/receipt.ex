@@ -20,7 +20,7 @@ defmodule GroceryPlanner.Inventory.Receipt do
         action :process
         where expr(status == :pending)
         max_attempts(3)
-        read_action(:pending_for_scheduler)
+        read_action :pending_for_scheduler
         worker_read_action(:read)
         on_error(:on_process_error)
         scheduler_cron("* * * * *")

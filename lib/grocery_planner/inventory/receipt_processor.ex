@@ -241,7 +241,10 @@ defmodule GroceryPlanner.Inventory.ReceiptProcessor do
     quantity = parse_decimal(item["quantity"])
     unit = item["unit"]
     unit_price = parse_money(item["unit_price"]) || parse_flat_money(item["price"])
-    total_price = parse_money(item["total_price"]) || parse_flat_money(item["price"], item["quantity"])
+
+    total_price =
+      parse_money(item["total_price"]) || parse_flat_money(item["price"], item["quantity"])
+
     confidence = item["confidence"]
 
     Inventory.create_receipt_item(

@@ -75,6 +75,14 @@ defmodule GroceryPlannerWeb.Layouts do
                   </li>
                   <li>
                     <.link
+                      navigate="/receipts"
+                      class="px-4 py-2 text-base-content/70 hover:text-base-content font-medium transition"
+                    >
+                      Receipts
+                    </.link>
+                  </li>
+                  <li>
+                    <.link
                       navigate="/recipes"
                       class="px-4 py-2 text-base-content/70 hover:text-base-content font-medium transition"
                     >
@@ -197,6 +205,13 @@ defmodule GroceryPlannerWeb.Layouts do
                   phx-click={JS.add_class("hidden", to: "#mobile-menu")}
                 >
                   Inventory
+                </.link>
+                <.link
+                  navigate="/receipts"
+                  class="px-4 py-2 text-base-content/70 hover:text-base-content hover:bg-base-200 rounded-lg font-medium transition"
+                  phx-click={JS.add_class("hidden", to: "#mobile-menu")}
+                >
+                  Receipts
                 </.link>
                 <.link
                   navigate="/recipes"

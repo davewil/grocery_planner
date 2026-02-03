@@ -27,40 +27,46 @@ defmodule GroceryPlannerWeb.InventoryLive do
     >
       <div class="px-4 py-10 sm:px-6 lg:px-8">
         <div class="mb-8">
-          <div>
-            <h1 class="text-4xl font-bold text-base-content">Inventory Management</h1>
-            <p class="mt-2 text-lg text-base-content/70">
-              Manage your grocery items and track what's in stock
-            </p>
-            <%= if @expiring_filter do %>
-              <div class="mt-4 flex flex-col sm:flex-row sm:items-center gap-2">
-                <span class="inline-flex items-center gap-2 px-3 py-2 sm:px-4 bg-info/10 border border-info/20 rounded-lg text-xs sm:text-sm font-medium text-info">
-                  <svg
-                    class="w-4 h-4 flex-shrink-0"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="2"
-                      d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"
-                    />
-                  </svg>
-                  <span class="truncate">
-                    Showing: {DataLoader.format_expiring_filter(@expiring_filter)}
-                  </span>
-                </span>
-                <.link
-                  patch="/inventory"
-                  class="text-xs sm:text-sm text-info hover:text-info/80 underline"
-                >
-                  Clear filter
-                </.link>
-              </div>
-            <% end %>
+          <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+            <div>
+              <h1 class="text-4xl font-bold text-base-content">Inventory Management</h1>
+              <p class="mt-2 text-lg text-base-content/70">
+                Manage your grocery items and track what's in stock
+              </p>
+            </div>
+            <.link navigate="/receipts/scan" class="btn btn-primary gap-2 flex-shrink-0">
+              <.icon name="hero-camera" class="w-5 h-5" />
+              Scan Receipt
+            </.link>
           </div>
+          <%= if @expiring_filter do %>
+            <div class="mt-4 flex flex-col sm:flex-row sm:items-center gap-2">
+              <span class="inline-flex items-center gap-2 px-3 py-2 sm:px-4 bg-info/10 border border-info/20 rounded-lg text-xs sm:text-sm font-medium text-info">
+                <svg
+                  class="w-4 h-4 flex-shrink-0"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"
+                  />
+                </svg>
+                <span class="truncate">
+                  Showing: {DataLoader.format_expiring_filter(@expiring_filter)}
+                </span>
+              </span>
+              <.link
+                patch="/inventory"
+                class="text-xs sm:text-sm text-info hover:text-info/80 underline"
+              >
+                Clear filter
+              </.link>
+            </div>
+          <% end %>
         </div>
 
         <div class="bg-base-100 rounded-box shadow-sm border border-base-200 overflow-hidden">
