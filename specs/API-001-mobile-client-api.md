@@ -97,17 +97,23 @@ MealPlan (Aggregate Root)
 - Custom routes for `/check`, `/uncheck`, `/toggle` actions
 - 14 behavioral tests covering all CRUD operations and tenant isolation
 
-### US-002: Manage Recipe Ingredients via API
+### US-002: Manage Recipe Ingredients via API ✅ IMPLEMENTED
 **As a** mobile app user
 **I want** to view and manage recipe ingredients via API
 **So that** I can customize recipes from my phone
 
 **Acceptance Criteria:**
-- [ ] `GET /recipes/:id/ingredients` returns all ingredients for a recipe
-- [ ] `POST /recipes/:id/ingredients` adds an ingredient to a recipe
-- [ ] `PATCH /recipes/:id/ingredients/:ingredient_id` updates an ingredient
-- [ ] `DELETE /recipes/:id/ingredients/:ingredient_id` removes an ingredient
-- [ ] Ingredients include linked `grocery_item` data when loaded
+- [x] `GET /recipes/:id/ingredients` returns all ingredients for a recipe
+- [x] `POST /recipes/:id/ingredients` adds an ingredient to a recipe
+- [x] `PATCH /recipes/:id/ingredients/:ingredient_id` updates an ingredient
+- [x] `DELETE /recipes/:id/ingredients/:ingredient_id` removes an ingredient
+- [x] Ingredients include linked `grocery_item` data when loaded
+
+**Implementation Notes (2026-02-03):**
+- Added AshJsonApi.Resource extension to RecipeIngredient
+- Created nested routes under `/recipes/:recipe_id/ingredients`
+- Added `create_from_api` action that derives `account_id` from parent recipe
+- 9 behavioral tests covering all CRUD operations and tenant isolation
 
 ### US-003: Query Inventory by Grocery Item
 **As a** mobile app user

@@ -40,6 +40,29 @@
 - `test/grocery_planner_web/controllers/api/shopping_list_item_test.exs` - 14 behavioral API tests
 
 ### Next priorities (from API-001):
-- US-002: RecipeIngredient JSON:API (same pattern)
 - US-003: InventoryEntry nested under GroceryItem
+- US-006/US-007: MealPlan templates and voting endpoints
+
+---
+
+## 2026-02-03: US-002 - RecipeIngredient JSON:API Implementation
+
+### What was implemented:
+- Added AshJsonApi.Resource extension to RecipeIngredient resource
+- Created nested routes under `/api/json/recipes/:recipe_id/ingredients`
+- Implemented endpoints: GET (index), GET (show), POST (create), PATCH (update), DELETE (destroy)
+- Created `create_from_api` action that derives `account_id` from parent recipe
+
+### Key learnings:
+1. **Pattern reuse**: The US-001 pattern for nested resources (ShoppingListItem) applied directly to RecipeIngredient with minimal changes
+2. **grocery_item_id required**: RecipeIngredient requires a grocery_item_id association, unlike ShoppingListItem which has optional grocery_item linking
+3. **Domain code interfaces**: Used `GroceryPlanner.Recipes.get_recipe/2` instead of direct Ash.get calls
+
+### Files changed:
+- `lib/grocery_planner/recipes/recipe_ingredient.ex` - Added AshJsonApi extension and create_from_api action
+- `test/support/recipes_test_helpers.ex` - New test helpers for Recipes domain
+- `test/grocery_planner_web/controllers/api/recipe_ingredient_test.exs` - 9 behavioral API tests
+
+### Next priorities:
+- US-003: InventoryEntry nested under GroceryItem (change from flat to nested routes)
 - US-006/US-007: MealPlan templates and voting endpoints
