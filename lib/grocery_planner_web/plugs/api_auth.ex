@@ -25,8 +25,23 @@ defmodule GroceryPlannerWeb.Plugs.ApiAuth do
       else
         _ ->
           conn
-          |> put_resp_content_type("application/json")
-          |> send_resp(:unauthorized, Jason.encode!(%{errors: [%{detail: "Unauthorized"}]}))
+          |> put_resp_content_type("application/vnd.api+json")
+          |> send_resp(
+            :unauthorized,
+            Jason.encode!(%{
+              errors: [
+                %{
+                  id: Ash.UUID.generate(),
+                  status: "401",
+                  code: "unauthorized",
+                  title: "Unauthorized",
+                  detail:
+                    "Authentication required. Provide a valid Bearer token in the Authorization header."
+                }
+              ],
+              jsonapi: %{version: "1.0"}
+            })
+          )
           |> halt()
       end
     end

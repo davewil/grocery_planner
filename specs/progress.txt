@@ -234,5 +234,38 @@
 6. **Cross-resource data derivation**: When creating a resource from another (InventoryEntry from ShoppingListItem), accept the source ID as an optional argument and derive values in a change module.
 
 ### Next priorities:
-- US-005: Consistent Error Responses
+- US-008: Offline Sync Support
+
+---
+
+## 2026-02-03: US-005 - Consistent Error Responses Implementation
+
+### What was implemented:
+- Updated `ApiAuth` plug to return proper JSON:API v1.0 formatted 401 errors
+- All error responses now follow JSON:API specification with required fields
+- Comprehensive behavioral tests covering all error scenarios
+
+### Key learnings:
+
+1. **JSON:API error format requirements**: JSON:API v1.0 requires error objects to include `status` as a string, not an integer. The full structure should be:
+   ```elixir
+   %{
+     errors: [%{id: "uuid", status: "401", code: "machine_code", title: "Title", detail: "Description"}],
+     jsonapi: %{version: "1.0"}
+   }
+   ```
+
+2. **Content-Type for JSON:API errors**: Error responses should use `application/vnd.api+json` content type, not just `application/json`.
+
+3. **AshJsonApi error handling**: AshJsonApi automatically handles validation (400), authorization (403), and not found (404) errors with proper JSON:API formatting. Custom plugs (like auth) need manual formatting.
+
+4. **Field-level validation errors**: AshJsonApi includes `source.pointer` in validation errors, pointing to the invalid field (e.g., `/data/attributes/name`).
+
+5. **Tenant isolation error behavior**: Multitenancy with attribute-based isolation returns empty results (200 with `[]`) or 404 when accessing cross-tenant resources, not 403. This is expected behavior.
+
+### Files changed:
+- `lib/grocery_planner_web/plugs/api_auth.ex` - Updated 401 error response to JSON:API format
+- `test/grocery_planner_web/controllers/api/error_responses_test.exs` - 10 behavioral tests for error responses
+
+### Next priorities:
 - US-008: Offline Sync Support

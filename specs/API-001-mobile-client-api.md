@@ -156,16 +156,24 @@ MealPlan (Aggregate Root)
 - Supports overriding derived values by providing them explicitly in the request
 - 9 behavioral tests covering all three custom actions (removed old RPC-style tests, added RESTful tests)
 
-### US-005: Consistent Error Responses
+### US-005: Consistent Error Responses ✅ IMPLEMENTED
 **As a** mobile app developer
 **I want** consistent JSON:API error responses
 **So that** I can handle errors predictably
 
 **Acceptance Criteria:**
-- [ ] All errors follow JSON:API error format
-- [ ] Validation errors include field-level details
-- [ ] Authorization failures return 403 with descriptive message
-- [ ] Not found errors return 404 with resource type
+- [x] All errors follow JSON:API error format
+- [x] Validation errors include field-level details
+- [x] Authorization failures return 403 with descriptive message
+- [x] Not found errors return 404 with resource type
+
+**Implementation Notes (2026-02-03):**
+- Updated `ApiAuth` plug to return JSON:API v1.0 formatted 401 errors (was returning non-standard format)
+- 401 errors now include: `id`, `status`, `code`, `title`, `detail`, and `jsonapi.version`
+- Content-Type header set to `application/vnd.api+json` for auth errors
+- AshJsonApi handles 400 validation errors with field-level pointers via `source.pointer`
+- AshJsonApi handles 404 not found errors with proper status and code fields
+- 10 behavioral tests covering all error response scenarios
 
 ### US-006: Manage Meal Plan Templates via API ✅ IMPLEMENTED
 **As a** mobile app user
