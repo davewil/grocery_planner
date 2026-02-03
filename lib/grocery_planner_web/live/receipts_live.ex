@@ -13,9 +13,6 @@ defmodule GroceryPlannerWeb.ReceiptsLive do
   on_mount({GroceryPlannerWeb.Auth, :require_authenticated_user})
 
   alias GroceryPlanner.Inventory
-  alias GroceryPlanner.AiClient
-
-  @poll_interval 2000
 
   @impl true
   def mount(_params, _session, socket) do
@@ -192,8 +189,8 @@ defmodule GroceryPlannerWeb.ReceiptsLive do
               class="flex items-center gap-4 p-4 hover:bg-base-200/50 transition-colors"
             >
               <div class="w-16 h-16 bg-base-200 rounded-lg flex items-center justify-center overflow-hidden">
-                <%= if receipt.image_path do %>
-                  <img src={receipt.image_path} class="w-full h-full object-cover" />
+                <%= if receipt.file_path do %>
+                  <img src={receipt.file_path} class="w-full h-full object-cover" />
                 <% else %>
                   <.icon name="hero-document-text" class="w-8 h-8 text-base-content/40" />
                 <% end %>
@@ -202,20 +199,20 @@ defmodule GroceryPlannerWeb.ReceiptsLive do
               <div class="flex-1 min-w-0">
                 <div class="flex items-center gap-2">
                   <p class="font-medium truncate">
-                    {receipt.merchant || "Unknown Merchant"}
+                    {receipt.merchant_name || "Unknown Merchant"}
                   </p>
                   <.status_badge status={receipt.status} />
                 </div>
                 <p class="text-sm text-base-content/70">
-                  <%= if receipt.scanned_date do %>
-                    {Calendar.strftime(receipt.scanned_date, "%B %d, %Y")}
+                  <%= if receipt.purchase_date do %>
+                    {Calendar.strftime(receipt.purchase_date, "%B %d, %Y")}
                   <% else %>
                     {Calendar.strftime(receipt.created_at, "%B %d, %Y at %I:%M %p")}
                   <% end %>
                 </p>
-                <%= if receipt.items && length(receipt.items) > 0 do %>
+                <%= if receipt.receipt_items && length(receipt.receipt_items) > 0 do %>
                   <p class="text-sm text-base-content/50">
-                    {length(receipt.items)} items
+                    {length(receipt.receipt_items)} items
                   </p>
                 <% end %>
               </div>
@@ -250,7 +247,7 @@ defmodule GroceryPlannerWeb.ReceiptsLive do
           <.icon name="hero-arrow-left" class="w-4 h-4" /> Back
         </.link>
         <h2 class="text-2xl font-bold">
-          {@receipt.merchant || "Receipt Details"}
+          {@receipt.merchant_name || "Receipt Details"}
         </h2>
         <.status_badge status={@receipt.status} />
       </div>
@@ -262,7 +259,7 @@ defmodule GroceryPlannerWeb.ReceiptsLive do
           <.processing_state message="Extracting items from receipt..." />
         <% :failed -> %>
           <.error_state message="Failed to process receipt. Please try again." />
-        <% status when status in [:review, :completed] -> %>
+        <% :completed -> %>
           <.review_panel receipt={@receipt} />
       <% end %>
     </div>
@@ -298,8 +295,8 @@ defmodule GroceryPlannerWeb.ReceiptsLive do
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
       <div class="bg-base-100 rounded-box shadow-sm border border-base-200 p-6">
         <h3 class="font-semibold mb-4">Receipt Image</h3>
-        <%= if @receipt.image_path do %>
-          <img src={@receipt.image_path} class="w-full rounded-lg" />
+        <%= if @receipt.file_path do %>
+          <img src={@receipt.file_path} class="w-full rounded-lg" />
         <% else %>
           <div class="bg-base-200 rounded-lg h-64 flex items-center justify-center">
             <.icon name="hero-photo" class="w-16 h-16 text-base-content/20" />
@@ -307,10 +304,10 @@ defmodule GroceryPlannerWeb.ReceiptsLive do
         <% end %>
 
         <div class="mt-4 space-y-2">
-          <%= if @receipt.scanned_date do %>
+          <%= if @receipt.purchase_date do %>
             <p class="text-sm">
               <span class="text-base-content/70">Date:</span>
-              {Calendar.strftime(@receipt.scanned_date, "%B %d, %Y")}
+              {Calendar.strftime(@receipt.purchase_date, "%B %d, %Y")}
             </p>
           <% end %>
           <%= if @receipt.total_amount do %>
@@ -326,24 +323,24 @@ defmodule GroceryPlannerWeb.ReceiptsLive do
         <div class="flex items-center justify-between mb-4">
           <h3 class="font-semibold">Extracted Items</h3>
           <span class="badge badge-ghost">
-            {length(@receipt.items || [])} items
+            {length(@receipt.receipt_items || [])} items
           </span>
         </div>
 
-        <%= if Enum.empty?(@receipt.items || []) do %>
+        <%= if Enum.empty?(@receipt.receipt_items || []) do %>
           <p class="text-base-content/70 text-center py-8">
             No items extracted
           </p>
         <% else %>
           <div class="space-y-3">
-            <%= for {item, index} <- Enum.with_index(@receipt.items || []) do %>
+            <%= for {item, index} <- Enum.with_index(@receipt.receipt_items || []) do %>
               <div class="flex items-center gap-3 p-3 bg-base-200/50 rounded-lg">
                 <div class="flex-1">
-                  <p class="font-medium">{item.name}</p>
+                  <p class="font-medium">{item.final_name || item.raw_name}</p>
                   <p class="text-sm text-base-content/70">
-                    {item.quantity} {item.unit}
-                    <%= if item.price do %>
-                      · {Money.to_string(item.price)}
+                    {item.final_quantity || item.quantity} {item.final_unit || item.unit}
+                    <%= if item.unit_price do %>
+                      · {Money.to_string(item.unit_price)}
                     <% end %>
                   </p>
                 </div>
@@ -362,7 +359,7 @@ defmodule GroceryPlannerWeb.ReceiptsLive do
           </div>
         <% end %>
 
-        <%= if @receipt.status == :review do %>
+        <%= if @receipt.status == :completed do %>
           <div class="mt-6 flex gap-2">
             <button phx-click="add_to_inventory" class="btn btn-primary flex-1">
               <.icon name="hero-plus" class="w-4 h-4 mr-2" /> Add to Inventory
@@ -384,7 +381,6 @@ defmodule GroceryPlannerWeb.ReceiptsLive do
       case assigns.status do
         :pending -> {"badge-ghost", "Pending"}
         :processing -> {"badge-info", "Processing"}
-        :review -> {"badge-warning", "Review"}
         :completed -> {"badge-success", "Completed"}
         :failed -> {"badge-error", "Failed"}
         _ -> {"badge-ghost", "Unknown"}
@@ -454,17 +450,14 @@ defmodule GroceryPlannerWeb.ReceiptsLive do
       end)
 
     case uploaded_files do
-      [image_path] ->
+      [file_path] ->
         # Create receipt record
         case Inventory.create_receipt(
                socket.assigns.current_account.id,
-               %{image_path: image_path},
+               %{file_path: file_path},
                actor: socket.assigns.current_user
              ) do
           {:ok, receipt} ->
-            # Submit to AI service for processing
-            socket = start_ocr_processing(socket, receipt)
-
             socket =
               socket
               |> assign(:uploading, false)
@@ -492,14 +485,22 @@ defmodule GroceryPlannerWeb.ReceiptsLive do
   def handle_event("remove_item", %{"index" => index}, socket) do
     index = String.to_integer(index)
     receipt = socket.assigns.selected_receipt
-    items = List.delete_at(receipt.items || [], index)
+    receipt_items = receipt.receipt_items || []
 
-    case Inventory.update_receipt(receipt, %{items: items}, actor: socket.assigns.current_user) do
-      {:ok, updated_receipt} ->
-        {:noreply, assign(socket, :selected_receipt, updated_receipt)}
+    if index >= 0 and index < length(receipt_items) do
+      item_to_remove = Enum.at(receipt_items, index)
 
-      {:error, _} ->
-        {:noreply, put_flash(socket, :error, "Failed to remove item")}
+      case Inventory.destroy_receipt_item(item_to_remove, actor: socket.assigns.current_user) do
+        :ok ->
+          # Reload the receipt with updated items
+          socket = load_receipt_detail(socket, receipt.id)
+          {:noreply, socket}
+
+        {:error, _} ->
+          {:noreply, put_flash(socket, :error, "Failed to remove item")}
+      end
+    else
+      {:noreply, socket}
     end
   end
 
@@ -511,35 +512,27 @@ defmodule GroceryPlannerWeb.ReceiptsLive do
 
     # Create inventory entries from receipt items
     results =
-      (receipt.items || [])
+      (receipt.receipt_items || [])
       |> Enum.map(fn item ->
-        create_inventory_entry_from_item(item, account_id, receipt.scanned_date, actor)
+        create_inventory_entry_from_item(item, account_id, receipt.purchase_date, actor)
       end)
 
     success_count = Enum.count(results, &match?({:ok, _}, &1))
     error_count = Enum.count(results, &match?({:error, _}, &1))
 
-    # Mark receipt as completed
-    case Inventory.update_receipt(receipt, %{status: :completed}, actor: actor) do
-      {:ok, updated_receipt} ->
-        message =
-          cond do
-            error_count == 0 -> "#{success_count} items added to inventory!"
-            success_count == 0 -> "Failed to add items to inventory"
-            true -> "#{success_count} items added, #{error_count} failed"
-          end
+    message =
+      cond do
+        error_count == 0 -> "#{success_count} items added to inventory!"
+        success_count == 0 -> "Failed to add items to inventory"
+        true -> "#{success_count} items added, #{error_count} failed"
+      end
 
-        socket =
-          socket
-          |> assign(:selected_receipt, updated_receipt)
-          |> load_receipts()
-          |> put_flash(if(error_count == 0, do: :info, else: :warning), message)
+    socket =
+      socket
+      |> load_receipts()
+      |> put_flash(if(error_count == 0, do: :info, else: :warning), message)
 
-        {:noreply, socket}
-
-      {:error, _} ->
-        {:noreply, put_flash(socket, :error, "Failed to update receipt")}
-    end
+    {:noreply, socket}
   end
 
   @impl true
@@ -564,32 +557,29 @@ defmodule GroceryPlannerWeb.ReceiptsLive do
   @impl true
   def handle_event("retry_processing", _, socket) do
     receipt = socket.assigns.selected_receipt
-    socket = start_ocr_processing(socket, receipt)
-    {:noreply, socket}
-  end
 
-  @impl true
-  def handle_info({:poll_job, job_id, receipt_id}, socket) do
-    context = %{
-      tenant_id: socket.assigns.current_account.id,
-      user_id: socket.assigns.current_user.id
-    }
+    # Reset receipt to pending status so AshOban will pick it up
+    case Inventory.update_receipt(receipt, %{status: :pending},
+           actor: socket.assigns.current_user
+         ) do
+      {:ok, updated_receipt} ->
+        socket =
+          socket
+          |> assign(:selected_receipt, updated_receipt)
+          |> put_flash(:info, "Receipt queued for reprocessing")
 
-    case AiClient.get_job(job_id, context) do
-      {:ok, %{"status" => "succeeded", "output_payload" => output}} ->
-        update_receipt_with_results(socket, receipt_id, output)
-
-      {:ok, %{"status" => "failed", "error_message" => error}} ->
-        mark_receipt_failed(socket, receipt_id, error)
-
-      {:ok, %{"status" => status}} when status in ["queued", "running"] ->
-        # Continue polling
-        Process.send_after(self(), {:poll_job, job_id, receipt_id}, @poll_interval)
         {:noreply, socket}
 
       {:error, _} ->
-        mark_receipt_failed(socket, receipt_id, "Connection error")
+        {:noreply, put_flash(socket, :error, "Failed to retry processing")}
     end
+  end
+
+  # Note: Polling is no longer needed as processing is handled by AshOban
+  # This function is kept for backward compatibility
+  @impl true
+  def handle_info({:poll_job, _job_id, _receipt_id}, socket) do
+    {:noreply, socket}
   end
 
   # Private helpers
@@ -607,12 +597,9 @@ defmodule GroceryPlannerWeb.ReceiptsLive do
   defp load_receipt_detail(socket, id) do
     case Inventory.get_receipt(id, actor: socket.assigns.current_user) do
       {:ok, receipt} ->
+        # Load receipt_items relationship
+        receipt = Ash.load!(receipt, :receipt_items)
         socket = assign(socket, :selected_receipt, receipt)
-
-        # If processing, start polling
-        if receipt.status == :processing && receipt.job_id do
-          Process.send_after(self(), {:poll_job, receipt.job_id, receipt.id}, @poll_interval)
-        end
 
         socket
 
@@ -620,127 +607,6 @@ defmodule GroceryPlannerWeb.ReceiptsLive do
         socket
         |> put_flash(:error, "Receipt not found")
         |> push_patch(to: ~p"/receipts")
-    end
-  end
-
-  defp start_ocr_processing(socket, receipt) do
-    context = %{
-      tenant_id: socket.assigns.current_account.id,
-      user_id: socket.assigns.current_user.id
-    }
-
-    # Read image and encode to base64
-    image_path =
-      Path.join([
-        :code.priv_dir(:grocery_planner),
-        "static",
-        String.trim_leading(receipt.image_path, "/")
-      ])
-
-    case File.read(image_path) do
-      {:ok, image_data} ->
-        image_base64 = Base.encode64(image_data)
-
-        case AiClient.submit_job("receipt_extraction", %{image_base64: image_base64}, context) do
-          {:ok, %{"job_id" => job_id}} ->
-            # Update receipt with job_id and status
-            {:ok, _} =
-              Inventory.update_receipt(
-                receipt,
-                %{
-                  status: :processing,
-                  job_id: job_id
-                },
-                actor: socket.assigns.current_user
-              )
-
-            # Start polling
-            Process.send_after(self(), {:poll_job, job_id, receipt.id}, @poll_interval)
-            socket
-
-          {:error, _} ->
-            Inventory.update_receipt(receipt, %{status: :failed},
-              actor: socket.assigns.current_user
-            )
-
-            put_flash(socket, :error, "Failed to start processing")
-        end
-
-      {:error, _} ->
-        Inventory.update_receipt(receipt, %{status: :failed}, actor: socket.assigns.current_user)
-        put_flash(socket, :error, "Failed to read image")
-    end
-  end
-
-  defp update_receipt_with_results(socket, receipt_id, output) do
-    items =
-      (output["items"] || [])
-      |> Enum.map(fn item ->
-        %{
-          name: item["name"],
-          quantity: item["quantity"],
-          unit: item["unit"],
-          price: if(item["price"], do: Money.new(:USD, item["price"]), else: nil),
-          confidence: item["confidence"]
-        }
-      end)
-
-    total_amount =
-      if output["total"] do
-        Money.new(:USD, output["total"])
-      end
-
-    updates = %{
-      status: :review,
-      items: items,
-      merchant: output["merchant"],
-      total_amount: total_amount,
-      scanned_date: parse_date(output["date"])
-    }
-
-    case Inventory.get_receipt(receipt_id, actor: socket.assigns.current_user) do
-      {:ok, receipt} ->
-        case Inventory.update_receipt(receipt, updates, actor: socket.assigns.current_user) do
-          {:ok, updated_receipt} ->
-            socket =
-              socket
-              |> assign(:selected_receipt, updated_receipt)
-              |> load_receipts()
-
-            {:noreply, socket}
-
-          {:error, _} ->
-            {:noreply, put_flash(socket, :error, "Failed to update receipt")}
-        end
-
-      {:error, _} ->
-        {:noreply, socket}
-    end
-  end
-
-  defp mark_receipt_failed(socket, receipt_id, _error) do
-    case Inventory.get_receipt(receipt_id, actor: socket.assigns.current_user) do
-      {:ok, receipt} ->
-        Inventory.update_receipt(receipt, %{status: :failed}, actor: socket.assigns.current_user)
-
-        socket =
-          socket
-          |> assign(:selected_receipt, %{receipt | status: :failed})
-          |> put_flash(:error, "Processing failed")
-
-        {:noreply, socket}
-
-      {:error, _} ->
-        {:noreply, socket}
-    end
-  end
-
-  defp parse_date(nil), do: nil
-
-  defp parse_date(date_string) do
-    case Date.from_iso8601(date_string) do
-      {:ok, date} -> date
-      _ -> nil
     end
   end
 
@@ -754,15 +620,18 @@ defmodule GroceryPlannerWeb.ReceiptsLive do
   defp error_to_string(err), do: "Error: #{inspect(err)}"
 
   defp create_inventory_entry_from_item(item, account_id, purchase_date, actor) do
+    # Use final_name if available (user-corrected), otherwise use raw_name
+    item_name = item.final_name || item.raw_name
+
     # Find or create a GroceryItem by name
     grocery_item =
-      case find_grocery_item_by_name(item.name, account_id, actor) do
+      case find_grocery_item_by_name(item_name, account_id, actor) do
         {:ok, existing} ->
           existing
 
         :not_found ->
           # Create new grocery item
-          case Inventory.create_grocery_item(account_id, %{name: item.name}, actor: actor) do
+          case Inventory.create_grocery_item(account_id, %{name: item_name}, actor: actor) do
             {:ok, new_item} -> new_item
             {:error, _} -> nil
           end
@@ -771,14 +640,14 @@ defmodule GroceryPlannerWeb.ReceiptsLive do
     if grocery_item do
       # Create inventory entry
       entry_attrs = %{
-        quantity: item.quantity || Decimal.new(1),
-        unit: item.unit,
-        purchase_price: item.price,
+        quantity: item.final_quantity || item.quantity || Decimal.new(1),
+        unit: item.final_unit || item.unit,
+        purchase_price: item.unit_price,
         purchase_date: purchase_date,
         grocery_item_id: grocery_item.id
       }
 
-      Inventory.create_inventory_entry(account_id, entry_attrs, actor: actor)
+      Inventory.create_inventory_entry(account_id, grocery_item.id, entry_attrs, actor: actor)
     else
       {:error, :no_grocery_item}
     end
