@@ -85,12 +85,17 @@ defmodule GroceryPlanner.Inventory.ReceiptProcessor do
   Returns {:ok, updated_receipt}.
   """
   def save_extraction_results(receipt, extraction) do
-    # Extract payload from the API response
-    payload = extraction["payload"] || %{}
+    # Handle both formats: nested format (with "extraction" key) and flat format (with "payload" key)
+    extraction_data = extraction["extraction"] || extraction["payload"] || %{}
 
-    # Parse flat response format from Python service
-    merchant_name = payload["merchant"]
-    total_amount = parse_flat_money(payload["total"])
+    # Parse extraction metadata
+    merchant_name = parse_merchant(extraction_data)
+    purchase_date = parse_purchase_date(extraction_data)
+    total_amount = parse_total_amount(extraction_data)
+    raw_ocr_text = extraction_data["raw_ocr_text"]
+    extraction_confidence = extraction_data["overall_confidence"]
+    model_version = extraction["model_version"]
+    processing_time_ms = extraction["processing_time_ms"]
 
     # Update receipt with extraction metadata
     {:ok, updated_receipt} =
@@ -99,43 +104,23 @@ defmodule GroceryPlanner.Inventory.ReceiptProcessor do
         %{
           status: :completed,
           merchant_name: merchant_name,
-          # Not provided in current API response
-          purchase_date: nil,
+          purchase_date: purchase_date,
           total_amount: total_amount,
-          # Not provided in current API response
-          raw_ocr_text: nil,
-          # Not provided in current API response
-          extraction_confidence: nil,
-          # Not provided in current API response
-          model_version: nil,
-          # Not provided in current API response
-          processing_time_ms: nil,
+          raw_ocr_text: raw_ocr_text,
+          extraction_confidence: extraction_confidence,
+          model_version: model_version,
+          processing_time_ms: processing_time_ms,
           processed_at: DateTime.utc_now()
         },
         authorize?: false,
         tenant: receipt.account_id
       )
 
-    # Create receipt items from flat items array
-    items = payload["items"] || []
+    # Create receipt items from either format
+    items = extraction_data["line_items"] || extraction_data["items"] || []
 
     Enum.each(items, fn item ->
-      Inventory.create_receipt_item(
-        updated_receipt.id,
-        receipt.account_id,
-        %{
-          raw_name: item["name"] || "Unknown",
-          quantity: parse_decimal(item["quantity"]),
-          unit: item["unit"],
-          unit_price: parse_flat_money(item["price"]),
-          total_price: parse_flat_money(item["price"], item["quantity"]),
-          # Not provided in current API response
-          confidence: nil,
-          final_name: item["name"]
-        },
-        authorize?: false,
-        tenant: receipt.account_id
-      )
+      create_receipt_item_from_extraction(item, updated_receipt, receipt.account_id)
     end)
 
     # Batch categorize extracted items (non-critical, async)
@@ -221,6 +206,61 @@ defmodule GroceryPlanner.Inventory.ReceiptProcessor do
 
   # --- Private Helpers ---
 
+  # Parse merchant from both nested format ({"merchant" => %{"name" => ...}}) and flat format ({"merchant" => "..."})
+  defp parse_merchant(%{"merchant" => %{"name" => name}}) when is_binary(name), do: name
+  defp parse_merchant(%{"merchant" => name}) when is_binary(name), do: name
+  defp parse_merchant(_), do: nil
+
+  # Parse purchase date from both formats
+  defp parse_purchase_date(%{"date" => %{"value" => date_string}}) when is_binary(date_string) do
+    parse_date(date_string)
+  end
+
+  defp parse_purchase_date(%{"date" => date_string}) when is_binary(date_string) do
+    parse_date(date_string)
+  end
+
+  defp parse_purchase_date(_), do: nil
+
+  # Parse total amount from both nested format ({"total" => %{"amount" => ..., "currency" => ...}}) and flat format ({"total" => number})
+  defp parse_total_amount(%{"total" => %{"amount" => amount, "currency" => currency}}) do
+    parse_money(%{"amount" => amount, "currency" => currency})
+  end
+
+  defp parse_total_amount(%{"total" => amount}) when is_number(amount) do
+    parse_flat_money(amount)
+  end
+
+  defp parse_total_amount(_), do: nil
+
+  # Create receipt item from extraction data, handling both line_items format and flat items format
+  defp create_receipt_item_from_extraction(item, receipt, account_id) do
+    # Handle nested format (line_items with parsed_name, unit_price, total_price, confidence)
+    raw_name = item["raw_text"] || item["name"] || "Unknown"
+    final_name = item["parsed_name"] || item["name"]
+    quantity = parse_decimal(item["quantity"])
+    unit = item["unit"]
+    unit_price = parse_money(item["unit_price"]) || parse_flat_money(item["price"])
+    total_price = parse_money(item["total_price"]) || parse_flat_money(item["price"], item["quantity"])
+    confidence = item["confidence"]
+
+    Inventory.create_receipt_item(
+      receipt.id,
+      account_id,
+      %{
+        raw_name: raw_name,
+        final_name: final_name,
+        quantity: quantity,
+        unit: unit,
+        unit_price: unit_price,
+        total_price: total_price,
+        confidence: confidence
+      },
+      authorize?: false,
+      tenant: account_id
+    )
+  end
+
   defp create_receipt(file_path, file_hash, file_size, mime_type, account) do
     Inventory.create_receipt(
       account.id,
@@ -276,14 +316,19 @@ defmodule GroceryPlanner.Inventory.ReceiptProcessor do
 
   defp parse_money(_), do: nil
 
+  # Single-argument parse_flat_money clauses (grouped together)
   defp parse_flat_money(nil), do: nil
-  defp parse_flat_money(nil, _quantity), do: nil
 
   defp parse_flat_money(amount) when is_number(amount) do
     Money.new(amount, :USD)
   rescue
     _ -> nil
   end
+
+  defp parse_flat_money(_), do: nil
+
+  # Two-argument parse_flat_money clauses (grouped together)
+  defp parse_flat_money(nil, _quantity), do: nil
 
   defp parse_flat_money(amount, quantity) when is_number(amount) and is_number(quantity) do
     Money.new(amount * quantity, :USD)
@@ -295,7 +340,6 @@ defmodule GroceryPlanner.Inventory.ReceiptProcessor do
     parse_flat_money(amount)
   end
 
-  defp parse_flat_money(_), do: nil
   defp parse_flat_money(_, _), do: nil
 
   defp parse_decimal(nil), do: nil
