@@ -80,7 +80,7 @@ config :grocery_planner, Oban,
   plugins: [{Oban.Plugins.Cron, []}],
   queues: [default: 10, ai_jobs: 5]
 
-config :ash_oban, :domains, [GroceryPlanner.Inventory]
+config :ash_oban, :domains, [GroceryPlanner.Inventory, GroceryPlanner.Recipes]
 
 # Configures the endpoint
 config :grocery_planner, GroceryPlannerWeb.Endpoint,

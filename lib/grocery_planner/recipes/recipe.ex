@@ -4,7 +4,7 @@ defmodule GroceryPlanner.Recipes.Recipe do
     domain: GroceryPlanner.Recipes,
     data_layer: AshPostgres.DataLayer,
     authorizers: [Ash.Policy.Authorizer],
-    extensions: [AshJsonApi.Resource]
+    extensions: [AshJsonApi.Resource, AshAi, AshOban]
 
   postgres do
     table "recipes"
@@ -21,6 +21,80 @@ defmodule GroceryPlanner.Recipes.Recipe do
       post(:create)
       patch(:update)
       delete(:destroy)
+    end
+  end
+
+  vectorize do
+    full_text do
+      text(fn recipe ->
+        ingredients =
+          case recipe do
+            %{recipe_ingredients: ingredients} when is_list(ingredients) ->
+              ingredients
+              |> Enum.map(fn ri ->
+                case ri do
+                  %{grocery_item: %{name: name}} -> name
+                  %{name: name} when is_binary(name) -> name
+                  _ -> nil
+                end
+              end)
+              |> Enum.reject(&is_nil/1)
+              |> Enum.join(", ")
+
+            _ ->
+              ""
+          end
+
+        dietary =
+          case recipe.dietary_needs do
+            needs when is_list(needs) -> Enum.map_join(needs, ", ", &to_string/1)
+            _ -> ""
+          end
+
+        [
+          recipe.name,
+          recipe.description,
+          if(ingredients != "", do: "Ingredients: #{ingredients}"),
+          if(recipe.cuisine, do: "Cuisine: #{recipe.cuisine}"),
+          if(dietary != "", do: "Dietary: #{dietary}"),
+          if(recipe.difficulty, do: "Difficulty: #{recipe.difficulty}"),
+          if(recipe.prep_time_minutes || recipe.cook_time_minutes,
+            do:
+              "Time: #{(recipe.prep_time_minutes || 0) + (recipe.cook_time_minutes || 0)} minutes"
+          )
+        ]
+        |> Enum.reject(&is_nil/1)
+        |> Enum.join(". ")
+      end)
+
+      used_attributes([
+        :name,
+        :description,
+        :cuisine,
+        :difficulty,
+        :dietary_needs,
+        :prep_time_minutes,
+        :cook_time_minutes
+      ])
+    end
+
+    strategy :ash_oban
+    embedding_model(GroceryPlanner.AI.EmbeddingModel)
+  end
+
+  oban do
+    triggers do
+      trigger :ash_ai_update_embeddings do
+        action :ash_ai_update_embeddings
+        worker_read_action(:read)
+        queue(:ai_jobs)
+        max_attempts(3)
+        worker_module_name(GroceryPlanner.Recipes.Recipe.AshOban.Worker.AshAiUpdateEmbeddings)
+
+        scheduler_module_name(
+          GroceryPlanner.Recipes.Recipe.AshOban.Scheduler.AshAiUpdateEmbeddings
+        )
+      end
     end
   end
 
@@ -154,6 +228,10 @@ defmodule GroceryPlanner.Recipes.Recipe do
   end
 
   policies do
+    bypass action(:ash_ai_update_embeddings) do
+      authorize_if always()
+    end
+
     policy action_type(:read) do
       authorize_if relates_to_actor_via([:account, :memberships, :user])
     end
@@ -273,6 +351,14 @@ defmodule GroceryPlanner.Recipes.Recipe do
       allow_nil? false
       public? true
     end
+
+    attribute :embedding, :vector do
+      constraints dimensions: 384
+    end
+
+    attribute :embedding_model, :string
+
+    attribute :embedding_updated_at, :utc_datetime
 
     create_timestamp :created_at
     update_timestamp :updated_at
