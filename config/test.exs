@@ -43,6 +43,10 @@ config :phoenix_live_view,
 config :grocery_planner, :the_meal_db_client, GroceryPlanner.External.TheMealDB
 config :grocery_planner, :the_meal_db_opts, plug: {Req.Test, GroceryPlanner.External.TheMealDB}
 
+# Global AI client test plug - enables Req.Test stubs for LiveView internal calls
+# Per-call plug: opts override this via Keyword.merge
+config :grocery_planner, :ai_client_opts, plug: {Req.Test, GroceryPlanner.AiClient}
+
 config :bcrypt_elixir, log_rounds: 1
 
 # Disable AI categorization in tests by default

@@ -2332,7 +2332,8 @@ defmodule GroceryPlannerWeb.InventoryLive do
             predicted_name,
             predicted_confidence,
             saved_category_name,
-            %{was_correction: was_correction, account_id: account_id},
+            was_correction: was_correction,
+            account_id: account_id,
             authorize?: false,
             tenant: account_id
           )

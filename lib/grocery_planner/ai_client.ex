@@ -78,7 +78,7 @@ defmodule GroceryPlanner.AiClient do
       batch_size: Keyword.get(opts, :batch_size, 32)
     }
 
-    post("/api/v1/embed-batch", payload, "embedding_batch", context, opts)
+    post("/api/v1/embed/batch", payload, "embedding_batch", context, opts)
   end
 
   @doc """
@@ -125,11 +125,22 @@ defmodule GroceryPlanner.AiClient do
   defp client(opts) do
     base_url = System.get_env("AI_SERVICE_URL") || @default_url
 
+    # In test env, merge global test plug config so LiveView internal calls
+    # (which don't pass plug: explicitly) still hit Req.Test stubs.
+    # Per-call opts override global config via Keyword.merge order.
+    global_opts =
+      case Application.get_env(:grocery_planner, :ai_client_opts) do
+        nil -> []
+        config when is_list(config) -> config
+        _ -> []
+      end
+
+    merged_opts = Keyword.merge(global_opts, opts)
+
     Req.new(base_url: base_url)
     |> Req.Request.put_header("content-type", "application/json")
-    # Set a reasonable timeout for AI operations (5s default, maybe more needed)
     |> Req.Request.put_option(:receive_timeout, 10_000)
-    |> Req.merge(opts)
+    |> Req.merge(merged_opts)
   end
 
   defp handle_response({:ok, %Req.Response{status: 200, body: body}}) do

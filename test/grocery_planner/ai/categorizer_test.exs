@@ -1,5 +1,5 @@
 defmodule GroceryPlanner.AI.CategorizerTest do
-  use ExUnit.Case, async: true
+  use ExUnit.Case, async: false
 
   alias GroceryPlanner.AI.Categorizer
   alias GroceryPlanner.AiClient

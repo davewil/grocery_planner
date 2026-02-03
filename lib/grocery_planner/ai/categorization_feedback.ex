@@ -31,9 +31,11 @@ defmodule GroceryPlanner.AI.CategorizationFeedback do
       argument :since, :utc_datetime, allow_nil?: true
 
       prepare fn query, _context ->
+        require Ash.Query
+
         case Ash.Changeset.get_argument(query, :since) do
           nil -> query
-          since -> Ash.Query.filter(query, expr(created_at >= ^since))
+          since -> Ash.Query.filter(query, created_at >= ^since)
         end
       end
     end

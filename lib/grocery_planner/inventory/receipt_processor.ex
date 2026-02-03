@@ -85,14 +85,12 @@ defmodule GroceryPlanner.Inventory.ReceiptProcessor do
   Returns {:ok, updated_receipt}.
   """
   def save_extraction_results(receipt, extraction) do
-    merchant_name = get_in(extraction, ["extraction", "merchant", "name"])
-    purchase_date = parse_date(get_in(extraction, ["extraction", "date", "value"]))
-    total = get_in(extraction, ["extraction", "total"])
-    total_amount = parse_money(total)
-    raw_ocr_text = get_in(extraction, ["extraction", "raw_ocr_text"])
-    overall_confidence = get_in(extraction, ["extraction", "overall_confidence"])
-    model_version = extraction["model_version"]
-    processing_time_ms = extraction["processing_time_ms"]
+    # Extract payload from the API response
+    payload = extraction["payload"] || %{}
+
+    # Parse flat response format from Python service
+    merchant_name = payload["merchant"]
+    total_amount = parse_flat_money(payload["total"])
 
     # Update receipt with extraction metadata
     {:ok, updated_receipt} =
@@ -101,38 +99,51 @@ defmodule GroceryPlanner.Inventory.ReceiptProcessor do
         %{
           status: :completed,
           merchant_name: merchant_name,
-          purchase_date: purchase_date,
+          # Not provided in current API response
+          purchase_date: nil,
           total_amount: total_amount,
-          raw_ocr_text: raw_ocr_text,
-          extraction_confidence: overall_confidence,
-          model_version: model_version,
-          processing_time_ms: processing_time_ms,
+          # Not provided in current API response
+          raw_ocr_text: nil,
+          # Not provided in current API response
+          extraction_confidence: nil,
+          # Not provided in current API response
+          model_version: nil,
+          # Not provided in current API response
+          processing_time_ms: nil,
           processed_at: DateTime.utc_now()
         },
         authorize?: false,
         tenant: receipt.account_id
       )
 
-    # Create receipt items from line items
-    line_items = get_in(extraction, ["extraction", "line_items"]) || []
+    # Create receipt items from flat items array
+    items = payload["items"] || []
 
-    Enum.each(line_items, fn item ->
+    Enum.each(items, fn item ->
       Inventory.create_receipt_item(
         updated_receipt.id,
         receipt.account_id,
         %{
-          raw_name: item["raw_text"] || item["parsed_name"] || "Unknown",
+          raw_name: item["name"] || "Unknown",
           quantity: parse_decimal(item["quantity"]),
           unit: item["unit"],
-          unit_price: parse_money(item["unit_price"]),
-          total_price: parse_money(item["total_price"]),
-          confidence: item["confidence"],
-          final_name: item["parsed_name"]
+          unit_price: parse_flat_money(item["price"]),
+          total_price: parse_flat_money(item["price"], item["quantity"]),
+          # Not provided in current API response
+          confidence: nil,
+          final_name: item["name"]
         },
         authorize?: false,
         tenant: receipt.account_id
       )
     end)
+
+    # Batch categorize extracted items (non-critical, async)
+    if GroceryPlanner.AI.Categorizer.enabled?() do
+      Task.start(fn ->
+        categorize_extracted_items(updated_receipt, receipt.account_id)
+      end)
+    end
 
     {:ok, updated_receipt}
   end
@@ -160,6 +171,52 @@ defmodule GroceryPlanner.Inventory.ReceiptProcessor do
       error ->
         error
     end
+  end
+
+  @doc """
+  Batch-categorizes extracted receipt items using AI.
+  Returns {:ok, predictions} or {:error, reason}.
+  Non-critical - failures are logged but don't affect receipt processing.
+  """
+  def categorize_extracted_items(receipt, account_id) do
+    alias GroceryPlanner.AI.Categorizer
+
+    with {:ok, items} <-
+           Inventory.list_receipt_items_for_receipt(receipt.id,
+             authorize?: false,
+             tenant: account_id
+           ) do
+      item_names = Enum.map(items, & &1.raw_name)
+
+      if item_names == [] do
+        {:ok, []}
+      else
+        opts = [
+          tenant_id: account_id,
+          user_id: "system"
+        ]
+
+        case Categorizer.predict_batch(item_names, opts) do
+          {:ok, predictions} ->
+            Logger.info(
+              "Batch categorized #{length(predictions)} receipt items for receipt #{receipt.id}"
+            )
+
+            {:ok, predictions}
+
+          {:error, reason} ->
+            Logger.warning(
+              "Batch categorization failed for receipt #{receipt.id}: #{inspect(reason)}"
+            )
+
+            {:error, reason}
+        end
+      end
+    end
+  rescue
+    e ->
+      Logger.warning("Batch categorization error for receipt #{receipt.id}: #{inspect(e)}")
+      {:error, :categorization_failed}
   end
 
   # --- Private Helpers ---
@@ -218,6 +275,28 @@ defmodule GroceryPlanner.Inventory.ReceiptProcessor do
   end
 
   defp parse_money(_), do: nil
+
+  defp parse_flat_money(nil), do: nil
+  defp parse_flat_money(nil, _quantity), do: nil
+
+  defp parse_flat_money(amount) when is_number(amount) do
+    Money.new(amount, :USD)
+  rescue
+    _ -> nil
+  end
+
+  defp parse_flat_money(amount, quantity) when is_number(amount) and is_number(quantity) do
+    Money.new(amount * quantity, :USD)
+  rescue
+    _ -> nil
+  end
+
+  defp parse_flat_money(amount, _quantity) when is_number(amount) do
+    parse_flat_money(amount)
+  end
+
+  defp parse_flat_money(_), do: nil
+  defp parse_flat_money(_, _), do: nil
 
   defp parse_decimal(nil), do: nil
   defp parse_decimal(val) when is_number(val), do: Decimal.new("#{val}")
