@@ -64,7 +64,10 @@ defmodule GroceryPlannerWeb.Api.InventoryEntryTest do
       grocery_item: item
     } do
       other_item = create_grocery_item(account, user, %{name: "Other Item"})
-      _other_entry = create_inventory_entry(account, user, other_item, %{quantity: Decimal.new("10")})
+
+      _other_entry =
+        create_inventory_entry(account, user, other_item, %{quantity: Decimal.new("10")})
+
       our_entry = create_inventory_entry(account, user, item, %{quantity: Decimal.new("3")})
 
       conn =
@@ -87,8 +90,17 @@ defmodule GroceryPlannerWeb.Api.InventoryEntryTest do
       user: user,
       grocery_item: item
     } do
-      _available_entry = create_inventory_entry(account, user, item, %{quantity: Decimal.new("1"), status: :available})
-      _expired_entry = create_inventory_entry(account, user, item, %{quantity: Decimal.new("2"), status: :expired})
+      _available_entry =
+        create_inventory_entry(account, user, item, %{
+          quantity: Decimal.new("1"),
+          status: :available
+        })
+
+      _expired_entry =
+        create_inventory_entry(account, user, item, %{
+          quantity: Decimal.new("2"),
+          status: :expired
+        })
 
       conn =
         conn
