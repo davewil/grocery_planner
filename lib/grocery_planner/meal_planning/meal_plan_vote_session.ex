@@ -3,15 +3,33 @@ defmodule GroceryPlanner.MealPlanning.MealPlanVoteSession do
   use Ash.Resource,
     domain: GroceryPlanner.MealPlanning,
     data_layer: AshPostgres.DataLayer,
-    authorizers: [Ash.Policy.Authorizer]
+    authorizers: [Ash.Policy.Authorizer],
+    extensions: [AshJsonApi.Resource]
 
   postgres do
     table "meal_plan_vote_sessions"
     repo GroceryPlanner.Repo
   end
 
+  json_api do
+    type "vote_session"
+
+    routes do
+      base("/vote_sessions")
+
+      index :read
+      get(:read)
+      post(:create_from_api)
+      patch(:update)
+      delete(:destroy)
+
+      # Custom action to close voting
+      patch(:close, route: "/:id/close")
+    end
+  end
+
   actions do
-    defaults [:read]
+    defaults [:read, :destroy]
 
     create :start do
       accept []
@@ -19,6 +37,16 @@ defmodule GroceryPlanner.MealPlanning.MealPlanVoteSession do
       argument :account_id, :uuid, allow_nil?: false
 
       change manage_relationship(:account_id, :account, type: :append)
+      change {GroceryPlanner.MealPlanning.MealPlanVoteSession.SetEndsAt, []}
+      change {GroceryPlanner.MealPlanning.MealPlanVoteSession.EnsureNoOpenSession, []}
+    end
+
+    create :create_from_api do
+      accept []
+
+      argument :account_id, :uuid, allow_nil?: false, public?: true
+
+      change set_attribute(:account_id, arg(:account_id))
       change {GroceryPlanner.MealPlanning.MealPlanVoteSession.SetEndsAt, []}
       change {GroceryPlanner.MealPlanning.MealPlanVoteSession.EnsureNoOpenSession, []}
     end
@@ -50,7 +78,11 @@ defmodule GroceryPlanner.MealPlanning.MealPlanVoteSession do
       authorize_if actor_present()
     end
 
-    policy action_type([:update]) do
+    policy action(:create_from_api) do
+      authorize_if actor_present()
+    end
+
+    policy action_type([:update, :destroy]) do
       authorize_if relates_to_actor_via([:account, :memberships, :user])
     end
   end

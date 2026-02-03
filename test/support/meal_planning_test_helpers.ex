@@ -117,4 +117,29 @@ defmodule GroceryPlanner.MealPlanningTestHelpers do
 
     entry
   end
+
+  def create_vote_session(account, user) do
+    {:ok, session} =
+      GroceryPlanner.MealPlanning.create_vote_session_from_api(
+        account.id,
+        actor: user,
+        tenant: account.id
+      )
+
+    session
+  end
+
+  def create_vote_entry(account, user, session, recipe) do
+    {:ok, entry} =
+      GroceryPlanner.MealPlanning.create_vote_entry(
+        account.id,
+        session.id,
+        recipe.id,
+        user.id,
+        actor: user,
+        tenant: account.id
+      )
+
+    entry
+  end
 end

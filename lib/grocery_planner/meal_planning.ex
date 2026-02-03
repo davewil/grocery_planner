@@ -45,10 +45,13 @@ defmodule GroceryPlanner.MealPlanning do
 
     resource GroceryPlanner.MealPlanning.MealPlanVoteSession do
       define :create_vote_session, action: :start, args: [:account_id]
+      define :create_vote_session_from_api, action: :create_from_api, args: [:account_id]
       define :list_vote_sessions, action: :read
       define :get_vote_session, action: :read, get_by: [:id]
       define :update_vote_session, action: :update
+      define :close_vote_session, action: :close
       define :mark_session_processed, action: :mark_processed
+      define :destroy_vote_session, action: :destroy
     end
 
     resource GroceryPlanner.MealPlanning.MealPlanVoteEntry do
@@ -56,7 +59,9 @@ defmodule GroceryPlanner.MealPlanning do
         action: :vote,
         args: [:account_id, :vote_session_id, :recipe_id, :user_id]
 
+      define :create_vote_entry_from_api, action: :create_from_api, args: [:vote_session_id]
       define :list_vote_entries, action: :read
+      define :list_vote_entries_by_session, action: :list_by_session, args: [:vote_session_id]
       define :list_entries_for_session, action: :by_session, args: [:vote_session_id]
       define :destroy_vote_entry, action: :destroy
     end

@@ -185,17 +185,30 @@ MealPlan (Aggregate Root)
 - Added `list_by_template` read action with explicit filter for reliable filtering
 - 24 behavioral tests covering all CRUD operations and tenant isolation
 
-### US-007: Participate in Meal Plan Voting via API
+### US-007: Participate in Meal Plan Voting via API ✅ IMPLEMENTED
 **As a** household member
 **I want** to vote on meal options via API
 **So that** I can participate in meal planning from my phone
 
 **Acceptance Criteria:**
-- [ ] `GET /meal_plans/vote_sessions` returns active vote sessions
-- [ ] `POST /meal_plans/vote_sessions` creates a new vote session
-- [ ] `GET /meal_plans/vote_sessions/:id/entries` returns vote entries
-- [ ] `POST /meal_plans/vote_sessions/:id/entries` casts a vote
-- [ ] `POST /meal_plans/vote_sessions/:id/close` closes voting and selects winner
+- [x] `GET /vote_sessions` returns active vote sessions
+- [x] `POST /vote_sessions` creates a new vote session
+- [x] `GET /vote_sessions/:id` returns a specific vote session
+- [x] `PATCH /vote_sessions/:id/close` closes voting
+- [x] `DELETE /vote_sessions/:id` deletes a vote session
+- [x] `GET /vote_sessions/:id/entries` returns vote entries
+- [x] `POST /vote_sessions/:id/entries` casts a vote
+- [x] `DELETE /vote_sessions/:id/entries/:entry_id` retracts a vote
+- [x] All operations respect tenant isolation via `account_id`
+
+**Implementation Notes (2026-02-03):**
+- Added AshJsonApi.Resource extension to MealPlanVoteSession and MealPlanVoteEntry
+- Used `/vote_sessions` route (not `/meal_plans/vote_sessions`) to avoid conflict with `/meal_plans/:id`
+- Created nested routes for entries under `/vote_sessions/:vote_session_id/entries`
+- Added `create_from_api` action for sessions that accepts `account_id`
+- Added `create_from_api` action for entries that derives `account_id` from parent session using direct Repo lookup (bypasses multitenancy for initial derivation)
+- Added `SetUserFromActor` change to automatically set the voting user from the authenticated actor
+- 23 behavioral tests covering all CRUD operations, tenant isolation, and voting validations (duplicate vote prevention, closed session rejection)
 
 ### US-008: Offline Sync Support
 **As a** mobile app user

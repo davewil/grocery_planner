@@ -128,4 +128,70 @@
 - `test/grocery_planner_web/controllers/api/meal_plan_template_entry_test.exs` - 11 behavioral tests
 
 ### Next priorities:
-- US-007: MealPlan voting endpoints
+- US-004: Atomic Operations with Side Effects
+- US-005: Consistent Error Responses
+- US-008: Offline Sync Support
+
+---
+
+## 2026-02-03: US-007 - MealPlanVoteSession & MealPlanVoteEntry JSON:API Implementation
+
+### What was implemented:
+- Added AshJsonApi.Resource extension to MealPlanVoteSession resource
+- Created routes at `/api/json/vote_sessions` (not `/meal_plans/vote_sessions` to avoid route conflict)
+- Implemented endpoints: GET (index), GET (show), POST (create), PATCH (update), DELETE (destroy)
+- Added custom action route: `PATCH /vote_sessions/:id/close`
+- Added AshJsonApi.Resource extension to MealPlanVoteEntry resource
+- Created nested routes under `/api/json/vote_sessions/:vote_session_id/entries`
+- Implemented endpoints: GET (index), GET (show), POST (create), DELETE (destroy)
+- Created `create_from_api` actions for both resources
+
+### Key learnings:
+
+1. **Bypassing multitenancy for parent derivation**: When a child resource needs to derive its `account_id` from a parent, and the parent uses attribute-based multitenancy, direct Ash queries fail because there's no tenant context yet. Solution: use `Repo.get/2` directly to bypass Ash's multitenancy layer for the initial lookup:
+   ```elixir
+   case GroceryPlanner.Repo.get(ParentResource, parent_id) do
+     nil -> add_error(...)
+     parent -> change_attribute(:account_id, parent.account_id)
+   end
+   ```
+
+2. **Setting user from actor in API actions**: For actions where the user should be derived from the authenticated actor (like voting), use a simple change module:
+   ```elixir
+   defmodule SetUserFromActor do
+     use Ash.Resource.Change
+     def change(changeset, _opts, context) do
+       case context.actor do
+         %{id: user_id} -> change_attribute(changeset, :user_id, user_id)
+         _ -> add_error(changeset, ...)
+       end
+     end
+   end
+   ```
+
+3. **Nil-safe validation changes**: When validation changes run before all attributes are set (e.g., checking uniqueness before `account_id` is derived), guard with nil checks:
+   ```elixir
+   if is_nil(account_id) or is_nil(other_field) do
+     changeset  # Skip check, validation will catch missing required fields
+   else
+     # Perform validation
+   end
+   ```
+
+4. **Multiple change modules for API creates**: Complex API create actions often need multiple change modules in order:
+   - `DeriveFromSession` - Get tenant from parent
+   - `SetUserFromActor` - Get user from auth context
+   - `EnsureSessionOpenForApi` - Business validation
+   - `EnsureUniqueVoteForApi` - Uniqueness validation
+
+5. **Policy pattern for API creates**: Use `authorize_if actor_present()` for API create actions since:
+   - Tenant isolation is handled by the `account_id` derivation from parent
+   - Parent lookup validates access to the parent resource
+
+### Files changed:
+- `lib/grocery_planner/meal_planning/meal_plan_vote_session.ex` - Added AshJsonApi extension, routes, create_from_api action
+- `lib/grocery_planner/meal_planning/meal_plan_vote_entry.ex` - Added AshJsonApi extension, routes, create_from_api action with 4 new change modules
+- `lib/grocery_planner/meal_planning.ex` - Added domain code interface definitions
+- `test/support/meal_planning_test_helpers.ex` - Added vote session and entry helpers
+- `test/grocery_planner_web/controllers/api/vote_session_test.exs` - 11 behavioral tests
+- `test/grocery_planner_web/controllers/api/vote_entry_test.exs` - 12 behavioral tests
