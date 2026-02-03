@@ -20,6 +20,7 @@ defmodule GroceryPlanner.Inventory.Receipt do
         action :process
         where expr(status == :pending)
         max_attempts(3)
+        read_action(:pending_for_scheduler)
         worker_read_action(:read)
         on_error(:on_process_error)
         scheduler_cron("* * * * *")
@@ -44,6 +45,12 @@ defmodule GroceryPlanner.Inventory.Receipt do
 
     read :list_all do
       prepare build(sort: [created_at: :desc])
+    end
+
+    read :pending_for_scheduler do
+      multitenancy :allow_global
+      filter expr(status == :pending)
+      pagination keyset?: true
     end
 
     read :find_by_hash do
