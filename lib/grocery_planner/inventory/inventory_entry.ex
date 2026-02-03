@@ -118,7 +118,8 @@ defmodule GroceryPlanner.Inventory.InventoryEntry do
         quantity = changeset.attributes[:quantity]
 
         if is_nil(shopping_list_item_id) and is_nil(quantity) do
-          {:error, field: :quantity, message: "is required when shopping_list_item_id is not provided"}
+          {:error,
+           field: :quantity, message: "is required when shopping_list_item_id is not provided"}
         else
           :ok
         end
@@ -149,7 +150,11 @@ defmodule GroceryPlanner.Inventory.InventoryEntry do
                     # Check both the changeset arguments and attributes to see if they were provided
                     changeset =
                       if is_nil(changeset.attributes[:quantity]) do
-                        Ash.Changeset.change_attribute(changeset, :quantity, shopping_list_item.quantity)
+                        Ash.Changeset.change_attribute(
+                          changeset,
+                          :quantity,
+                          shopping_list_item.quantity
+                        )
                       else
                         changeset
                       end
@@ -163,14 +168,22 @@ defmodule GroceryPlanner.Inventory.InventoryEntry do
 
                     changeset =
                       if is_nil(changeset.attributes[:purchase_price]) do
-                        Ash.Changeset.change_attribute(changeset, :purchase_price, shopping_list_item.price)
+                        Ash.Changeset.change_attribute(
+                          changeset,
+                          :purchase_price,
+                          shopping_list_item.price
+                        )
                       else
                         changeset
                       end
 
                     changeset =
                       if is_nil(changeset.attributes[:notes]) do
-                        Ash.Changeset.change_attribute(changeset, :notes, shopping_list_item.notes)
+                        Ash.Changeset.change_attribute(
+                          changeset,
+                          :notes,
+                          shopping_list_item.notes
+                        )
                       else
                         changeset
                       end

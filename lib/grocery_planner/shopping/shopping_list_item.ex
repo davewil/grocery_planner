@@ -145,7 +145,6 @@ defmodule GroceryPlanner.Shopping.ShoppingListItem do
 
       require_atomic? false
     end
-
   end
 
   policies do
@@ -160,7 +159,6 @@ defmodule GroceryPlanner.Shopping.ShoppingListItem do
     policy action_type([:update, :destroy]) do
       authorize_if relates_to_actor_via([:account, :memberships, :user])
     end
-
   end
 
   multitenancy do
