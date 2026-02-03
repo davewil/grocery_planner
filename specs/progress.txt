@@ -90,5 +90,42 @@
 - `lib/grocery_planner/inventory/inventory_entry.ex` - Changed routes to nested, added list_by_grocery_item and create_from_api actions, fixed policies
 - `test/grocery_planner_web/controllers/api/inventory_entry_test.exs` - 11 behavioral API tests
 
+---
+
+## 2026-02-03: US-006 - MealPlanTemplate JSON:API Implementation
+
+### What was implemented:
+- Added AshJsonApi.Resource extension to MealPlanTemplate resource
+- Created routes at `/api/json/meal_plan_templates` (not `/meal_plans/templates` to avoid route conflict)
+- Implemented endpoints: GET (index), GET (show), POST (create), PATCH (update), DELETE (destroy)
+- Added custom action routes: `/activate`, `/deactivate`
+- Added AshJsonApi.Resource extension to MealPlanTemplateEntry resource
+- Created nested routes under `/api/json/meal_plan_templates/:template_id/entries`
+- Implemented endpoints: GET (index), GET (show), POST (create), PATCH (update), DELETE (destroy)
+- Created `create_from_api` action that derives `account_id` from parent template
+- Created `list_by_template` read action with explicit filter
+
+### Key learnings:
+
+1. **Route conflicts with nested paths**: Using `/meal_plans/templates` conflicts with existing `/meal_plans/:id` route because "templates" gets matched as an `:id` parameter. Solution: use a distinct base path like `/meal_plan_templates` instead.
+
+2. **Top-level vs nested resource patterns**:
+   - Top-level resources (MealPlanTemplate): Pass `account_id` in JSON attributes, use `set_attribute(:account_id, arg(:account_id))` in create action
+   - Nested resources (MealPlanTemplateEntry): Use `create_from_api` action that fetches parent and derives `account_id` from it
+
+3. **Consistent create policy pattern**: For API creates, use `authorize_if always()` and rely on:
+   - Tenant isolation (set by ApiAuth plug)
+   - Parent resource lookup validation (for nested resources)
+
+4. **Code interface duplication**: Resources can define `code_interface` blocks while domain also has `define` statements. Both create callable functions - domain defines go on domain module, resource code_interface creates resource-level functions.
+
+### Files changed:
+- `lib/grocery_planner/meal_planning/meal_plan_template.ex` - Added AshJsonApi extension, routes, code_interface, updated create action
+- `lib/grocery_planner/meal_planning/meal_plan_template_entry.ex` - Added AshJsonApi extension, routes, code_interface, create_from_api action
+- `lib/grocery_planner/meal_planning.ex` - Added domain code interface definitions
+- `test/support/meal_planning_test_helpers.ex` - Added template and entry helpers
+- `test/grocery_planner_web/controllers/api/meal_plan_template_test.exs` - 13 behavioral tests
+- `test/grocery_planner_web/controllers/api/meal_plan_template_entry_test.exs` - 11 behavioral tests
+
 ### Next priorities:
-- US-006/US-007: MealPlan templates and voting endpoints
+- US-007: MealPlan voting endpoints

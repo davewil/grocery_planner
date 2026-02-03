@@ -158,17 +158,32 @@ MealPlan (Aggregate Root)
 - [ ] Authorization failures return 403 with descriptive message
 - [ ] Not found errors return 404 with resource type
 
-### US-006: Manage Meal Plan Templates via API
+### US-006: Manage Meal Plan Templates via API ✅ IMPLEMENTED
 **As a** mobile app user
 **I want** to create and manage meal plan templates via API
 **So that** I can set up weekly meal patterns from my phone
 
 **Acceptance Criteria:**
-- [ ] `GET /meal_plans/templates` returns all templates for account
-- [ ] `POST /meal_plans/templates` creates a new template
-- [ ] `GET /meal_plans/templates/:id/entries` returns template entries
-- [ ] `POST /meal_plans/templates/:id/entries` adds an entry to template
-- [ ] `POST /meal_plans/templates/:id/apply` creates meal plans from template
+- [x] `GET /meal_plan_templates` returns all templates for account
+- [x] `POST /meal_plan_templates` creates a new template
+- [x] `GET /meal_plan_templates/:id` returns a specific template
+- [x] `PATCH /meal_plan_templates/:id` updates a template
+- [x] `DELETE /meal_plan_templates/:id` deletes a template
+- [x] `PATCH /meal_plan_templates/:id/activate` activates a template
+- [x] `PATCH /meal_plan_templates/:id/deactivate` deactivates a template
+- [x] `GET /meal_plan_templates/:id/entries` returns template entries
+- [x] `POST /meal_plan_templates/:id/entries` adds an entry to template
+- [x] `PATCH /meal_plan_templates/:id/entries/:entry_id` updates an entry
+- [x] `DELETE /meal_plan_templates/:id/entries/:entry_id` removes an entry
+- [ ] `POST /meal_plan_templates/:id/apply` creates meal plans from template (future)
+
+**Implementation Notes (2026-02-03):**
+- Added AshJsonApi.Resource extension to MealPlanTemplate and MealPlanTemplateEntry
+- Used `/meal_plan_templates` route (not `/meal_plans/templates`) to avoid conflict with `/meal_plans/:id`
+- Created nested routes for entries under `/meal_plan_templates/:template_id/entries`
+- Added `create_from_api` action for entries that derives `account_id` from parent template
+- Added `list_by_template` read action with explicit filter for reliable filtering
+- 24 behavioral tests covering all CRUD operations and tenant isolation
 
 ### US-007: Participate in Meal Plan Voting via API
 **As a** household member

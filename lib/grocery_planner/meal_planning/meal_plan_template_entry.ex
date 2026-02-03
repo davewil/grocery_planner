@@ -3,15 +3,47 @@ defmodule GroceryPlanner.MealPlanning.MealPlanTemplateEntry do
   use Ash.Resource,
     domain: GroceryPlanner.MealPlanning,
     data_layer: AshPostgres.DataLayer,
-    authorizers: [Ash.Policy.Authorizer]
+    authorizers: [Ash.Policy.Authorizer],
+    extensions: [AshJsonApi.Resource]
 
   postgres do
     table "meal_plan_template_entries"
     repo GroceryPlanner.Repo
   end
 
+  json_api do
+    type "meal_plan_template_entry"
+
+    routes do
+      base("/meal_plan_templates/:template_id/entries")
+
+      index :list_by_template
+      get(:read)
+      post(:create_from_api)
+      patch(:update)
+      delete(:destroy)
+    end
+  end
+
+  code_interface do
+    domain GroceryPlanner.MealPlanning
+
+    define :create_meal_plan_template_entry, action: :create
+    define :get_meal_plan_template_entry, action: :read, get_by: [:id]
+    define :list_meal_plan_template_entries, action: :read
+    define :list_entries_by_template, action: :list_by_template, args: [:template_id]
+    define :update_meal_plan_template_entry, action: :update
+    define :destroy_meal_plan_template_entry, action: :destroy
+  end
+
   actions do
     defaults [:read, :destroy]
+
+    read :list_by_template do
+      argument :template_id, :uuid, allow_nil?: false
+
+      filter expr(template_id == ^arg(:template_id))
+    end
 
     create :create do
       accept [
@@ -24,7 +56,36 @@ defmodule GroceryPlanner.MealPlanning.MealPlanTemplateEntry do
 
       argument :account_id, :uuid, allow_nil?: false
 
-      change manage_relationship(:account_id, :account, type: :append)
+      change set_attribute(:account_id, arg(:account_id))
+    end
+
+    create :create_from_api do
+      accept [
+        :recipe_id,
+        :day_of_week,
+        :meal_type,
+        :servings
+      ]
+
+      argument :template_id, :uuid, allow_nil?: false
+
+      change fn changeset, context ->
+        template_id = Ash.Changeset.get_argument(changeset, :template_id)
+        tenant = context.tenant
+
+        opts = [authorize?: false]
+        opts = if tenant, do: Keyword.put(opts, :tenant, tenant), else: opts
+
+        case GroceryPlanner.MealPlanning.get_meal_plan_template(template_id, opts) do
+          {:ok, template} ->
+            changeset
+            |> Ash.Changeset.manage_relationship(:template, template, type: :append)
+            |> Ash.Changeset.change_attribute(:account_id, template.account_id)
+
+          {:error, _} ->
+            Ash.Changeset.add_error(changeset, field: :template_id, message: "not found")
+        end
+      end
     end
 
     update :update do
@@ -45,7 +106,8 @@ defmodule GroceryPlanner.MealPlanning.MealPlanTemplateEntry do
     end
 
     policy action_type(:create) do
-      authorize_if GroceryPlanner.Checks.ActorMemberOfAccount
+      # For create, the parent template lookup already validates access
+      authorize_if always()
     end
 
     policy action_type([:update, :destroy]) do

@@ -78,4 +78,43 @@ defmodule GroceryPlanner.MealPlanningTestHelpers do
 
     meal_plan
   end
+
+  def create_meal_plan_template(account, user, attrs \\ %{}) do
+    default_attrs = %{
+      name: "Test Template #{System.unique_integer()}",
+      is_active: false
+    }
+
+    attrs = Map.merge(default_attrs, attrs)
+
+    {:ok, template} =
+      GroceryPlanner.MealPlanning.MealPlanTemplate
+      |> Ash.Changeset.new()
+      |> Ash.Changeset.set_argument(:account_id, account.id)
+      |> Ash.Changeset.for_create(:create, attrs)
+      |> Ash.create(actor: user, tenant: account.id)
+
+    template
+  end
+
+  def create_meal_plan_template_entry(account, user, template, recipe, attrs \\ %{}) do
+    default_attrs = %{
+      template_id: template.id,
+      recipe_id: recipe.id,
+      day_of_week: 0,
+      meal_type: :dinner,
+      servings: 4
+    }
+
+    attrs = Map.merge(default_attrs, attrs)
+
+    {:ok, entry} =
+      GroceryPlanner.MealPlanning.MealPlanTemplateEntry
+      |> Ash.Changeset.new()
+      |> Ash.Changeset.set_argument(:account_id, account.id)
+      |> Ash.Changeset.for_create(:create, attrs)
+      |> Ash.create(actor: user, tenant: account.id)
+
+    entry
+  end
 end

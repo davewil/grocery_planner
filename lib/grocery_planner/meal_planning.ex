@@ -26,6 +26,9 @@ defmodule GroceryPlanner.MealPlanning do
 
     resource GroceryPlanner.MealPlanning.MealPlanTemplate do
       define :create_meal_plan_template, action: :create, args: [:account_id]
+      define :get_meal_plan_template, action: :read, get_by: [:id]
+      define :update_meal_plan_template, action: :update
+      define :destroy_meal_plan_template, action: :destroy
       define :activate_meal_plan_template, action: :activate
       define :deactivate_meal_plan_template, action: :deactivate
       define :list_meal_plan_templates, action: :read
@@ -33,7 +36,11 @@ defmodule GroceryPlanner.MealPlanning do
 
     resource GroceryPlanner.MealPlanning.MealPlanTemplateEntry do
       define :create_meal_plan_template_entry, action: :create, args: [:account_id]
+      define :get_meal_plan_template_entry, action: :read, get_by: [:id]
       define :list_meal_plan_template_entries, action: :read
+      define :list_entries_by_template, action: :list_by_template, args: [:template_id]
+      define :update_meal_plan_template_entry, action: :update
+      define :destroy_meal_plan_template_entry, action: :destroy
     end
 
     resource GroceryPlanner.MealPlanning.MealPlanVoteSession do
