@@ -93,6 +93,8 @@ defmodule GroceryPlanner.Inventory.InventoryEntry do
 
       argument :account_id, :uuid, allow_nil?: false
 
+      validate present(:quantity)
+
       change set_attribute(:account_id, arg(:account_id))
     end
 
@@ -109,9 +111,22 @@ defmodule GroceryPlanner.Inventory.InventoryEntry do
       ]
 
       argument :grocery_item_id, :uuid, allow_nil?: false
+      argument :shopping_list_item_id, :uuid, allow_nil?: true
+
+      validate fn changeset, _context ->
+        shopping_list_item_id = Ash.Changeset.get_argument(changeset, :shopping_list_item_id)
+        quantity = changeset.attributes[:quantity]
+
+        if is_nil(shopping_list_item_id) and is_nil(quantity) do
+          {:error, field: :quantity, message: "is required when shopping_list_item_id is not provided"}
+        else
+          :ok
+        end
+      end
 
       change fn changeset, context ->
         grocery_item_id = Ash.Changeset.get_argument(changeset, :grocery_item_id)
+        shopping_list_item_id = Ash.Changeset.get_argument(changeset, :shopping_list_item_id)
         tenant = context.tenant
 
         opts = [authorize?: false]
@@ -119,9 +134,64 @@ defmodule GroceryPlanner.Inventory.InventoryEntry do
 
         case GroceryPlanner.Inventory.get_grocery_item(grocery_item_id, opts) do
           {:ok, grocery_item} ->
-            changeset
-            |> Ash.Changeset.manage_relationship(:grocery_item, grocery_item, type: :append)
-            |> Ash.Changeset.change_attribute(:account_id, grocery_item.account_id)
+            changeset =
+              changeset
+              |> Ash.Changeset.manage_relationship(:grocery_item, grocery_item, type: :append)
+              |> Ash.Changeset.change_attribute(:account_id, grocery_item.account_id)
+
+            # If shopping_list_item_id is provided, derive values from it
+            if shopping_list_item_id do
+              case GroceryPlanner.Shopping.get_shopping_list_item(shopping_list_item_id, opts) do
+                {:ok, shopping_list_item} ->
+                  # Validate that the shopping list item belongs to the same account
+                  if shopping_list_item.account_id == grocery_item.account_id do
+                    # Derive quantity, unit, price, and notes from shopping list item if not explicitly provided
+                    # Check both the changeset arguments and attributes to see if they were provided
+                    changeset =
+                      if is_nil(changeset.attributes[:quantity]) do
+                        Ash.Changeset.change_attribute(changeset, :quantity, shopping_list_item.quantity)
+                      else
+                        changeset
+                      end
+
+                    changeset =
+                      if is_nil(changeset.attributes[:unit]) do
+                        Ash.Changeset.change_attribute(changeset, :unit, shopping_list_item.unit)
+                      else
+                        changeset
+                      end
+
+                    changeset =
+                      if is_nil(changeset.attributes[:purchase_price]) do
+                        Ash.Changeset.change_attribute(changeset, :purchase_price, shopping_list_item.price)
+                      else
+                        changeset
+                      end
+
+                    changeset =
+                      if is_nil(changeset.attributes[:notes]) do
+                        Ash.Changeset.change_attribute(changeset, :notes, shopping_list_item.notes)
+                      else
+                        changeset
+                      end
+
+                    changeset
+                  else
+                    Ash.Changeset.add_error(changeset,
+                      field: :shopping_list_item_id,
+                      message: "shopping list item does not belong to the same account"
+                    )
+                  end
+
+                {:error, _} ->
+                  Ash.Changeset.add_error(changeset,
+                    field: :shopping_list_item_id,
+                    message: "not found"
+                  )
+              end
+            else
+              changeset
+            end
 
           {:error, _} ->
             Ash.Changeset.add_error(changeset, field: :grocery_item_id, message: "not found")
@@ -168,7 +238,7 @@ defmodule GroceryPlanner.Inventory.InventoryEntry do
     uuid_primary_key :id
 
     attribute :quantity, :decimal do
-      allow_nil? false
+      allow_nil? true
       public? true
     end
 

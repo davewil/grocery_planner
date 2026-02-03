@@ -143,17 +143,18 @@ MealPlan (Aggregate Root)
 
 **Acceptance Criteria:**
 - [x] `POST /shopping_lists/generate_from_meal_plans` available
-- [x] `PATCH /shopping_lists/:shopping_list_id/items/:id/add_to_inventory` available
+- [x] `POST /grocery_items/:grocery_item_id/inventory_entries` with `shopping_list_item_id` available
 - [x] `PATCH /meal_plans/:id/complete` marks meal complete
 - [x] Action responses include updated resource state
 
 **Implementation Notes (2026-02-03):**
 - Added JSON:API route for `generate_from_meal_plans` on ShoppingList (action already existed)
 - Added JSON:API route for `complete` on MealPlan (action already existed)
-- Created new `add_to_inventory` action on ShoppingListItem that transfers item data to InventoryEntry
-- The `add_to_inventory` action accepts optional `storage_location_id`, `purchase_date`, `use_by_date`
-- Validates item has a linked grocery_item before creating inventory entry
-- 10 behavioral tests covering all three custom actions
+- Enhanced `create_from_api` action on InventoryEntry to accept optional `shopping_list_item_id`
+- When `shopping_list_item_id` is provided, quantity/unit/price/notes are derived from the shopping list item
+- Validates shopping list item belongs to same account as grocery item
+- Supports overriding derived values by providing them explicitly in the request
+- 9 behavioral tests covering all three custom actions (removed old RPC-style tests, added RESTful tests)
 
 ### US-005: Consistent Error Responses
 **As a** mobile app developer
