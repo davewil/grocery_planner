@@ -29,6 +29,7 @@ defmodule GroceryPlanner.Shopping.ShoppingListItem do
       patch(:check, route: "/:id/check")
       patch(:uncheck, route: "/:id/uncheck")
       patch(:toggle_check, route: "/:id/toggle")
+      patch(:add_to_inventory, route: "/:id/add_to_inventory")
     end
   end
 
@@ -42,6 +43,7 @@ defmodule GroceryPlanner.Shopping.ShoppingListItem do
     define :check
     define :uncheck
     define :toggle_check
+    define :add_to_inventory
   end
 
   actions do
@@ -145,6 +147,63 @@ defmodule GroceryPlanner.Shopping.ShoppingListItem do
 
       require_atomic? false
     end
+
+    update :add_to_inventory do
+      accept []
+
+      argument :storage_location_id, :uuid
+      argument :purchase_date, :date
+      argument :use_by_date, :date
+
+      change fn changeset, context ->
+        item = changeset.data
+
+        # Get grocery_item_id from the shopping list item
+        grocery_item_id = item.grocery_item_id
+
+        if is_nil(grocery_item_id) do
+          Ash.Changeset.add_error(changeset,
+            field: :grocery_item_id,
+            message: "Cannot add to inventory: shopping list item is not linked to a grocery item"
+          )
+        else
+          # Extract optional arguments
+          storage_location_id = Ash.Changeset.get_argument(changeset, :storage_location_id)
+          purchase_date = Ash.Changeset.get_argument(changeset, :purchase_date)
+          use_by_date = Ash.Changeset.get_argument(changeset, :use_by_date)
+
+          # Create inventory entry attributes
+          inventory_attrs = %{
+            quantity: item.quantity,
+            unit: item.unit,
+            purchase_price: item.price,
+            purchase_date: purchase_date,
+            use_by_date: use_by_date,
+            storage_location_id: storage_location_id
+          }
+
+          # Create the inventory entry using the domain code interface
+          case GroceryPlanner.Inventory.create_inventory_entry(
+                 item.account_id,
+                 grocery_item_id,
+                 inventory_attrs,
+                 actor: context.actor,
+                 tenant: context.tenant
+               ) do
+            {:ok, _inventory_entry} ->
+              changeset
+
+            {:error, error} ->
+              Ash.Changeset.add_error(changeset,
+                field: :base,
+                message: "Failed to create inventory entry: #{inspect(error)}"
+              )
+          end
+        end
+      end
+
+      require_atomic? false
+    end
   end
 
   policies do
@@ -157,6 +216,10 @@ defmodule GroceryPlanner.Shopping.ShoppingListItem do
     end
 
     policy action_type([:update, :destroy]) do
+      authorize_if relates_to_actor_via([:account, :memberships, :user])
+    end
+
+    policy action(:add_to_inventory) do
       authorize_if relates_to_actor_via([:account, :memberships, :user])
     end
   end

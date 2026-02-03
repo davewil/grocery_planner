@@ -195,3 +195,35 @@
 - `test/support/meal_planning_test_helpers.ex` - Added vote session and entry helpers
 - `test/grocery_planner_web/controllers/api/vote_session_test.exs` - 11 behavioral tests
 - `test/grocery_planner_web/controllers/api/vote_entry_test.exs` - 12 behavioral tests
+
+---
+
+## 2026-02-03: US-004 - Atomic Operations with Side Effects
+
+### What was implemented:
+- Added JSON:API route for `generate_from_meal_plans` on ShoppingList resource
+- Added JSON:API route for `complete` on MealPlan resource
+- Created new `add_to_inventory` action on ShoppingListItem that transfers item data to InventoryEntry
+
+### Key learnings:
+
+1. **Exposing existing actions**: Many custom actions already exist in resources - just need to add JSON:API routes. Use `post :action_name, route: "/action_name"` for create-like actions, `patch :action_name, route: "/:id/action_name"` for update-like actions.
+
+2. **Cross-domain operations**: When an action needs to create resources in another domain (ShoppingListItem → InventoryEntry), use the target domain's code interface with proper tenant context:
+   ```elixir
+   GroceryPlanner.Inventory.create_inventory_entry(attrs, actor: context.actor, tenant: changeset.data.account_id)
+   ```
+
+3. **Action argument defaults**: Use `default: Date.utc_today()` in action arguments for sensible defaults that don't require client input.
+
+4. **Validation before cross-domain create**: Validate prerequisites (e.g., item must have grocery_item_id) before attempting to create in another domain to give clear error messages.
+
+### Files changed:
+- `lib/grocery_planner/shopping/shopping_list.ex` - Added route for generate_from_meal_plans
+- `lib/grocery_planner/meal_planning/meal_plan.ex` - Added route for complete
+- `lib/grocery_planner/shopping/shopping_list_item.ex` - Added add_to_inventory action and route
+- `test/grocery_planner_web/controllers/api/custom_actions_test.exs` - 10 behavioral tests
+
+### Next priorities:
+- US-005: Consistent Error Responses
+- US-008: Offline Sync Support

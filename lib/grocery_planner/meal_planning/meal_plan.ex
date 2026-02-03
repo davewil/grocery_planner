@@ -21,6 +21,8 @@ defmodule GroceryPlanner.MealPlanning.MealPlan do
       post(:create)
       patch(:update)
       delete(:destroy)
+
+      patch(:complete, route: "/:id/complete")
     end
   end
 

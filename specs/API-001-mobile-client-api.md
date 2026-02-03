@@ -136,16 +136,24 @@ MealPlan (Aggregate Root)
 - Made `belongs_to :grocery_item` public for filtering
 - 11 behavioral tests covering all CRUD operations and tenant isolation
 
-### US-004: Atomic Operations with Side Effects
+### US-004: Atomic Operations with Side Effects ✅ IMPLEMENTED
 **As a** mobile app user
 **I want** custom actions exposed via API for complex operations
 **So that** I can perform multi-step workflows in a single request
 
 **Acceptance Criteria:**
-- [ ] `POST /shopping_lists/:id/actions/generate_from_meal_plans` available
-- [ ] `POST /shopping_lists/:id/items/:item_id/actions/add_to_inventory` available
-- [ ] `POST /meal_plans/:id/actions/complete` marks meal complete
-- [ ] Action responses include updated resource state
+- [x] `POST /shopping_lists/generate_from_meal_plans` available
+- [x] `PATCH /shopping_lists/:shopping_list_id/items/:id/add_to_inventory` available
+- [x] `PATCH /meal_plans/:id/complete` marks meal complete
+- [x] Action responses include updated resource state
+
+**Implementation Notes (2026-02-03):**
+- Added JSON:API route for `generate_from_meal_plans` on ShoppingList (action already existed)
+- Added JSON:API route for `complete` on MealPlan (action already existed)
+- Created new `add_to_inventory` action on ShoppingListItem that transfers item data to InventoryEntry
+- The `add_to_inventory` action accepts optional `storage_location_id`, `purchase_date`, `use_by_date`
+- Validates item has a linked grocery_item before creating inventory entry
+- 10 behavioral tests covering all three custom actions
 
 ### US-005: Consistent Error Responses
 **As a** mobile app developer

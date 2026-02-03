@@ -21,6 +21,8 @@ defmodule GroceryPlanner.Shopping.ShoppingList do
       post(:create)
       patch(:update)
       delete(:destroy)
+
+      post(:generate_from_meal_plans, route: "/generate_from_meal_plans")
     end
   end
 
