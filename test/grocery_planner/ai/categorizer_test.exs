@@ -125,6 +125,95 @@ defmodule GroceryPlanner.AI.CategorizerTest do
 
       Application.put_env(:grocery_planner, :features, original || [])
     end
+
+    test "returns batch predictions when feature flag is on" do
+      original = Application.get_env(:grocery_planner, :features)
+
+      Application.put_env(:grocery_planner, :features,
+        ai_categorization: true,
+        semantic_search: false
+      )
+
+      Req.Test.stub(AiClient, fn conn ->
+        Req.Test.json(conn, %{
+          "request_id" => "req_batch_test",
+          "status" => "success",
+          "payload" => %{
+            "predictions" => [
+              %{
+                "id" => "1",
+                "name" => "whole milk",
+                "predicted_category" => "Dairy",
+                "confidence" => 0.94,
+                "confidence_level" => "high"
+              },
+              %{
+                "id" => "2",
+                "name" => "bananas",
+                "predicted_category" => "Produce",
+                "confidence" => 0.91,
+                "confidence_level" => "high"
+              },
+              %{
+                "id" => "3",
+                "name" => "dish soap",
+                "predicted_category" => "Household",
+                "confidence" => 0.55,
+                "confidence_level" => "medium"
+              }
+            ]
+          }
+        })
+      end)
+
+      assert {:ok, results} =
+               Categorizer.predict_batch(
+                 ["whole milk", "bananas", "dish soap"],
+                 tenant_id: "test_tenant",
+                 user_id: "test_user",
+                 plug: {Req.Test, AiClient}
+               )
+
+      assert length(results) == 3
+
+      dairy = Enum.find(results, &(&1.name == "whole milk"))
+      assert dairy.category == "Dairy"
+      assert dairy.confidence == 0.94
+      assert dairy.confidence_level == :high
+
+      produce = Enum.find(results, &(&1.name == "bananas"))
+      assert produce.category == "Produce"
+      assert produce.confidence_level == :high
+
+      household = Enum.find(results, &(&1.name == "dish soap"))
+      assert household.category == "Household"
+      assert household.confidence_level == :medium
+
+      Application.put_env(:grocery_planner, :features, original || [])
+    end
+
+    test "returns error on AI service failure" do
+      original = Application.get_env(:grocery_planner, :features)
+
+      Application.put_env(:grocery_planner, :features,
+        ai_categorization: true,
+        semantic_search: false
+      )
+
+      Req.Test.stub(AiClient, fn conn ->
+        Plug.Conn.send_resp(conn, 500, "Internal Server Error")
+      end)
+
+      assert {:error, _} =
+               Categorizer.predict_batch(
+                 ["milk", "bread"],
+                 tenant_id: "test_tenant",
+                 user_id: "test_user",
+                 plug: {Req.Test, AiClient}
+               )
+
+      Application.put_env(:grocery_planner, :features, original || [])
+    end
   end
 
   describe "default_candidate_labels/0" do

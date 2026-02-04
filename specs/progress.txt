@@ -498,4 +498,36 @@
 - MP-001 (Explorer Mode): COMPLETE - 462 lines of tests across 2 files
 - MP-002 (Focus Mode): COMPLETE - 22 new dedicated tests + existing tests in general file
 - MP-003 (Power Mode): COMPLETE - 899 lines of tests
-- AI-001 through AI-005: Not started (require Python sidecar service)
+- AI-001 (Smart Categorization): COMPLETE - 56 tests, all acceptance criteria met
+- AI-002 through AI-005: Varying states (see below)
+
+---
+
+## 2026-02-04: AI-001 Smart Item Categorization - Validation & Test Completion
+
+### What was done:
+- Validated all 15 acceptance criteria across 3 user stories are met by existing implementation
+- Added 2 missing tests: `predict_batch` success path and error handling
+- Checked all acceptance criteria in the spec document
+- Added implementation status section to spec
+
+### Test coverage added (2 new tests):
+- predict_batch returns batch predictions with correct categories and confidence levels
+- predict_batch returns error on AI service failure (500 response)
+
+### Key learnings:
+
+1. **AI-001 was already fully implemented**: The Elixir modules (Categorizer, CategorizationFeedback, AiClient), Python service endpoints, LiveView integration, and feature flags were all in place. The spec just had unchecked acceptance criteria despite complete implementation.
+
+2. **Req.Test stubbing pattern**: Use `Req.Test.stub(AiClient, fn conn -> ... end)` to stub HTTP requests in tests. The `plug: {Req.Test, AiClient}` option in function calls routes requests to the stub.
+
+3. **Python sidecar is fully built**: The Python service at `python_service/` has 8 endpoints covering categorization, batch categorization, embeddings, receipt OCR, and job management. It runs in CI with 44 tests.
+
+4. **Feature flag pattern**: `Application.get_env(:grocery_planner, :features)[:ai_categorization]` controls AI features. Tests toggle flags and restore originals. Config defaults: enabled in dev, disabled in test, env-var-controlled in prod.
+
+5. **AI spec implementation status**:
+   - AI-001 (Categorization): COMPLETE - 56 Elixir tests, all 15 criteria met
+   - AI-002 (Semantic Search): MVP working - 11 tests, embeddings + hybrid search functional, AshAI migration pending
+   - AI-003 (Receipt Scanning): Python-only MVP - OCR endpoint works, entire Elixir integration layer missing
+   - AI-004 (Meal Optimization): Not started
+   - AI-005 (Chat Assistant): Not started

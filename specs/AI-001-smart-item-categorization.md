@@ -25,12 +25,12 @@ When creating a new grocery item, users must manually select a category from a d
 **So that** I can quickly accept the suggestion or override it
 
 **Acceptance Criteria:**
-- [ ] When user types an item name, system suggests a category
-- [ ] Suggestion appears within 500ms of user stopping typing (debounced)
-- [ ] User can accept suggestion with one click/tap
-- [ ] User can override suggestion by selecting different category
-- [ ] Suggestion includes confidence indicator (high/medium/low)
-- [ ] Works offline with graceful degradation (no suggestion shown)
+- [x] When user types an item name, system suggests a category
+- [x] Suggestion appears within 500ms of user stopping typing (debounced)
+- [x] User can accept suggestion with one click/tap
+- [x] User can override suggestion by selecting different category
+- [x] Suggestion includes confidence indicator (high/medium/low)
+- [x] Works offline with graceful degradation (no suggestion shown)
 
 ### US-002: Batch categorization for imports
 **As a** user importing items from a receipt or CSV
@@ -38,11 +38,11 @@ When creating a new grocery item, users must manually select a category from a d
 **So that** I don't have to manually assign categories to each item
 
 **Acceptance Criteria:**
-- [ ] Batch endpoint accepts array of item names
-- [ ] Returns category predictions for all items in single response
-- [ ] Processing time < 2 seconds for up to 50 items
-- [ ] Each prediction includes confidence score
-- [ ] Low-confidence items flagged for user review
+- [x] Batch endpoint accepts array of item names
+- [x] Returns category predictions for all items in single response
+- [x] Processing time < 2 seconds for up to 50 items
+- [x] Each prediction includes confidence score
+- [x] Low-confidence items flagged for user review
 
 ### US-003: Learn from corrections
 **As a** system administrator
@@ -50,10 +50,10 @@ When creating a new grocery item, users must manually select a category from a d
 **So that** we can improve categorization accuracy over time
 
 **Acceptance Criteria:**
-- [ ] When user overrides a suggestion, correction is logged
-- [ ] Logs include: original prediction, user correction, item name, confidence
-- [ ] Corrections are tenant-scoped for privacy
-- [ ] Data can be exported for model fine-tuning
+- [x] When user overrides a suggestion, correction is logged
+- [x] Logs include: original prediction, user correction, item name, confidence
+- [x] Corrections are tenant-scoped for privacy
+- [x] Data can be exported for model fine-tuning
 
 ## Technical Specification
 
@@ -384,6 +384,36 @@ config :grocery_planner, :features,
 1. Should we cache predictions for common item names?
 2. Should category labels be dynamic (from user's categories) or fixed?
 3. How long should we retain feedback data?
+
+## Implementation Status
+
+**Status: COMPLETE** (all 3 user stories implemented and tested)
+
+### Elixir Modules
+- `GroceryPlanner.AI.Categorizer` - Single and batch prediction client with confidence levels
+- `GroceryPlanner.AI.CategorizationFeedback` - Ash Resource for correction logging (multitenanted)
+- `GroceryPlanner.AiClient` - HTTP client for Python AI service
+- LiveView integration in `InventoryLive` with debounced auto-suggest and accept/override flow
+
+### Python Service
+- `POST /api/v1/categorize` - Single item categorization
+- `POST /api/v1/categorize-batch` - Batch categorization (up to 50 items)
+
+### Test Coverage (56 tests)
+- `test/grocery_planner/ai/categorizer_test.exs` - 13 tests (confidence levels, predict, predict_batch success/error/disabled/batch_too_large)
+- `test/grocery_planner/ai/categorization_feedback_test.exs` - 13 tests (log_correction, corrections_only, list_for_export, CRUD, multitenancy)
+- `test/grocery_planner_web/live/inventory_live_categorization_test.exs` - 14 tests (suggest_category, accept_suggestion, auto-categorization, confidence badges)
+- `test/grocery_planner/ai/embeddings_test.exs` - 11 tests (shared AI infrastructure)
+- `test/grocery_planner/ai_client_test.exs` - 5 tests (HTTP client wrapper)
+
+### Feature Flag
+- Controlled via `config :grocery_planner, :features, ai_categorization: true/false`
+- Graceful degradation when disabled (no suggestion shown, no errors)
+
+### Design Decisions
+- Category labels are dynamic (from user's categories), not fixed - enables per-account customization
+- Feedback data retained indefinitely for model fine-tuning potential
+- Predictions not cached (low latency from sidecar service makes caching unnecessary)
 
 ## References
 
