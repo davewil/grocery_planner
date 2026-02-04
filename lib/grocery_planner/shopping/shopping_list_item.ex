@@ -62,6 +62,7 @@ defmodule GroceryPlanner.Shopping.ShoppingListItem do
 
     read :sync do
       argument :since, :utc_datetime_usec
+      argument :limit, :integer
 
       filter expr(
                if is_nil(^arg(:since)) do
@@ -73,6 +74,13 @@ defmodule GroceryPlanner.Shopping.ShoppingListItem do
              )
 
       prepare build(sort: [updated_at: :asc])
+
+      prepare fn query, _context ->
+        case Ash.Query.get_argument(query, :limit) do
+          nil -> query
+          limit -> Ash.Query.limit(query, limit)
+        end
+      end
     end
 
     create :create do

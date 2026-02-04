@@ -358,3 +358,33 @@
 
 ### Next priorities:
 - US-008 remaining: Sync metadata (server timestamp, has_more flag), conflict detection
+
+## 2026-02-04: US-008 Remaining - Sync Metadata & Conflict Detection
+
+### What was implemented:
+- Added `GET /api/sync/pull` endpoint with sync metadata (server_time, has_more, count)
+- Added `limit` argument to all 11 sync actions for pagination support
+- Added `pull_*` code interfaces to all 4 domains for the pull endpoint
+- Added conflict detection via `if_unmodified_since` field on batch update/delete operations
+- Conflict errors return current record state so clients can resolve conflicts
+
+### Key learnings:
+
+1. **Pagination via limit+1 pattern**: Instead of using Ash's built-in pagination, fetch `limit + 1` records and check if results exceed the limit to determine `has_more`. This avoids configuring keyset/offset pagination on all resources.
+
+2. **Separate code interfaces for different arities**: Rather than modifying existing `sync_*` interfaces (which would break existing callers), create parallel `pull_*` interfaces that accept both `since` and `limit` arguments. This maintains backward compatibility.
+
+3. **Conflict detection at the application level**: Instead of using HTTP headers (If-Unmodified-Since), we use a per-operation `if_unmodified_since` field in the batch payload. This is more flexible for batch operations where each operation may have a different baseline timestamp.
+
+4. **Ash.Query.limit in prepare**: Use a `prepare fn` to conditionally apply `Ash.Query.limit/2` when a limit argument is present. This keeps the limit optional without affecting existing sync callers.
+
+5. **Sync record serialization**: For the pull endpoint, serialize full records by converting the struct to a map and dropping Ash internal fields (`__meta__`, `__metadata__`, `aggregates`, `calculations`) and `%Ash.NotLoaded{}` values. Let Jason handle DateTime/Date serialization.
+
+### Files changed:
+- `lib/grocery_planner_web/controllers/api/sync_controller.ex` - Added pull endpoint, conflict detection, serialize_sync_record
+- `lib/grocery_planner_web/router.ex` - Added GET /api/sync/pull route
+- All 11 resource files - Added `argument :limit, :integer` and limit prepare to sync actions
+- All 4 domain files - Added `pull_*` code interface definitions
+- `test/grocery_planner_web/controllers/api/sync_pull_test.exs` - 13 behavioral tests
+
+### US-008 is now COMPLETE. All acceptance criteria met.

@@ -1,9 +1,11 @@
 defmodule GroceryPlannerWeb.Api.SyncController do
   @moduledoc """
-  Controller for batch sync operations.
+  Controller for batch sync and pull operations.
 
-  Supports creating, updating, and deleting multiple resources in a single
-  request, which is essential for mobile clients syncing offline changes.
+  Supports:
+  - `POST /api/sync/batch` - Batch create/update/delete with optional conflict detection
+  - `GET /api/sync/pull` - Pull changes for a resource type with pagination metadata
+  - `GET /api/sync/status` - Server time and API version
   """
   use GroceryPlannerWeb, :controller
 
@@ -27,14 +29,118 @@ defmodule GroceryPlannerWeb.Api.SyncController do
     "vote_entry" => {MealPlanning, :vote_entry}
   }
 
+  # Maps type strings to {domain, pull_function_name}
+  @pull_functions %{
+    "shopping_list" => {Shopping, :pull_shopping_lists},
+    "shopping_list_item" => {Shopping, :pull_shopping_list_items},
+    "grocery_item" => {Inventory, :pull_grocery_items},
+    "inventory_entry" => {Inventory, :pull_inventory_entries},
+    "recipe" => {Recipes, :pull_recipes},
+    "recipe_ingredient" => {Recipes, :pull_recipe_ingredients},
+    "meal_plan" => {MealPlanning, :pull_meal_plans},
+    "meal_plan_template" => {MealPlanning, :pull_meal_plan_templates},
+    "meal_plan_template_entry" => {MealPlanning, :pull_meal_plan_template_entries},
+    "vote_session" => {MealPlanning, :pull_vote_sessions},
+    "vote_entry" => {MealPlanning, :pull_vote_entries}
+  }
+
   # Resources that don't support update
   @no_update_types ["vote_entry"]
+
+  @default_sync_limit 100
+  @max_sync_limit 500
+
+  # --- Pull endpoint ---
+
+  @doc """
+  Pull changes for a specific resource type with sync metadata.
+
+  Query params:
+  - `type` (required): Resource type string
+  - `since` (optional): ISO8601 timestamp to filter records modified after
+  - `limit` (optional): Max records to return (default 100, max 500)
+  """
+  def pull(conn, %{"type" => type} = params) when is_map_key(@pull_functions, type) do
+    actor = conn.assigns[:current_user]
+    tenant = Ash.PlugHelpers.get_tenant(conn)
+    opts = [actor: actor, tenant: tenant]
+    limit = parse_limit(params["limit"])
+    since = parse_since(params["since"])
+    server_time = DateTime.utc_now()
+
+    {domain, function} = Map.fetch!(@pull_functions, type)
+
+    # Fetch limit + 1 to detect has_more
+    case apply(domain, function, [since, limit + 1, opts]) do
+      {:ok, results} ->
+        has_more = length(results) > limit
+        data = if has_more, do: Enum.take(results, limit), else: results
+
+        conn
+        |> json(%{
+          data: Enum.map(data, &serialize_sync_record/1),
+          meta: %{
+            server_time: DateTime.to_iso8601(server_time),
+            has_more: has_more,
+            count: length(data)
+          },
+          jsonapi: %{version: "1.0"}
+        })
+
+      {:error, error} ->
+        conn
+        |> put_status(:unprocessable_entity)
+        |> json(%{
+          errors: [format_error(error)],
+          jsonapi: %{version: "1.0"}
+        })
+    end
+  end
+
+  def pull(conn, %{"type" => type}) when not is_map_key(@pull_functions, type) do
+    conn
+    |> put_status(:bad_request)
+    |> json(%{
+      errors: [
+        %{
+          id: Ash.UUID.generate(),
+          status: "400",
+          code: "unknown_type",
+          title: "Bad Request",
+          detail: "Unknown resource type: #{type}"
+        }
+      ],
+      jsonapi: %{version: "1.0"}
+    })
+  end
+
+  def pull(conn, _params) do
+    conn
+    |> put_status(:bad_request)
+    |> json(%{
+      errors: [
+        %{
+          id: Ash.UUID.generate(),
+          status: "400",
+          code: "invalid_request",
+          title: "Bad Request",
+          detail: "Request must include a 'type' parameter"
+        }
+      ],
+      jsonapi: %{version: "1.0"}
+    })
+  end
+
+  # --- Batch endpoint ---
 
   @doc """
   Process a batch of sync operations.
 
   Accepts an array of create/update/delete operations and returns
   per-operation results. Optionally atomic (all-or-nothing).
+
+  Update and delete operations support optional `if_unmodified_since` field
+  (ISO8601 timestamp) for conflict detection.
   """
   def batch(conn, %{"operations" => operations} = params) when is_list(operations) do
     actor = conn.assigns[:current_user]
@@ -138,7 +244,10 @@ defmodule GroceryPlannerWeb.Api.SyncController do
     end
   end
 
-  defp execute_operation(%{"op" => "update", "type" => type, "id" => id, "data" => data}, opts)
+  defp execute_operation(
+         %{"op" => "update", "type" => type, "id" => id, "data" => data} = op,
+         opts
+       )
        when is_map_key(@resource_types, type) do
     if type in @no_update_types do
       %{
@@ -149,9 +258,31 @@ defmodule GroceryPlannerWeb.Api.SyncController do
         error: %{code: "unsupported_operation", detail: "Update is not supported for #{type}"}
       }
     else
-      case do_update(type, id, data, opts) do
-        {:ok, record} ->
-          %{op: "update", type: type, id: id, status: "ok", data: serialize_record(record)}
+      with {:ok, record} <- do_get(type, id, opts),
+           :ok <- check_conflict(record, Map.get(op, "if_unmodified_since")) do
+        {domain, resource} = Map.fetch!(@resource_types, type)
+
+        case apply(domain, :"update_#{resource}", [record, data, opts]) do
+          {:ok, updated} ->
+            %{op: "update", type: type, id: id, status: "ok", data: serialize_record(updated)}
+
+          {:error, error} ->
+            %{op: "update", type: type, id: id, status: "error", error: format_error(error)}
+        end
+      else
+        {:conflict, current_record} ->
+          %{
+            op: "update",
+            type: type,
+            id: id,
+            status: "error",
+            error: %{
+              code: "conflict",
+              detail:
+                "Resource was modified since #{Map.get(op, "if_unmodified_since")}. Fetch the latest version and retry."
+            },
+            current: serialize_record(current_record)
+          }
 
         {:error, error} ->
           %{op: "update", type: type, id: id, status: "error", error: format_error(error)}
@@ -159,11 +290,33 @@ defmodule GroceryPlannerWeb.Api.SyncController do
     end
   end
 
-  defp execute_operation(%{"op" => "delete", "type" => type, "id" => id}, opts)
+  defp execute_operation(%{"op" => "delete", "type" => type, "id" => id} = op, opts)
        when is_map_key(@resource_types, type) do
-    case do_delete(type, id, opts) do
-      {:ok, _record} ->
-        %{op: "delete", type: type, id: id, status: "ok"}
+    with {:ok, record} <- do_get(type, id, opts),
+         :ok <- check_conflict(record, Map.get(op, "if_unmodified_since")) do
+      {domain, resource} = Map.fetch!(@resource_types, type)
+
+      case apply(domain, :"destroy_#{resource}", [record, opts]) do
+        {:ok, _record} ->
+          %{op: "delete", type: type, id: id, status: "ok"}
+
+        {:error, error} ->
+          %{op: "delete", type: type, id: id, status: "error", error: format_error(error)}
+      end
+    else
+      {:conflict, current_record} ->
+        %{
+          op: "delete",
+          type: type,
+          id: id,
+          status: "error",
+          error: %{
+            code: "conflict",
+            detail:
+              "Resource was modified since #{Map.get(op, "if_unmodified_since")}. Fetch the latest version and retry."
+          },
+          current: serialize_record(current_record)
+        }
 
       {:error, error} ->
         %{op: "delete", type: type, id: id, status: "error", error: format_error(error)}
@@ -187,6 +340,26 @@ defmodule GroceryPlannerWeb.Api.SyncController do
       error: %{code: "invalid_operation", detail: "Invalid operation format"}
     }
   end
+
+  # --- Conflict detection ---
+
+  defp check_conflict(_record, nil), do: :ok
+
+  defp check_conflict(record, if_unmodified_since) when is_binary(if_unmodified_since) do
+    case DateTime.from_iso8601(if_unmodified_since) do
+      {:ok, threshold, _offset} ->
+        if DateTime.compare(record.updated_at, threshold) == :gt do
+          {:conflict, record}
+        else
+          :ok
+        end
+
+      {:error, _} ->
+        :ok
+    end
+  end
+
+  defp check_conflict(_record, _), do: :ok
 
   # --- Create ---
 
@@ -212,24 +385,6 @@ defmodule GroceryPlannerWeb.Api.SyncController do
     apply(domain, :"get_#{resource}", [id, opts])
   end
 
-  # --- Update ---
-
-  defp do_update(type, id, data, opts) do
-    with {:ok, record} <- do_get(type, id, opts) do
-      {domain, resource} = Map.fetch!(@resource_types, type)
-      apply(domain, :"update_#{resource}", [record, data, opts])
-    end
-  end
-
-  # --- Delete ---
-
-  defp do_delete(type, id, opts) do
-    with {:ok, record} <- do_get(type, id, opts) do
-      {domain, resource} = Map.fetch!(@resource_types, type)
-      apply(domain, :"destroy_#{resource}", [record, opts])
-    end
-  end
-
   # --- Serialization ---
 
   defp serialize_record(record) do
@@ -239,6 +394,14 @@ defmodule GroceryPlannerWeb.Api.SyncController do
       updated_at: format_datetime(Map.get(record, :updated_at)),
       deleted_at: format_datetime(Map.get(record, :deleted_at))
     }
+  end
+
+  defp serialize_sync_record(record) do
+    record
+    |> Map.from_struct()
+    |> Map.drop([:__meta__, :__metadata__, :aggregates, :calculations])
+    |> Enum.reject(fn {_k, v} -> match?(%Ash.NotLoaded{}, v) end)
+    |> Map.new()
   end
 
   defp format_datetime(nil), do: nil
@@ -265,4 +428,29 @@ defmodule GroceryPlannerWeb.Api.SyncController do
   defp format_error(error) do
     %{code: "operation_failed", detail: inspect(error)}
   end
+
+  # --- Parameter parsing ---
+
+  defp parse_limit(nil), do: @default_sync_limit
+
+  defp parse_limit(limit) when is_binary(limit) do
+    case Integer.parse(limit) do
+      {n, ""} -> min(max(n, 1), @max_sync_limit)
+      _ -> @default_sync_limit
+    end
+  end
+
+  defp parse_limit(limit) when is_integer(limit), do: min(max(limit, 1), @max_sync_limit)
+  defp parse_limit(_), do: @default_sync_limit
+
+  defp parse_since(nil), do: nil
+
+  defp parse_since(since) when is_binary(since) do
+    case DateTime.from_iso8601(since) do
+      {:ok, dt, _offset} -> dt
+      {:error, _} -> nil
+    end
+  end
+
+  defp parse_since(_), do: nil
 end

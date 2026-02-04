@@ -78,6 +78,7 @@ defmodule GroceryPlannerWeb.Router do
       pipe_through(:api_auth)
 
       post("/sync/batch", Api.SyncController, :batch)
+      get("/sync/pull", Api.SyncController, :pull)
       get("/sync/status", Api.SyncController, :status)
 
       forward("/json", JsonApiRouter)

@@ -227,7 +227,7 @@ MealPlan (Aggregate Root)
 - Added `SetUserFromActor` change to automatically set the voting user from the authenticated actor
 - 23 behavioral tests covering all CRUD operations, tenant isolation, and voting validations (duplicate vote prevention, closed session rejection)
 
-### US-008: Offline Sync Support
+### US-008: Offline Sync Support ✅ IMPLEMENTED
 **As a** mobile app user
 **I want** to sync changes made offline when I regain connectivity
 **So that** I can use the app in areas with poor signal (like grocery stores)
@@ -239,8 +239,19 @@ MealPlan (Aggregate Root)
 - [x] Sync action returns all records (including soft-deleted) when `since` is nil
 - [x] Sync action returns only records modified after `since` timestamp
 - [x] Normal read actions and custom reads exclude soft-deleted records
-- [ ] Responses include sync metadata (server timestamp, has_more flag)
-- [ ] Conflict detection via `If-Unmodified-Since` header support
+- [x] Responses include sync metadata (server timestamp, has_more flag)
+- [x] Conflict detection via `If-Unmodified-Since` header support
+
+**Implementation Notes (2026-02-04):**
+- Added `GET /api/sync/pull` endpoint with sync metadata (`server_time`, `has_more`, `count`)
+- Added `limit` argument to all 11 sync actions for pagination support
+- Added `pull_*` code interfaces to all 4 domains (Shopping, Inventory, Recipes, MealPlanning)
+- Uses `limit + 1` fetch pattern to detect `has_more` without configuring Ash pagination
+- Added conflict detection via `if_unmodified_since` field on batch update/delete operations
+- Conflict errors return current record state so clients can resolve conflicts
+- Backward compatible: operations without `if_unmodified_since` skip conflict checking
+- Full record serialization on pull endpoint (drops Ash internal fields, handles `Ash.NotLoaded`)
+- 13 behavioral tests covering pull endpoint, pagination, since filtering, conflict detection
 
 ### US-009: Bulk Operations for Sync Efficiency ✅ IMPLEMENTED
 **As a** mobile app

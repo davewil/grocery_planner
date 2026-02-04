@@ -29,6 +29,7 @@ defmodule GroceryPlanner.Recipes do
       define :link_as_follow_up, action: :link_as_follow_up, args: [:parent_recipe_id]
       define :unlink_from_parent, action: :unlink_from_parent
       define :sync_recipes, action: :sync, args: [:since]
+      define :pull_recipes, action: :sync, args: [:since, :limit]
     end
 
     resource GroceryPlanner.Recipes.RecipeIngredient do
@@ -38,6 +39,7 @@ defmodule GroceryPlanner.Recipes do
       define :update_recipe_ingredient, action: :update
       define :destroy_recipe_ingredient, action: :destroy
       define :sync_recipe_ingredients, action: :sync, args: [:since]
+      define :pull_recipe_ingredients, action: :sync, args: [:since, :limit]
     end
 
     resource GroceryPlanner.Recipes.RecipeTagging do
