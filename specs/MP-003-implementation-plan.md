@@ -66,7 +66,7 @@
 - [x] Tests
   - Sidebar toggle
   - Drag recipe to board creates meal
-  - [ ] Search filtering (UI wired, filtering logic TODO)
+  - [x] Search filtering (completed in PR 4)
 
 ### PR 3: Bulk Operations ✅ COMPLETED (merged into PR 1)
 **Focus:** Week-level operations and multi-select
@@ -94,7 +94,7 @@
   - Copy last week creates duplicates
   - Multi-select and delete
 
-### PR 4: Polish (REMAINING WORK)
+### PR 4: Polish ✅ COMPLETED
 **Focus:** Grocery feedback, search filtering, refinements
 
 - [x] Pantry-optimized auto-fill (completed in PR 1)
@@ -109,14 +109,17 @@
 - [x] Sidebar search filtering
   - Wire up `search_sidebar` event to filter recipes list
   - Debounced search (200ms)
-- [ ] Mobile refinements
-  - Test horizontal scroll on various devices
-  - Adjust card sizes for touch targets
-  - Ensure swipe doesn't conflict with scroll
-- [ ] Visual polish
-  - Drag ghost styling refinements
-  - Drop zone highlight animation
-  - Success/error feedback animations
+- [x] Mobile refinements
+  - WCAG-compliant 44x44px touch targets on all interactive elements
+  - `touch-manipulation` on meal cards to prevent zoom interference
+  - `forceFallback` + `fallbackTolerance` in SortableJS for reliable touch DnD
+  - CSS `scroll-snap-type: x mandatory` on desktop week grid
+- [x] Visual polish
+  - Semantic SortableJS classes: `sortable-ghost`, `sortable-chosen`
+  - Drop zone highlight with `drop-zone-active` / `drop-zone-swap` classes
+  - CSS keyframe animations: `fade-in`, `pulse-border`, `drop-success`
+  - Cursor changes during drag (body `grabbing`)
+  - Smooth transitions on drop zones (`transition-all duration-200`)
 - [x] Tests
   - Grocery delta calculations (5 behavioral tests)
   - Sidebar search filtering (3 behavioral tests)

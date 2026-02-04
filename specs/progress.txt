@@ -422,5 +422,39 @@
 - `test/grocery_planner_web/live/meal_planner_power_mode_test.exs` - 5 behavioral tests for grocery delta (replaced 2 weak tests + added 3 new)
 
 ### Remaining MP-003 PR 4 items:
-- Mobile refinements (horizontal scroll, touch targets, swipe conflicts)
-- Visual polish (drag ghost styling, drop zone animations, feedback animations)
+- ~~Mobile refinements~~ ✅ Completed
+- ~~Visual polish~~ ✅ Completed
+
+---
+
+## 2026-02-04: MP-003 PR 4 - Mobile Refinements & Visual Polish
+
+### What was implemented:
+- WCAG-compliant 44x44px touch targets on all interactive elements (day pills, prev/next buttons, checkboxes, add buttons)
+- `touch-manipulation` CSS on meal cards to prevent zoom interference during drag
+- SortableJS `forceFallback: true` + `fallbackTolerance: 3` for reliable touch drag-and-drop
+- CSS `scroll-snap-type: x mandatory` on desktop week grid for smooth horizontal scrolling
+- Semantic SortableJS CSS classes: `sortable-ghost` (opacity + scale), `sortable-chosen` (shadow + scale)
+- Drop zone highlight animations: `drop-zone-active` (dashed border pulse), `drop-zone-swap` (warning border pulse)
+- CSS keyframe animations: `fade-in`, `pulse-border`, `drop-success`
+- Body cursor change to `grabbing` during drag operations
+- Smooth transitions on drop zones (`transition-all duration-200`)
+
+### Key learnings:
+
+1. **WCAG touch target minimum**: Interactive elements must be at least 44x44px for accessible touch targets. DaisyUI's `btn-sm` and `checkbox-sm` classes produce elements below this threshold. Override with explicit `min-h-[44px] min-w-[44px]` or use `checkbox-md`.
+
+2. **SortableJS forceFallback for touch**: By default, SortableJS uses native HTML5 drag-and-drop which doesn't work on mobile. Setting `forceFallback: true` uses a JavaScript-based fallback that works everywhere. Combined with `fallbackTolerance: 3` to prevent accidental drags from taps.
+
+3. **Semantic CSS classes over inline config**: Instead of configuring `ghostClass: 'opacity-50'` in SortableJS (which limits to single utility classes), use semantic class names like `sortable-ghost` and define complex styles in CSS. This enables multi-property effects (opacity + scale + shadow).
+
+4. **CSS scroll-snap for kanban boards**: `scroll-snap-type: x mandatory` on the container with `scroll-snap-align: start` on children provides a native-feeling horizontal scroll with snap points. Apply only on desktop (`@media (min-width: 1024px)`) since mobile needs free-form scrolling.
+
+5. **touch-manipulation CSS property**: Applying `touch-manipulation` to draggable elements prevents the browser's double-tap-to-zoom and pinch-to-zoom behaviors from interfering with drag operations, while still allowing single-touch panning.
+
+### Files changed:
+- `lib/grocery_planner_web/live/meal_planner_live/power_layout.ex` - Touch target size increases, scroll-snap class, touch-manipulation
+- `assets/js/hooks/kanban_board.js` - forceFallback, semantic CSS classes, body cursor change
+- `assets/css/app.css` - Keyframe animations, sortable classes, drop zone classes, scroll-snap styles
+
+### MP-003 is now FULLY COMPLETE. All 4 PRs delivered.
