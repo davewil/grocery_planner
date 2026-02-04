@@ -550,3 +550,45 @@
 2. **LiveView test state manipulation**: `:sys.replace_state/2` can directly set LiveView assigns for testing multi-step wizards without going through the full upload/PubSub flow.
 3. **AshOban immediate trigger**: `AshOban.run_trigger(record, :trigger_name)` inserts an Oban job immediately instead of waiting for the cron scheduler.
 4. **Python BaseResponse envelope**: The response only contains `request_id`, `status`, `payload`, `error`, `metadata` - inner processing fields like `model_id` don't propagate to the response.
+
+---
+
+## 2026-02-04: QA-001 - E2E Integration Tests (Elixir ↔ Python Receipt OCR)
+
+### What was implemented:
+- Added `:integration` and `:smoke` tag exclusions to `test_helper.exs` so integration tests don't run during normal `mix test`
+- Added `test.integration` mix alias in `mix.exs` with `preferred_envs` entry
+- Created `IntegrationCase` ExUnit CaseTemplate that sets up Ecto sandbox and overrides `ai_client_opts` to remove the Req.Test plug (enabling real HTTP to Python service)
+- Created 5 integration tests across 4 groups: connectivity, direct AiClient, full processing pipeline, error handling
+- Created `scripts/test-integration.sh` shell script for Python service lifecycle management + test runner
+- Created `Mix.Tasks.SmokeTest` for post-deployment verification (3 checks: health, reachability, round-trip OCR)
+- Updated CI workflow: re-enabled `test-python` job (removed `if: false`), added Tesseract install, added new `test-integration` job that runs after `test-elixir` and `test-python`
+
+### Files created:
+- `test/support/integration_case.ex` - IntegrationCase CaseTemplate
+- `test/integration/receipt_ocr_integration_test.exs` - 5 integration tests
+- `scripts/test-integration.sh` - Integration test runner script
+- `lib/mix/tasks/smoke_test.ex` - Smoke test Mix task
+
+### Files modified:
+- `test/test_helper.exs` - Added `exclude: [:integration, :smoke]`
+- `mix.exs` - Added `test.integration` alias and preferred_env
+- `.github/workflows/ci.yml` - Re-enabled test-python, added test-integration job
+
+### Key learnings:
+
+1. **ExUnit tag exclusion for test tiers**: `ExUnit.start(exclude: [:integration, :smoke])` in `test_helper.exs` gates integration tests from regular `mix test`. The `mix test --only integration` flag overrides the exclusion. This is the standard pattern for multi-tier test suites.
+
+2. **Req.Test plug override for integration tests**: The test env sets `config :grocery_planner, :ai_client_opts, plug: {Req.Test, GroceryPlanner.AiClient}` globally. Integration tests override this with `Application.put_env(:grocery_planner, :ai_client_opts, [])` to remove the stub and enable real HTTP. The `on_exit` callback restores the original config.
+
+3. **Bypassing Oban for integration tests**: Calling `Ash.update(receipt, %{}, action: :process, authorize?: false)` directly triggers the ProcessReceipt change without going through Oban's scheduler. This tests the full processing pipeline (file read → base64 → HTTP → parse → save) without needing Oban's `testing: :manual` config.
+
+4. **Multi-clause defp with default args**: Elixir requires a header clause (`defp func(a, b \\ nil)`) before multi-clause definitions when any clause uses default arguments. Without the header, the compiler emits a warning that `--warnings-as-errors` turns into a failure.
+
+5. **CI job dependencies with `needs`**: GitHub Actions `needs: [test-elixir, test-python]` ensures the integration job only runs after both unit test suites pass. This prevents wasting CI minutes on integration tests when unit tests fail.
+
+6. **Port 8099 for integration tests**: Using a non-default port (8099 vs 8000) avoids conflicts with a dev Python service. The `AI_SERVICE_URL` env var is the single configuration point for both the shell script and the Elixir tests.
+
+### Verification:
+- `mix precommit` passes: 697 tests, 0 failures (5 integration tests excluded)
+- Integration tests require Python service: `./scripts/test-integration.sh`

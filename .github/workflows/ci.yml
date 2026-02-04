@@ -73,8 +73,6 @@ jobs:
   test-python:
     name: Python AI Service Test
     runs-on: ubuntu-latest
-    if: false
-    # specific path for python service
     defaults:
       run:
         working-directory: ./python_service
@@ -88,29 +86,92 @@ jobs:
           python-version: "3.11"
           cache: "pip"
 
-      - name: Check for Python Service existence
-        id: check_files
-        run: |
-          if [ -d "." ]; then
-            echo "Python service directory exists."
-            echo "exists=true" >> $GITHUB_OUTPUT
-          else
-            echo "Python service directory does not exist yet. Skipping."
-            echo "exists=false" >> $GITHUB_OUTPUT
-          fi
-        working-directory: .
+      - name: Install Tesseract OCR
+        run: sudo apt-get update && sudo apt-get install -y tesseract-ocr
 
-      # Only run these if the directory actually has content/requirements
       - name: Install Dependencies
-        if: steps.check_files.outputs.exists == 'true' && hashFiles('python_service/requirements.txt') != ''
         run: |
           pip install -r requirements.txt
           pip install pytest ruff
 
       - name: Lint with Ruff
-        if: steps.check_files.outputs.exists == 'true' && hashFiles('python_service/requirements.txt') != ''
         run: ruff check .
 
       - name: Run Tests
-        if: steps.check_files.outputs.exists == 'true' && hashFiles('python_service/requirements.txt') != ''
         run: pytest
+
+  test-integration:
+    name: Elixir ↔ Python Integration Tests
+    runs-on: ubuntu-latest
+    needs: [test-elixir, test-python]
+    env:
+      MIX_ENV: test
+      AI_SERVICE_URL: http://localhost:8099
+
+    services:
+      db:
+        image: pgvector/pgvector:pg16
+        ports: ["5432:5432"]
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Elixir
+        uses: erlef/setup-beam@v1
+        with:
+          otp-version: "28.0"
+          elixir-version: "1.19.4"
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install Tesseract OCR
+        run: sudo apt-get update && sudo apt-get install -y tesseract-ocr
+
+      - name: Restore Elixir dependencies cache
+        uses: actions/cache@v3
+        with:
+          path: deps
+          key: ${{ runner.os }}-mix-${{ hashFiles('**/mix.lock') }}
+          restore-keys: ${{ runner.os }}-mix-
+
+      - name: Restore Elixir build cache
+        uses: actions/cache@v3
+        with:
+          path: _build
+          key: ${{ runner.os }}-build-${{ hashFiles('**/mix.lock') }}
+          restore-keys: ${{ runner.os }}-build-
+
+      - name: Install Elixir dependencies
+        run: mix deps.get
+
+      - name: Install Python dependencies
+        run: pip install -r python_service/requirements.txt
+
+      - name: Start Python AI service
+        run: |
+          cd python_service
+          USE_TESSERACT_OCR=true USE_VLLM_OCR=false \
+            uvicorn main:app --host 127.0.0.1 --port 8099 &
+          echo "Waiting for Python service..."
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:8099/health > /dev/null 2>&1; then
+              echo "Python service is ready!"
+              break
+            fi
+            sleep 1
+          done
+
+      - name: Run integration tests
+        run: mix test.integration

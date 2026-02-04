@@ -28,7 +28,7 @@ defmodule GroceryPlanner.MixProject do
 
   def cli do
     [
-      preferred_envs: [precommit: :test]
+      preferred_envs: [precommit: :test, "test.integration": :test]
     ]
   end
 
@@ -101,6 +101,7 @@ defmodule GroceryPlanner.MixProject do
       "ecto.setup": ["ecto.create", "ecto.migrate", "run priv/repo/seeds.exs"],
       "ecto.reset": ["ecto.drop", "ecto.setup"],
       test: ["ash.setup --quiet", "test"],
+      "test.integration": ["ash.setup --quiet", "test --only integration"],
       "assets.setup": ["tailwind.install --if-missing", "esbuild.install --if-missing"],
       "assets.build": ["compile", "tailwind grocery_planner", "esbuild grocery_planner"],
       "assets.deploy": [
