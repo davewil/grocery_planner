@@ -16,7 +16,7 @@ class BaseRequest(BaseModel):
     """Base request schema for all AI operations."""
     request_id: str = Field(..., description="Unique request identifier for tracing")
     tenant_id: str = Field(..., description="Tenant (account) ID for multi-tenancy")
-    user_id: str = Field(..., description="User ID who initiated the request")
+    user_id: Optional[str] = Field(default=None, description="User ID who initiated the request (null for system-initiated)")
     feature: str = Field(..., description="Feature name (e.g., 'categorization', 'embedding')")
     payload: Dict[str, Any] = Field(..., description="Feature-specific payload")
     metadata: Optional[Dict[str, Any]] = Field(default={}, description="Optional metadata")
@@ -205,7 +205,7 @@ class ArtifactResponse(BaseModel):
     id: str = Field(..., description="Artifact ID")
     request_id: str = Field(..., description="Original request ID")
     tenant_id: str = Field(..., description="Tenant ID")
-    user_id: str = Field(..., description="User ID")
+    user_id: Optional[str] = Field(default=None, description="User ID (null for system-initiated)")
     feature: str = Field(..., description="Feature name")
     input_payload: Optional[Dict[str, Any]] = Field(default=None, description="Input data")
     output_payload: Optional[Dict[str, Any]] = Field(default=None, description="Output data")
