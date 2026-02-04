@@ -65,6 +65,7 @@ defmodule GroceryPlanner.MealPlanning do
 
       define :create_vote_entry_from_api, action: :create_from_api, args: [:vote_session_id]
       define :list_vote_entries, action: :read
+      define :get_vote_entry, action: :read, get_by: [:id]
       define :list_vote_entries_by_session, action: :list_by_session, args: [:vote_session_id]
       define :list_entries_for_session, action: :by_session, args: [:vote_session_id]
       define :destroy_vote_entry, action: :destroy

@@ -319,3 +319,42 @@
 
 ### Next priorities:
 - US-009: Bulk Operations for Sync Efficiency
+
+---
+
+## 2026-02-04: US-009 - Bulk Operations for Sync Efficiency
+
+### What was implemented:
+- Created `SyncController` with `POST /api/sync/batch` and `GET /api/sync/status` endpoints
+- Supports all 11 syncable resource types: shopping_list, shopping_list_item, grocery_item, inventory_entry, recipe, recipe_ingredient, meal_plan, meal_plan_template, meal_plan_template_entry, vote_session, vote_entry
+- Mixed create/update/delete operations in a single batch request
+- Per-operation success/failure reporting
+- Atomic mode (all-or-nothing) via `Repo.transaction` with rollback on first failure
+- `temp_id` field for offline ID mapping (client sends temp ID, gets server ID back)
+- `server_time` in every response for client sync coordination
+- Added `get_vote_entry` code interface to MealPlanning domain
+
+### Key learnings:
+
+1. **Dynamic dispatch to domain code interfaces**: Using `apply(domain, :"create_#{resource}", args)` enables a generic batch handler without per-resource boilerplate. Map resource type strings to `{domain_module, resource_atom}` tuples for clean dispatch.
+
+2. **Varying create signatures**: Most domain create functions follow `create_<resource>(account_id, attrs, opts)`, but some have extra positional args (e.g., `create_inventory_entry` needs `grocery_item_id`, `create_vote_entry_from_api` needs `vote_session_id`). Handle these as explicit pattern-matched clauses in the create dispatch.
+
+3. **Atomic batch via Repo.transaction**: Wrapping `Enum.reduce_while` inside `Repo.transaction` with `Repo.rollback` on first error gives all-or-nothing semantics. Return 422 with partial results (including the error) so the client knows which operation failed.
+
+4. **Ash notifications in transactions**: Ash warns about "missed notifications" when operations run inside a `Repo.transaction` without `return_notifications?: true`. This is expected behavior for batch operations and can be suppressed with `config :ash, :missed_notifications, :ignore` if needed.
+
+5. **Custom controller alongside AshJsonApi**: Custom Phoenix controllers can coexist with `AshJsonApi.Router` by adding routes before the `forward("/json", JsonApiRouter)` in the router. The sync endpoints use regular JSON (not JSON:API format) since they're a custom protocol.
+
+6. **Missing code interfaces**: Not all resources had complete CRUD code interfaces (e.g., `get_vote_entry` was missing from MealPlanning domain). Batch operations that need get+update or get+delete require a `get_by: [:id]` interface for every supported type.
+
+7. **Resource-specific operation restrictions**: Some resources don't support all operations (e.g., vote_entry has no update action - votes are binary create/delete). The controller handles this with a `@no_update_types` list that returns a clear error for unsupported operations.
+
+### Files changed:
+- `lib/grocery_planner_web/controllers/api/sync_controller.ex` - New batch sync controller
+- `lib/grocery_planner_web/router.ex` - Added sync routes under api_auth pipeline
+- `lib/grocery_planner/meal_planning.ex` - Added `get_vote_entry` code interface
+- `test/grocery_planner_web/controllers/api/sync_batch_test.exs` - 15 behavioral tests
+
+### Next priorities:
+- US-008 remaining: Sync metadata (server timestamp, has_more flag), conflict detection

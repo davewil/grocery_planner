@@ -242,17 +242,29 @@ MealPlan (Aggregate Root)
 - [ ] Responses include sync metadata (server timestamp, has_more flag)
 - [ ] Conflict detection via `If-Unmodified-Since` header support
 
-### US-009: Bulk Operations for Sync Efficiency
+### US-009: Bulk Operations for Sync Efficiency ✅ IMPLEMENTED
 **As a** mobile app
 **I want** to submit multiple changes in a single request
 **So that** I can sync efficiently when reconnecting
 
 **Acceptance Criteria:**
-- [ ] `POST /sync/batch` accepts array of operations
-- [ ] Supports mixed create/update/delete operations
-- [ ] Returns per-operation success/failure status
-- [ ] Atomic option available (all-or-nothing)
-- [ ] Conflict resolution strategy documented
+- [x] `POST /sync/batch` accepts array of operations
+- [x] Supports mixed create/update/delete operations
+- [x] Returns per-operation success/failure status
+- [x] Atomic option available (all-or-nothing)
+- [x] Conflict resolution strategy documented
+
+**Implementation Notes (2026-02-04):**
+- Created `SyncController` at `lib/grocery_planner_web/controllers/api/sync_controller.ex`
+- Registered routes `POST /api/sync/batch` and `GET /api/sync/status` in router
+- Supports all 11 syncable resource types via dynamic dispatch to domain code interfaces
+- `temp_id` field allows clients to map server-generated IDs back to offline temporary IDs
+- Non-atomic mode: processes all operations, returns per-operation success/failure
+- Atomic mode (`"atomic": true`): wraps all operations in `Repo.transaction`, rolls back on first failure (returns 422)
+- `GET /api/sync/status` returns `server_time` and `api_version` for sync coordination
+- Response always includes `server_time` for client timestamp tracking
+- Added `get_vote_entry` code interface to MealPlanning domain (was missing)
+- 15 behavioral tests covering auth, validation, CRUD, mixed ops, temp_id, atomic commit/rollback
 
 ## Technical Specification
 
