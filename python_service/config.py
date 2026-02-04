@@ -8,6 +8,7 @@ Environment variables:
 - OCR_TIMEOUT: Timeout in seconds for OCR requests (default: 60)
 - CLASSIFICATION_MODEL: Model for zero-shot classification (default: valhalla/distilbart-mnli-12-3)
 - USE_REAL_CLASSIFICATION: Enable real ML classification (default: false)
+- USE_TESSERACT_OCR: Use Tesseract OCR as fallback when VLM is disabled (default: true)
 """
 
 import os
@@ -23,6 +24,7 @@ class Settings:
 
     # Feature flags for gradual rollout
     USE_VLLM_OCR: bool = os.getenv("USE_VLLM_OCR", "false").lower() == "true"
+    USE_TESSERACT_OCR: bool = os.getenv("USE_TESSERACT_OCR", "true").lower() == "true"
 
     # Zero-shot classification settings
     CLASSIFICATION_MODEL: str = os.getenv(

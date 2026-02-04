@@ -340,11 +340,14 @@ defmodule GroceryPlannerWeb.ReceiptLive do
               Phoenix.PubSub.subscribe(GroceryPlanner.PubSub, "receipt:#{receipt.id}")
             end
 
+            # Trigger immediate processing instead of waiting for AshOban cron scheduler
+            AshOban.run_trigger(receipt, :process)
+
             socket =
               socket
               |> assign(:step, :processing)
               |> assign(:receipt, receipt)
-              |> assign(:processing_status, "Uploading...")
+              |> assign(:processing_status, "Processing receipt...")
 
             {:noreply, socket}
 
@@ -506,7 +509,7 @@ defmodule GroceryPlannerWeb.ReceiptLive do
     account_id = receipt.account_id
 
     case Inventory.list_receipt_items_for_receipt(receipt.id,
-           actor: nil,
+           authorize?: false,
            tenant: account_id
          ) do
       {:ok, items} ->
@@ -524,7 +527,7 @@ defmodule GroceryPlannerWeb.ReceiptLive do
                     grocery_item_id: match.item.id,
                     match_confidence: match.confidence
                   },
-                  actor: nil,
+                  authorize?: false,
                   tenant: account_id
                 )
 

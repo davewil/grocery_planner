@@ -531,3 +531,22 @@
    - AI-003 (Receipt Scanning): Python-only MVP - OCR endpoint works, entire Elixir integration layer missing
    - AI-004 (Meal Optimization): Not started
    - AI-005 (Chat Assistant): Not started
+
+## Session: AI-003 OCR Testing & Tesseract Integration
+
+### Changes Made
+
+1. **Tesseract OCR fallback** added to Python `extract_receipt_endpoint` in `python_service/main.py` - three-way selection: VLM → Tesseract → Mock
+2. **USE_TESSERACT_OCR config flag** added to `python_service/config.py` Settings (defaults to True)
+3. **29 E2E LiveView tests** for ReceiptLive wizard in `test/grocery_planner_web/live/receipt_live_test.exs`
+4. **11 Python Tesseract tests** in `python_service/tests/test_tesseract_ocr.py`
+5. **Production bug fix**: Changed `actor: nil` to `authorize?: false` in `receipt_live.ex` handle_info - Ash policies silently filtered all records when actor was nil
+6. **Immediate processing**: Added `AshOban.run_trigger(receipt, :process)` after upload for instant OCR instead of waiting for 1-minute cron
+7. **Sample receipt fixtures**: Test images for both Python and Elixir test suites
+
+### Key Learnings
+
+1. **Ash `actor: nil` vs `authorize?: false`**: Using `actor: nil` with `relates_to_actor_via` policies silently returns empty results. Use `authorize?: false` when processing outside user context (e.g., PubSub handlers).
+2. **LiveView test state manipulation**: `:sys.replace_state/2` can directly set LiveView assigns for testing multi-step wizards without going through the full upload/PubSub flow.
+3. **AshOban immediate trigger**: `AshOban.run_trigger(record, :trigger_name)` inserts an Oban job immediately instead of waiting for the cron scheduler.
+4. **Python BaseResponse envelope**: The response only contains `request_id`, `status`, `payload`, `error`, `metadata` - inner processing fields like `model_id` don't propagate to the response.

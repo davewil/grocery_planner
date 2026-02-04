@@ -25,12 +25,12 @@ After a shopping trip, users must manually enter each purchased item into their 
 **So that** the system can extract items automatically
 
 **Acceptance Criteria:**
-- [ ] Support image upload (JPEG, PNG, HEIC)
-- [ ] Support PDF upload
+- [x] Support image upload (JPEG, PNG, HEIC)
+- [x] Support PDF upload
 - [ ] Camera capture on mobile devices
-- [ ] Show upload progress indicator
-- [ ] Handle images up to 10MB
-- [ ] Display processing status (uploading → processing → ready)
+- [x] Show upload progress indicator
+- [x] Handle images up to 10MB
+- [x] Display processing status (uploading → processing → ready)
 
 ### US-002: Review and correct extracted items
 **As a** user reviewing extracted data
@@ -38,11 +38,11 @@ After a shopping trip, users must manually enter each purchased item into their 
 **So that** my inventory stays accurate
 
 **Acceptance Criteria:**
-- [ ] Display extracted items in editable list
-- [ ] Each item shows: name, quantity, unit, price
-- [ ] Items can be edited inline
-- [ ] Items can be deleted
-- [ ] Add missing items manually
+- [x] Display extracted items in editable list
+- [x] Each item shows: name, quantity, unit, price
+- [x] Items can be edited inline
+- [x] Items can be deleted
+- [x] Add missing items manually
 - [ ] Show confidence indicators for uncertain extractions
 - [ ] "Looks wrong? Upload clearer image" option
 
@@ -64,12 +64,12 @@ After a shopping trip, users must manually enter each purchased item into their 
 **So that** my stock levels are updated
 
 **Acceptance Criteria:**
-- [ ] Create InventoryEntry for each confirmed item
+- [x] Create InventoryEntry for each confirmed item
 - [ ] Set purchase date from receipt (or today)
 - [ ] Set purchase price from receipt
 - [ ] Select default storage location
 - [ ] Option to set expiration dates
-- [ ] Show success summary with count of items added
+- [x] Show success summary with count of items added
 
 ### US-005: Prevent duplicate imports
 **As a** user
@@ -77,8 +77,8 @@ After a shopping trip, users must manually enter each purchased item into their 
 **So that** I don't accidentally double-import items
 
 **Acceptance Criteria:**
-- [ ] Compute hash of receipt image/content
-- [ ] Warn if same receipt uploaded before
+- [x] Compute hash of receipt image/content
+- [x] Warn if same receipt uploaded before
 - [ ] Option to proceed anyway or cancel
 - [ ] Show link to previous import
 
@@ -733,6 +733,36 @@ LAYOUTLM_MODEL=microsoft/layoutlm-base-uncased
 2. How long should we retain receipt images?
 3. Should extracted prices update item price history?
 4. Multi-language receipt support needed?
+
+## Implementation Status
+
+**Status: IN PROGRESS** (Phase 2 - Tesseract OCR + E2E testing complete)
+
+### What's Built
+
+#### Python OCR Service
+- `POST /api/v1/extract-receipt` - Tesseract OCR fallback for receipt extraction
+- `receipt_ocr.process_receipt()` - Direct Tesseract processing function
+- `USE_TESSERACT_OCR` config flag (defaults to True)
+- Three-way OCR selection: VLM → Tesseract → Mock
+
+#### Elixir Integration
+- `ReceiptLive` - 4-step wizard (upload → processing → review → complete)
+- `ReceiptProcessor` - File storage, hash-based dedup, extraction result persistence
+- `Changes.ProcessReceipt` - AshOban change for background OCR processing
+- `AshOban.run_trigger/2` for immediate processing after upload
+- Production bug fix: `authorize?: false` in handle_info for receipt processing
+
+#### Test Coverage (40 tests)
+- `test/grocery_planner_web/live/receipt_live_test.exs` - 29 E2E LiveView tests
+- `python_service/tests/test_tesseract_ocr.py` - 11 Python Tesseract OCR tests
+
+### What's Remaining
+- US-002: Confidence indicators, "upload clearer image" option
+- US-003: Item-to-catalog matching UI (ItemMatcher module exists)
+- US-004: Purchase date, price, storage location, expiration dates
+- US-005: "Proceed anyway" for duplicates, link to previous import
+- Mobile camera capture optimization
 
 ## References
 

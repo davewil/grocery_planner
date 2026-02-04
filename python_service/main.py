@@ -41,6 +41,12 @@ from middleware import (
 from config import settings
 import logging
 
+# Optional Tesseract OCR import (graceful fallback if not installed)
+try:
+    from receipt_ocr import process_receipt as _tesseract_process_receipt
+except ImportError:
+    _tesseract_process_receipt = None
+
 # Setup structured logging
 setup_structured_logging()
 logger = logging.getLogger("grocery-planner-ai")
@@ -416,8 +422,91 @@ async def extract_receipt_endpoint(request: BaseRequest, db: Session = Depends(g
                 merchant=result["merchant"],
                 date=result["date"]
             )
+        elif settings.USE_TESSERACT_OCR:
+            # Tesseract OCR fallback
+            import base64 as b64_mod
+            import tempfile
+            import os
+
+            if _tesseract_process_receipt is None:
+                raise HTTPException(
+                    status_code=503,
+                    detail="Tesseract OCR is not installed. Install tesseract-ocr package."
+                )
+
+            try:
+                # Decode base64 image to temp file
+                image_bytes = b64_mod.b64decode(payload.image_base64)
+                with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as tmp:
+                    tmp.write(image_bytes)
+                    tmp_path = tmp.name
+
+                try:
+                    result = _tesseract_process_receipt(tmp_path)
+
+                    # Transform ExtractionResult -> ExtractionResponsePayload (flat format)
+                    flat_items = []
+                    for li in result.line_items:
+                        price_val = None
+                        if li.total_price and li.total_price.amount:
+                            try:
+                                price_val = float(li.total_price.amount)
+                            except (ValueError, TypeError):
+                                pass
+                        elif li.unit_price and li.unit_price.amount:
+                            try:
+                                price_val = float(li.unit_price.amount)
+                            except (ValueError, TypeError):
+                                pass
+
+                        flat_items.append(ExtractedItem(
+                            name=li.parsed_name or li.raw_text,
+                            quantity=li.quantity or 1.0,
+                            unit=li.unit,
+                            price=price_val,
+                            confidence=li.confidence,
+                        ))
+
+                    total_val = None
+                    if result.total and result.total.amount:
+                        try:
+                            total_val = float(result.total.amount)
+                        except (ValueError, TypeError):
+                            pass
+
+                    merchant_val = result.merchant.name if result.merchant else None
+                    date_val = result.date.value if result.date else None
+
+                    response_payload = ExtractionResponsePayload(
+                        items=flat_items,
+                        total=total_val,
+                        merchant=merchant_val,
+                        date=date_val,
+                    )
+
+                    model_id = "tesseract-ocr"
+                    try:
+                        import pytesseract
+                        tv = pytesseract.get_tesseract_version()
+                        model_version = f"tesseract-{tv}"
+                    except Exception:
+                        model_version = "tesseract-5.x"
+
+                finally:
+                    os.unlink(tmp_path)
+
+            except HTTPException:
+                raise
+            except FileNotFoundError:
+                raise HTTPException(
+                    status_code=503,
+                    detail="Tesseract OCR is not installed. Install tesseract-ocr package."
+                )
+            except Exception as e:
+                logger.error(f"Tesseract OCR failed: {e}")
+                raise HTTPException(status_code=500, detail=f"OCR processing failed: {str(e)}")
         else:
-            # MOCK IMPLEMENTATION for development
+            # Mock response for development/CI without OCR
             model_id = "mock-ocr"
             model_version = "1.0.0"
 
@@ -468,8 +557,16 @@ async def extract_receipt_endpoint(request: BaseRequest, db: Session = Depends(g
             input_payload=request.payload,
             status="error",
             error_message=str(e),
-            model_id="mock-ocr" if not settings.USE_VLLM_OCR else settings.VLLM_MODEL,
-            model_version="1.0.0" if not settings.USE_VLLM_OCR else "vllm",
+            model_id=(
+                settings.VLLM_MODEL if settings.USE_VLLM_OCR
+                else "tesseract-ocr" if settings.USE_TESSERACT_OCR
+                else "mock-ocr"
+            ),
+            model_version=(
+                "vllm" if settings.USE_VLLM_OCR
+                else "tesseract-5.x" if settings.USE_TESSERACT_OCR
+                else "1.0.0"
+            ),
             latency_ms=latency_ms,
         )
 
