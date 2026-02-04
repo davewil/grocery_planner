@@ -44,9 +44,11 @@ export const KanbanBoard = {
       const sortable = new Sortable(zone, {
         group: 'meals',
         animation: 150,
-        ghostClass: 'opacity-40',
-        chosenClass: 'ring-2 ring-primary shadow-lg',
-        dragClass: 'rotate-2',
+        ghostClass: 'sortable-ghost',
+        chosenClass: 'sortable-chosen',
+        dragClass: 'rotate-1',
+        forceFallback: true,
+        fallbackTolerance: 3,
 
         // Only allow dragging meal cards, not empty slot buttons
         draggable: '[data-draggable="meal"]',
@@ -64,8 +66,9 @@ export const KanbanBoard = {
 
           // Add visual feedback to all drop zones
           this.el.querySelectorAll('[data-drop-zone]').forEach(dz => {
-            dz.classList.add('transition-colors', 'duration-200');
+            dz.classList.add('drop-zone-active');
           });
+          document.body.style.cursor = 'grabbing';
 
           this.pushEvent("drag_start", {
             meal_id: this.draggedMeal.id,
@@ -77,8 +80,9 @@ export const KanbanBoard = {
         onEnd: (evt) => {
           // Remove visual feedback
           this.el.querySelectorAll('[data-drop-zone]').forEach(dz => {
-            dz.classList.remove('bg-primary/10', 'ring-2', 'ring-primary/30');
+            dz.classList.remove('drop-zone-active', 'drop-zone-swap', 'bg-primary/10', 'ring-2', 'ring-primary/30', 'bg-warning/20', 'ring-warning/50');
           });
+          document.body.style.cursor = '';
 
           // Clear drag over throttle
           if (this.dragOverThrottle) {
@@ -107,12 +111,12 @@ export const KanbanBoard = {
             this.targetMealId = existingMeal.dataset.mealId;
 
             // Visual indicator for swap
-            targetZone.classList.add('bg-warning/20', 'ring-2', 'ring-warning/50');
+            targetZone.classList.add('drop-zone-swap');
+            targetZone.classList.remove('drop-zone-active');
           } else {
             this.targetSlotOccupied = false;
             this.targetMealId = null;
-            targetZone.classList.remove('bg-warning/20', 'ring-2', 'ring-warning/50');
-            targetZone.classList.add('bg-primary/10', 'ring-2', 'ring-primary/30');
+            targetZone.classList.remove('drop-zone-swap');
           }
 
           // Push drag_over event with throttling for grocery delta calculation
@@ -202,7 +206,9 @@ export const KanbanBoard = {
         animation: 150,
         sort: false, // Don't allow reordering within sidebar
         draggable: '[data-draggable="recipe"]',
-        ghostClass: 'opacity-40',
+        ghostClass: 'sortable-ghost',
+        forceFallback: true,
+        fallbackTolerance: 3,
 
         onStart: (evt) => {
           this.pushEvent("sidebar_drag_start", {

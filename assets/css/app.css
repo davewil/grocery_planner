@@ -48,3 +48,73 @@
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+
+/* Power Mode Drag & Drop Animations */
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pulse-border {
+  0%, 100% { border-color: oklch(var(--p) / 0.3); }
+  50% { border-color: oklch(var(--p) / 0.6); }
+}
+
+@keyframes drop-success {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.03); }
+  100% { transform: scale(1); }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.2s ease-out;
+}
+
+.animate-pulse-border {
+  animation: pulse-border 1.5s ease-in-out infinite;
+}
+
+.animate-drop-success {
+  animation: drop-success 0.3s ease-out;
+}
+
+/* Drag ghost enhanced styling */
+.sortable-ghost {
+  opacity: 0.4;
+  transform: scale(0.95) rotate(1deg);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2);
+}
+
+.sortable-chosen {
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.15);
+  z-index: 50;
+}
+
+/* Drop zone active state */
+.drop-zone-active {
+  border-color: oklch(var(--p) / 0.5) !important;
+  background-color: oklch(var(--p) / 0.05);
+  animation: pulse-border 1.5s ease-in-out infinite;
+}
+
+.drop-zone-swap {
+  border-color: oklch(var(--wa) / 0.5) !important;
+  background-color: oklch(var(--wa) / 0.1);
+}
+
+/* Desktop horizontal scroll snap */
+.power-week-grid {
+  scroll-snap-type: x proximity;
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+}
+
+.power-week-grid > * {
+  scroll-snap-align: start;
+}
+
+/* Touch optimization */
+.touch-target-44 {
+  min-width: 44px;
+  min-height: 44px;
+}

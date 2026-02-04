@@ -185,7 +185,7 @@ defmodule GroceryPlannerWeb.MealPlannerLive.PowerLayout do
         <%!-- Kanban Board --%>
         <div class="flex-1 overflow-y-auto lg:overflow-hidden" id="power-week-board">
           <%!-- Desktop: Full Week Grid --%>
-          <div class="hidden lg:flex lg:flex-row lg:h-full h-auto gap-2 p-2 lg:min-w-[900px] lg:overflow-x-auto">
+          <div class="hidden lg:flex lg:flex-row lg:h-full h-auto gap-2 p-2 lg:min-w-[900px] lg:overflow-x-auto power-week-grid">
             <%= for day <- @days do %>
               <.day_column
                 day={day}
@@ -293,7 +293,7 @@ defmodule GroceryPlannerWeb.MealPlannerLive.PowerLayout do
             phx-click="power_mobile_select_day"
             phx-value-date={Date.to_iso8601(day)}
             class={[
-              "w-9 h-9 rounded-full text-xs font-semibold transition-all",
+              "w-11 h-11 rounded-full text-xs font-semibold transition-all",
               Date.compare(day, @mobile_selected_date) == :eq &&
                 "bg-primary text-primary-content shadow-md",
               Date.compare(day, @mobile_selected_date) != :eq &&
@@ -315,7 +315,7 @@ defmodule GroceryPlannerWeb.MealPlannerLive.PowerLayout do
           phx-click="power_mobile_prev_day"
           disabled={@is_first_day}
           class={[
-            "btn btn-ghost btn-sm gap-1",
+            "btn btn-ghost gap-1 min-h-[44px] min-w-[44px]",
             @is_first_day && "opacity-40 cursor-not-allowed"
           ]}
         >
@@ -335,7 +335,7 @@ defmodule GroceryPlannerWeb.MealPlannerLive.PowerLayout do
           phx-click="power_mobile_next_day"
           disabled={@is_last_day}
           class={[
-            "btn btn-ghost btn-sm gap-1",
+            "btn btn-ghost gap-1 min-h-[44px] min-w-[44px]",
             @is_last_day && "opacity-40 cursor-not-allowed"
           ]}
         >
@@ -429,7 +429,7 @@ defmodule GroceryPlannerWeb.MealPlannerLive.PowerLayout do
     ~H"""
     <div
       class={[
-        "rounded-lg transition-colors border-2 border-dashed border-transparent hover:border-base-300",
+        "rounded-lg transition-all duration-200 border-2 border-dashed border-transparent hover:border-base-300",
         @mobile && "p-2 min-h-[70px]",
         !@mobile && "p-1.5 min-h-[52px]"
       ]}
@@ -461,7 +461,7 @@ defmodule GroceryPlannerWeb.MealPlannerLive.PowerLayout do
           phx-value-meal_type={@meal_type}
           class={[
             "w-full rounded-lg border border-dashed border-base-300 text-base-content/30 hover:border-primary hover:text-primary hover:bg-primary/5 transition-colors flex items-center justify-center gap-1",
-            @mobile && "h-12 text-sm",
+            @mobile && "h-14 text-sm",
             !@mobile && "h-9 text-xs"
           ]}
         >
@@ -479,7 +479,7 @@ defmodule GroceryPlannerWeb.MealPlannerLive.PowerLayout do
     ~H"""
     <div
       class={[
-        "bg-base-100 rounded-lg shadow-sm cursor-grab active:cursor-grabbing group border border-base-200 hover:border-primary/30 hover:shadow-md transition-all",
+        "bg-base-100 rounded-lg shadow-sm cursor-grab active:cursor-grabbing group border border-base-200 hover:border-primary/30 hover:shadow-md transition-all touch-manipulation",
         @selected && "ring-2 ring-primary bg-primary/5",
         @mobile && "p-3",
         !@mobile && "p-2"
@@ -504,7 +504,7 @@ defmodule GroceryPlannerWeb.MealPlannerLive.PowerLayout do
           type="checkbox"
           class={[
             "checkbox checkbox-primary transition-opacity",
-            @mobile && "checkbox-sm opacity-100",
+            @mobile && "checkbox-md opacity-100",
             !@mobile && "checkbox-xs opacity-0 group-hover:opacity-100"
           ]}
           checked={@selected}
