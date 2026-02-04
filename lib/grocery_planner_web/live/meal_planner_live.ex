@@ -430,6 +430,11 @@ defmodule GroceryPlannerWeb.MealPlannerLive do
     {:noreply, assign(socket, :dragging_meal_id, meal_id)}
   end
 
+  def handle_event("sidebar_drag_start", %{"recipe_id" => recipe_id}, socket) do
+    # Track which recipe is being dragged from the sidebar for grocery delta calculation
+    {:noreply, assign(socket, :dragging_recipe_id, recipe_id)}
+  end
+
   def handle_event("drag_over", params, socket) do
     # Calculate grocery delta when hovering over a target slot
     %{
@@ -437,13 +442,25 @@ defmodule GroceryPlannerWeb.MealPlannerLive do
       "target_meal_type" => target_type_str
     } = params
 
-    meal_id = socket.assigns[:dragging_meal_id]
-
-    if meal_id && socket.assigns.meal_planner_layout == "power" do
+    if socket.assigns.meal_planner_layout == "power" do
       target_date = Date.from_iso8601!(target_date_str)
       target_meal_type = String.to_existing_atom(target_type_str)
 
-      delta = calculate_grocery_delta(socket, meal_id, target_date, target_meal_type)
+      meal_id = socket.assigns[:dragging_meal_id]
+      recipe_id = socket.assigns[:dragging_recipe_id]
+
+      delta =
+        cond do
+          meal_id ->
+            calculate_grocery_delta(socket, meal_id, target_date, target_meal_type)
+
+          recipe_id ->
+            calculate_grocery_delta_for_recipe(socket, recipe_id, target_date, target_meal_type)
+
+          true ->
+            nil
+        end
+
       {:noreply, assign(socket, :grocery_delta, delta)}
     else
       {:noreply, socket}
@@ -452,7 +469,19 @@ defmodule GroceryPlannerWeb.MealPlannerLive do
 
   def handle_event("drag_end", _params, socket) do
     # Clear drag state and grocery delta
-    {:noreply, socket |> assign(:dragging_meal_id, nil) |> assign(:grocery_delta, nil)}
+    {:noreply,
+     socket
+     |> assign(:dragging_meal_id, nil)
+     |> assign(:dragging_recipe_id, nil)
+     |> assign(:grocery_delta, nil)}
+  end
+
+  def handle_event("sidebar_drag_end", _params, socket) do
+    # Clear sidebar drag state and grocery delta
+    {:noreply,
+     socket
+     |> assign(:dragging_recipe_id, nil)
+     |> assign(:grocery_delta, nil)}
   end
 
   def handle_event("drop_meal", params, socket) do
@@ -1190,6 +1219,72 @@ defmodule GroceryPlannerWeb.MealPlannerLive do
             meals
           end
         end)
+
+      # Calculate hypothetical grocery impact
+      hypothetical_impact =
+        GroceryPlanner.MealPlanning.GroceryImpact.calculate_impact(
+          hypothetical_meals,
+          socket.assigns.current_account.id,
+          socket.assigns.current_user
+        )
+
+      # Calculate delta
+      current_item_ids = MapSet.new(current_impact, & &1.grocery_item_id)
+      hypothetical_item_ids = MapSet.new(hypothetical_impact, & &1.grocery_item_id)
+
+      added = MapSet.difference(hypothetical_item_ids, current_item_ids) |> MapSet.to_list()
+      removed = MapSet.difference(current_item_ids, hypothetical_item_ids) |> MapSet.to_list()
+
+      %{
+        added: added,
+        removed: removed,
+        added_count: length(added),
+        removed_count: length(removed)
+      }
+    else
+      nil
+    end
+  end
+
+  defp calculate_grocery_delta_for_recipe(socket, recipe_id, target_date, target_meal_type) do
+    # Find the recipe from available recipes (already loaded with ingredients)
+    recipe =
+      Enum.find(socket.assigns[:available_recipes] || [], &(&1.id == recipe_id))
+
+    if recipe do
+      week_meals = socket.assigns[:week_meals] || %{}
+
+      current_meals =
+        week_meals
+        |> Enum.flat_map(fn {_date, meals_by_type} ->
+          meals_by_type |> Map.values() |> Enum.reject(&is_nil/1)
+        end)
+
+      # Calculate current grocery impact
+      current_impact =
+        GroceryPlanner.MealPlanning.GroceryImpact.calculate_impact(
+          current_meals,
+          socket.assigns.current_account.id,
+          socket.assigns.current_user
+        )
+
+      # Build a hypothetical meal plan struct for the recipe being added
+      hypothetical_meal = %{
+        id: "hypothetical-sidebar-drag",
+        recipe: recipe,
+        recipe_id: recipe.id,
+        servings: recipe.servings || 4,
+        scheduled_date: target_date,
+        meal_type: target_meal_type
+      }
+
+      # If target slot is occupied, the existing meal gets replaced
+      hypothetical_meals =
+        current_meals
+        |> Enum.reject(fn m ->
+          m.scheduled_date == target_date && m.meal_type == target_meal_type
+        end)
+        |> List.insert_at(0, hypothetical_meal)
 
       # Calculate hypothetical grocery impact
       hypothetical_impact =

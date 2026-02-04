@@ -31,6 +31,7 @@ defmodule GroceryPlannerWeb.MealPlannerLive.PowerLayout do
     |> Phoenix.Component.assign(:sidebar_search, "")
     |> Phoenix.Component.assign(:grocery_delta, nil)
     |> Phoenix.Component.assign(:dragging_meal_id, nil)
+    |> Phoenix.Component.assign(:dragging_recipe_id, nil)
     |> Phoenix.Component.assign(:mobile_selected_date, mobile_selected_date)
     |> DataLoader.load_all_recipes()
     |> load_sidebar_recipes()

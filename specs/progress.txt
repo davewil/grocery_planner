@@ -388,3 +388,39 @@
 - `test/grocery_planner_web/controllers/api/sync_pull_test.exs` - 13 behavioral tests
 
 ### US-008 is now COMPLETE. All acceptance criteria met.
+
+---
+
+## 2026-02-04: MP-003 PR 4 - Grocery Delta Feedback During Drag
+
+### What was implemented:
+- Extended grocery delta feedback to support recipe-from-sidebar drags (was only working for meal-to-meal moves)
+- Added `sidebar_drag_start` and `sidebar_drag_end` event handlers in MealPlannerLive
+- Extended `drag_over` handler to branch between meal drags and recipe drags
+- Created `calculate_grocery_delta_for_recipe/4` that builds a hypothetical meal plan struct from the dragged recipe
+- Added `dragging_recipe_id` assign to PowerLayout init
+- Loaded `grocery_item` relationship on `recipe_ingredients` in `meal_planner_recipes` action (required for GroceryImpact calculation)
+- Strengthened existing tests from "assert view" (no-crash) to actual HTML assertions using `[role=status]` selector
+- Added 3 new tests for sidebar recipe drag delta
+
+### Key learnings:
+
+1. **Ash.NotLoaded in nested relationships**: When `GroceryImpact.calculate_impact/3` accesses `ingredient.grocery_item.name`, the `grocery_item` relationship must be loaded. The `meal_planner_recipes` action was loading `:recipe_ingredients` but not `recipe_ingredients: [:grocery_item]`. The `DataLoader.load_week_meals` already loaded `recipe_ingredients: :grocery_item` for existing meal plans, which is why meal-to-meal drags worked but sidebar recipe drags didn't.
+
+2. **Elixir keyword list ordering**: In Elixir, keyword list entries must come AFTER bare atoms in a list. `[:atom, key: :val]` is valid, but `[key: :val, :atom]` is a syntax error. When adding `recipe_ingredients: [:grocery_item]` to a load list, ensure bare atoms like `:total_time_minutes` come first.
+
+3. **Testing LiveView conditional rendering**: Using `refute html =~ "hero-shopping-cart"` fails when the icon class appears elsewhere in the page (e.g., command bar). Use `has_element?(view, "[role=status]")` to test for specific conditional elements with unique attributes.
+
+4. **Hypothetical meal plan structs for delta calculation**: GroceryImpact.calculate_impact/3 only accesses `.recipe`, `.servings`, and `.recipe.recipe_ingredients` on each meal plan. A plain map with these keys suffices as a "fake" meal plan for hypothetical calculations.
+
+5. **SortableJS cross-group drag events**: When sidebar and board share the same SortableJS group (`'meals'`), the board's `onMove` callback fires for sidebar-to-board drags. The sidebar pushes `sidebar_drag_start` separately, and the board's `onMove` pushes `drag_over` - both events need to be handled on the LiveView side.
+
+### Files changed:
+- `lib/grocery_planner_web/live/meal_planner_live/power_layout.ex` - Added `dragging_recipe_id: nil` assign
+- `lib/grocery_planner_web/live/meal_planner_live.ex` - Added sidebar_drag_start/end handlers, extended drag_over, added calculate_grocery_delta_for_recipe/4
+- `lib/grocery_planner/recipes/recipe.ex` - Added `:grocery_item` to recipe_ingredients load in meal_planner_recipes action
+- `test/grocery_planner_web/live/meal_planner_power_mode_test.exs` - 5 behavioral tests for grocery delta (replaced 2 weak tests + added 3 new)
+
+### Remaining MP-003 PR 4 items:
+- Mobile refinements (horizontal scroll, touch targets, swipe conflicts)
+- Visual polish (drag ghost styling, drop zone animations, feedback animations)

@@ -649,24 +649,47 @@ defmodule GroceryPlannerWeb.MealPlannerPowerModeTest do
 
   describe "grocery delta feedback" do
     setup %{conn: conn, account: account, user: user, week_start: week_start} do
-      # Create a recipe with ingredients
-      recipe = create_recipe(account, user, %{name: "Recipe with Ingredients"})
+      # Create two recipes with different ingredients for delta testing
+      recipe_a = create_recipe(account, user, %{name: "Delta Recipe A"})
+      recipe_b = create_recipe(account, user, %{name: "Delta Recipe B"})
 
-      # Create grocery item and recipe ingredient
-      {:ok, grocery_item} =
+      # Create grocery items
+      {:ok, item_a} =
         GroceryPlanner.Inventory.create_grocery_item(
           account.id,
-          %{name: "Test Ingredient"},
+          %{name: "Ingredient Alpha"},
           actor: user,
           tenant: account.id
         )
 
-      {:ok, _recipe_ingredient} =
+      {:ok, item_b} =
+        GroceryPlanner.Inventory.create_grocery_item(
+          account.id,
+          %{name: "Ingredient Beta"},
+          actor: user,
+          tenant: account.id
+        )
+
+      # Link ingredients to recipes
+      {:ok, _} =
         GroceryPlanner.Recipes.create_recipe_ingredient(
           account.id,
           %{
-            recipe_id: recipe.id,
-            grocery_item_id: grocery_item.id,
+            recipe_id: recipe_a.id,
+            grocery_item_id: item_a.id,
+            quantity: Decimal.new(2),
+            unit: :cup
+          },
+          actor: user,
+          tenant: account.id
+        )
+
+      {:ok, _} =
+        GroceryPlanner.Recipes.create_recipe_ingredient(
+          account.id,
+          %{
+            recipe_id: recipe_b.id,
+            grocery_item_id: item_b.id,
             quantity: Decimal.new(1),
             unit: :cup
           },
@@ -674,11 +697,12 @@ defmodule GroceryPlannerWeb.MealPlannerPowerModeTest do
           tenant: account.id
         )
 
+      # Create a meal plan with recipe_a on breakfast Monday
       {:ok, meal_plan} =
         GroceryPlanner.MealPlanning.create_meal_plan(
           account.id,
           %{
-            recipe_id: recipe.id,
+            recipe_id: recipe_a.id,
             scheduled_date: week_start,
             meal_type: :breakfast,
             servings: 4
@@ -689,17 +713,23 @@ defmodule GroceryPlannerWeb.MealPlannerPowerModeTest do
 
       {:ok, view, _html} = live(conn, "/meal-planner")
 
-      %{view: view, meal_plan: meal_plan, recipe: recipe}
+      %{
+        view: view,
+        meal_plan: meal_plan,
+        recipe_a: recipe_a,
+        recipe_b: recipe_b,
+        item_a: item_a,
+        item_b: item_b
+      }
     end
 
-    test "calculates grocery delta on drag_over", %{
+    test "meal drag_over does not crash and calculates delta", %{
       view: view,
       meal_plan: meal_plan,
       week_start: week_start
     } do
       target_date = Date.add(week_start, 2)
 
-      # Trigger drag_start
       view
       |> render_hook("drag_start", %{
         "meal_id" => meal_plan.id,
@@ -707,27 +737,25 @@ defmodule GroceryPlannerWeb.MealPlannerPowerModeTest do
         "source_meal_type" => to_string(meal_plan.meal_type)
       })
 
-      # Trigger drag_over
       view
       |> render_hook("drag_over", %{
         "target_date" => Date.to_iso8601(target_date),
         "target_meal_type" => "lunch"
       })
 
-      # The grocery_delta should be calculated and assigned
-      # We can't directly inspect socket assigns in a test, but we can verify
-      # that the hook executed without error
-      assert view
+      # Moving a meal to an empty slot should not change shopping needs
+      # (same recipe, same servings, just different slot)
+      # So no delta toast (role="status") should appear
+      refute has_element?(view, "[role=status]")
     end
 
-    test "clears grocery delta on drag_end", %{
+    test "drag_end clears grocery delta toast", %{
       view: view,
       meal_plan: meal_plan,
       week_start: week_start
     } do
       target_date = Date.add(week_start, 2)
 
-      # Trigger drag_start
       view
       |> render_hook("drag_start", %{
         "meal_id" => meal_plan.id,
@@ -735,20 +763,75 @@ defmodule GroceryPlannerWeb.MealPlannerPowerModeTest do
         "source_meal_type" => to_string(meal_plan.meal_type)
       })
 
-      # Trigger drag_over
       view
       |> render_hook("drag_over", %{
         "target_date" => Date.to_iso8601(target_date),
         "target_meal_type" => "lunch"
       })
 
-      # Trigger drag_end
-      view
-      |> render_hook("drag_end", %{})
+      view |> render_hook("drag_end", %{})
 
-      # After drag_end, grocery_delta should be cleared
-      # The hook should execute without error
-      assert view
+      # After drag_end, delta toast (role="status") should be gone
+      refute has_element?(view, "[role=status]")
+    end
+
+    test "sidebar recipe drag shows grocery delta toast", %{
+      view: view,
+      recipe_b: recipe_b,
+      week_start: week_start
+    } do
+      target_date = Date.add(week_start, 3)
+
+      # Start dragging a recipe from sidebar
+      view
+      |> render_hook("sidebar_drag_start", %{"recipe_id" => recipe_b.id})
+
+      # Hover over an empty slot
+      view
+      |> render_hook("drag_over", %{
+        "target_date" => Date.to_iso8601(target_date),
+        "target_meal_type" => "dinner"
+      })
+
+      # Adding recipe_b should show the delta toast (Ingredient Beta is needed)
+      assert has_element?(view, "[role=status]")
+    end
+
+    test "sidebar_drag_end clears grocery delta toast", %{
+      view: view,
+      recipe_b: recipe_b,
+      week_start: week_start
+    } do
+      target_date = Date.add(week_start, 3)
+
+      view |> render_hook("sidebar_drag_start", %{"recipe_id" => recipe_b.id})
+
+      view
+      |> render_hook("drag_over", %{
+        "target_date" => Date.to_iso8601(target_date),
+        "target_meal_type" => "dinner"
+      })
+
+      view |> render_hook("sidebar_drag_end", %{})
+
+      # Delta toast (role="status") should be cleared
+      refute has_element?(view, "[role=status]")
+    end
+
+    test "drag_over without any drag_start does not show delta", %{
+      view: view,
+      week_start: week_start
+    } do
+      target_date = Date.add(week_start, 1)
+
+      view
+      |> render_hook("drag_over", %{
+        "target_date" => Date.to_iso8601(target_date),
+        "target_meal_type" => "lunch"
+      })
+
+      # Delta toast (role="status") should not appear
+      refute has_element?(view, "[role=status]")
     end
   end
 

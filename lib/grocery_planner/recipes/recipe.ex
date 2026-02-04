@@ -155,11 +155,11 @@ defmodule GroceryPlanner.Recipes.Recipe do
       prepare build(
                 load: [
                   :total_time_minutes,
-                  :recipe_ingredients,
                   :can_make,
                   :ingredient_availability,
-                  follow_up_recipes: [:recipe_ingredients],
-                  parent_recipe: [follow_up_recipes: [:recipe_ingredients]]
+                  recipe_ingredients: [:grocery_item],
+                  follow_up_recipes: [recipe_ingredients: [:grocery_item]],
+                  parent_recipe: [follow_up_recipes: [recipe_ingredients: [:grocery_item]]]
                 ]
               )
 

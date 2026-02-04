@@ -101,13 +101,14 @@
   - Query recipes sorted by ingredient availability
   - Fill empty slots without repeating recipes
   - Show toast with summary ("Added 5 meals")
-- [ ] Grocery delta feedback during drag
+- [x] Grocery delta feedback during drag
   - Calculate +/- shopping items when hovering over drop zone
-  - Show floating toast: "+2 items" / "-1 item"
-  - Update `week_shopping_items` after drop
-- [ ] Sidebar search filtering
+  - Show floating toast: "+N items" / "-N items"
+  - Supports both meal-to-meal moves and recipe-from-sidebar drags
+  - Sidebar recipe drags now trigger delta calculation via `sidebar_drag_start` event
+- [x] Sidebar search filtering
   - Wire up `search_sidebar` event to filter recipes list
-  - Debounced search
+  - Debounced search (200ms)
 - [ ] Mobile refinements
   - Test horizontal scroll on various devices
   - Adjust card sizes for touch targets
@@ -116,9 +117,9 @@
   - Drag ghost styling refinements
   - Drop zone highlight animation
   - Success/error feedback animations
-- [ ] Tests
-  - Grocery delta calculations
-  - Sidebar search filtering
+- [x] Tests
+  - Grocery delta calculations (5 behavioral tests)
+  - Sidebar search filtering (3 behavioral tests)
 
 ## File Changes Summary
 
