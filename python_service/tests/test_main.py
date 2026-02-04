@@ -113,7 +113,10 @@ def test_categorize_creates_artifact(client):
 # =============================================================================
 
 def test_extract_receipt(client):
-    """Test receipt extraction endpoint."""
+    """Test receipt extraction endpoint with mock OCR."""
+    from unittest.mock import patch
+    from config import settings
+
     payload = {
         "image_base64": "fake_base64_string"
     }
@@ -125,7 +128,10 @@ def test_extract_receipt(client):
         "payload": payload
     }
 
-    response = client.post("/api/v1/extract-receipt", json=request_data)
+    # Force mock OCR mode (fake base64 won't work with real Tesseract)
+    with patch.object(settings, "USE_VLLM_OCR", False), \
+         patch.object(settings, "USE_TESSERACT_OCR", False):
+        response = client.post("/api/v1/extract-receipt", json=request_data)
     assert response.status_code == 200
     data = response.json()
     assert len(data["payload"]["items"]) > 0

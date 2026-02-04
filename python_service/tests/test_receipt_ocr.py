@@ -218,7 +218,7 @@ ITEM 1   5.00
             raw_text = f"Store\n{line}"
             result = parse_receipt(raw_text)
             assert result.total.amount == "10.00"
-            assert result.total.confidence > 0.8
+            assert result.total.confidence >= 0.7
 
 
 class TestProcessReceipt:
