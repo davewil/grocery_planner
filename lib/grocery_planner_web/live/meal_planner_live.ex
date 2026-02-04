@@ -1090,6 +1090,14 @@ defmodule GroceryPlannerWeb.MealPlannerLive do
     perform_add_meal(socket, recipe_id, date, meal_type)
   end
 
+  def handle_info({:refresh_meals}, socket) do
+    socket =
+      socket
+      |> DataLoader.load_week_meals()
+
+    {:noreply, socket}
+  end
+
   def handle_info({:open_add_meal_modal, %{date: date, meal_type: meal_type}}, socket) do
     # We call the handle_event logic
     handle_event(

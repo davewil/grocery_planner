@@ -458,3 +458,44 @@
 - `assets/css/app.css` - Keyframe animations, sortable classes, drop zone classes, scroll-snap styles
 
 ### MP-003 is now FULLY COMPLETE. All 4 PRs delivered.
+
+---
+
+## 2026-02-04: MP-002 Focus Mode - Dedicated Test Suite & Bug Fix
+
+### What was implemented:
+- Created dedicated test file `test/grocery_planner_web/live/meal_planner_focus_live_test.exs` with 22 behavioral tests
+- Fixed missing `handle_info({:refresh_meals}, socket)` handler in `MealPlannerLive` (line 1093)
+
+### Test coverage added (22 tests):
+- Focus mode rendering: renders with day header/week strip, shows 4 meal type slots, empty slots show Add buttons
+- Day navigation: selecting a different day updates header, Jump to Today button works
+- Viewing meals: shows recipe name/servings, status badge, filled slot hides Add button for that type
+- Quick recipe picker: opening shows modal with search, selecting recipe creates meal plan and closes picker, search filters recipes
+- Copy previous day: copies yesterday's meals, shows info when no meals on previous day
+- Repeat last week: repeats previous week's meals, shows info when no meals in last week
+- Auto-fill day: fills dinner with favorite recipe, shows info when no favorites, shows info when dinner already planned
+- Meal prep: repeats meal for remaining days of the week
+- Remove meal: removes meal and restores empty slot
+- Mark complete: marks meal as completed
+- Week navigation: next/prev week preserves focus mode
+
+### Bug fix:
+- `FocusLayout.handle_event("copy_previous_day"|"repeat_last_week"|"auto_fill_day"|"meal_prep")` all send `{:refresh_meals}` via `send(self(), {:refresh_meals})` but the parent `MealPlannerLive` had no `handle_info` clause for this message. This caused a `FunctionClauseError` crash. Added handler at `lib/grocery_planner_web/live/meal_planner_live.ex:1093` that calls `DataLoader.load_week_meals/1`.
+
+### Key learnings:
+
+1. **LiveView event routing pattern**: FocusLayout event handlers return `{:noreply, socket}` directly but refresh data by sending messages to `self()` (the parent LiveView process). The parent LiveView MUST have matching `handle_info` clauses for every message its layout modules send.
+
+2. **Testing LiveView async messages**: When a LiveView handler sends a message via `send(self(), msg)`, calling `render(view)` in tests processes that pending message. This is essential for testing events that trigger data refresh asynchronously (e.g., `focus_select_recipe` sends `{:add_meal_internal, ...}`).
+
+3. **render_click vs element targeting**: For layouts with duplicate mobile/desktop buttons, using `render_click(view, "event_name", %{params})` (3-arg form) is more reliable than targeting DOM elements. This pushes the event directly without needing CSS selector disambiguation.
+
+4. **Test file organization**: Each meal planner layout mode should have its own dedicated test file (Explorer: 364 lines, Power: 899 lines, Focus: 410 lines) rather than embedding tests in the general meal planner test file. This keeps tests focused and easier to maintain.
+
+### Spec status after this work:
+- MP-000 (Shared Infrastructure): COMPLETE - all 6 components implemented
+- MP-001 (Explorer Mode): COMPLETE - 462 lines of tests across 2 files
+- MP-002 (Focus Mode): COMPLETE - 22 new dedicated tests + existing tests in general file
+- MP-003 (Power Mode): COMPLETE - 899 lines of tests
+- AI-001 through AI-005: Not started (require Python sidecar service)
