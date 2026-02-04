@@ -7,7 +7,7 @@ using Tesseract OCR with regex-based extraction (MVP approach).
 
 import re
 import logging
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, Optional
 from pathlib import Path
 
 import cv2

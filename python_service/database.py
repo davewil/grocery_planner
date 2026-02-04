@@ -6,7 +6,6 @@ Uses SQLite for simplicity and persistence without requiring additional infrastr
 
 import os
 from datetime import datetime
-from typing import Optional
 from enum import Enum
 
 from sqlalchemy import create_engine, Column, String, Text, Float, DateTime, ForeignKey, Enum as SQLEnum

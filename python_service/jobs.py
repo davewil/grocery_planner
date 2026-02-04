@@ -8,12 +8,12 @@ import json
 import uuid
 import asyncio
 from datetime import datetime
-from typing import Optional, Callable, Awaitable, Any
+from typing import Optional, Callable, Awaitable
 from concurrent.futures import ThreadPoolExecutor
 
 from sqlalchemy.orm import Session
 
-from database import AIJob, JobStatus, get_db, SessionLocal
+from database import AIJob, JobStatus, SessionLocal
 import logging
 
 logger = logging.getLogger("grocery-planner-ai.jobs")

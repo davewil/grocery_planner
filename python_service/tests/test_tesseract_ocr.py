@@ -10,7 +10,7 @@ Tests cover:
 import os
 import pytest
 import base64
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 from fastapi.testclient import TestClient
 import tempfile
 
@@ -234,7 +234,6 @@ class TestTesseractConfig:
 
     def test_tesseract_config_flag_exists(self):
         """Test that USE_TESSERACT_OCR config flag exists."""
-        from config import settings
 
         assert hasattr(settings, 'USE_TESSERACT_OCR')
         assert isinstance(settings.USE_TESSERACT_OCR, bool)
@@ -294,7 +293,6 @@ class TestTesseractConfig:
 
     def test_vllm_ocr_config_exists(self):
         """Test that USE_VLLM_OCR config flag exists."""
-        from config import settings
 
         assert hasattr(settings, 'USE_VLLM_OCR')
         assert isinstance(settings.USE_VLLM_OCR, bool)

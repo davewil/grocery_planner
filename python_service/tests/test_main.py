@@ -233,7 +233,7 @@ def test_embedding(client):
         "payload": payload
     }
 
-    response = client.post("/api/v1/embed", json=request_data)
+    client.post("/api/v1/embed", json=request_data)
     # This will fail because we changed the endpoint signature
     # The old format is no longer supported, which is fine
 

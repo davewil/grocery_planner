@@ -8,7 +8,6 @@ and the full processing pipeline.
 import pytest
 from unittest.mock import patch, MagicMock
 import numpy as np
-from pathlib import Path
 
 from receipt_ocr import (
     preprocess_image, extract_text, parse_receipt, process_receipt
@@ -85,7 +84,7 @@ class TestPreprocessImage:
                             mock_clahe_obj.apply.return_value = large_image
                             mock_clahe.return_value = mock_clahe_obj
 
-                            result = preprocess_image("/fake/large_receipt.jpg")
+                            preprocess_image("/fake/large_receipt.jpg")
 
                             # Should have called resize
                             mock_resize.assert_called_once()

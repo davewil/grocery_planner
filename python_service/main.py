@@ -17,9 +17,7 @@ from schemas import (
     BaseRequest, BaseResponse,
     CategorizationRequestPayload, CategorizationResponsePayload,
     BatchCategorizationRequestPayload, BatchCategorizationResponsePayload,
-    BatchPrediction, BatchCategorizationItem,
-    ExtractionRequestPayload, ExtractionResponsePayload, ExtractedItem,
-    EmbeddingRequestPayload, EmbeddingResponsePayload,
+    BatchPrediction, ExtractionRequestPayload, ExtractionResponsePayload, ExtractedItem,
     EmbedRequest, EmbedResponse, EmbedBatchRequest, EmbeddingResult,
     JobSubmitRequest, JobStatusResponse, JobListResponse,
     ArtifactResponse, ArtifactListResponse,
@@ -36,7 +34,6 @@ from middleware import (
     setup_structured_logging,
     RequestTracingMiddleware,
     TenantValidationMiddleware,
-    request_id_var,
 )
 from config import settings
 import logging
