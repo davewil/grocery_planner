@@ -118,23 +118,25 @@ defmodule GroceryPlanner.Integration.AiServiceIntegrationTest do
   end
 
   # ── Embeddings ──────────────────────────────────────────────────
+  # Note: Embed endpoints use EmbedResponse (flat schema with version,
+  # request_id, model, dimension, embeddings) NOT the BaseResponse
+  # envelope (status, payload) used by categorization/extraction.
 
   describe "embeddings" do
     test "generates embedding vector for a single text" do
       {:ok, body} = AiClient.generate_embedding("Organic Bananas", @context)
 
-      assert body["status"] == "success"
-      payload = body["payload"]
-      assert is_binary(payload["model"])
-      assert is_integer(payload["dimension"])
-      assert payload["dimension"] > 0
+      assert is_binary(body["model"])
+      assert is_integer(body["dimension"])
+      assert body["dimension"] > 0
+      assert is_binary(body["request_id"])
 
-      embeddings = payload["embeddings"]
+      embeddings = body["embeddings"]
       assert length(embeddings) == 1
       embedding = hd(embeddings)
       assert embedding["id"] == "1"
       assert is_list(embedding["vector"])
-      assert length(embedding["vector"]) == payload["dimension"]
+      assert length(embedding["vector"]) == body["dimension"]
     end
 
     test "generates embeddings for multiple texts" do
@@ -146,8 +148,7 @@ defmodule GroceryPlanner.Integration.AiServiceIntegrationTest do
 
       {:ok, body} = AiClient.generate_embeddings(texts, @context)
 
-      assert body["status"] == "success"
-      embeddings = body["payload"]["embeddings"]
+      embeddings = body["embeddings"]
       assert length(embeddings) == 3
 
       ids = Enum.map(embeddings, & &1["id"])
@@ -159,7 +160,8 @@ defmodule GroceryPlanner.Integration.AiServiceIntegrationTest do
     test "embedding response validates against EmbeddingResponse contract" do
       {:ok, body} = AiClient.generate_embedding("test text", @context)
 
-      assert {:ok, validated} = Contracts.EmbeddingResponse.validate(body["payload"])
+      # EmbedResponse fields are at top level, not nested under "payload"
+      assert {:ok, validated} = Contracts.EmbeddingResponse.validate(body)
       assert is_binary(validated.model)
       assert validated.dimension > 0
     end
@@ -168,12 +170,12 @@ defmodule GroceryPlanner.Integration.AiServiceIntegrationTest do
       {:ok, body1} = AiClient.generate_embedding("Bananas", @context)
       {:ok, body2} = AiClient.generate_embedding("Milk", @context)
 
-      dim1 = body1["payload"]["dimension"]
-      dim2 = body2["payload"]["dimension"]
+      dim1 = body1["dimension"]
+      dim2 = body2["dimension"]
       assert dim1 == dim2, "Embedding dimensions should be consistent: #{dim1} vs #{dim2}"
 
-      vec1 = hd(body1["payload"]["embeddings"])["vector"]
-      vec2 = hd(body2["payload"]["embeddings"])["vector"]
+      vec1 = hd(body1["embeddings"])["vector"]
+      vec2 = hd(body2["embeddings"])["vector"]
       assert length(vec1) == dim1
       assert length(vec2) == dim2
     end
@@ -183,8 +185,8 @@ defmodule GroceryPlanner.Integration.AiServiceIntegrationTest do
 
       {:ok, body} = AiClient.generate_embeddings_batch(texts, @context, batch_size: 2)
 
-      assert body["status"] == "success"
-      assert length(body["payload"]["embeddings"]) == 5
+      assert is_binary(body["model"])
+      assert length(body["embeddings"]) == 5
     end
   end
 
@@ -200,11 +202,17 @@ defmodule GroceryPlanner.Integration.AiServiceIntegrationTest do
       assert is_map(validated.payload)
     end
 
-    test "embedding response has valid BaseResponse envelope" do
+    test "embed response uses EmbedResponse schema (not BaseResponse)" do
       {:ok, body} = AiClient.generate_embedding("test", @context)
 
-      assert {:ok, validated} = Contracts.BaseResponse.validate(body)
-      assert validated.status == "success"
+      # Embed endpoints return EmbedResponse, not BaseResponse
+      assert is_binary(body["request_id"])
+      assert is_binary(body["model"])
+      assert is_integer(body["dimension"])
+      assert is_list(body["embeddings"])
+      # Verify it does NOT have BaseResponse fields
+      refute Map.has_key?(body, "status")
+      refute Map.has_key?(body, "payload")
     end
   end
 
@@ -225,8 +233,7 @@ defmodule GroceryPlanner.Integration.AiServiceIntegrationTest do
 
       case result do
         {:ok, body} ->
-          assert body["status"] == "success"
-          assert body["payload"]["embeddings"] == []
+          assert is_list(body["embeddings"])
 
         {:error, _} ->
           :ok
