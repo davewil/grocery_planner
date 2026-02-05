@@ -84,12 +84,14 @@ defmodule GroceryPlanner.AiClient do
   Each text should be a map with :id and :text keys.
   """
   def generate_embeddings_batch(texts, context, opts \\ []) do
+    {batch_size, req_opts} = Keyword.pop(opts, :batch_size, 32)
+
     payload = %{
       texts: texts,
-      batch_size: Keyword.get(opts, :batch_size, 32)
+      batch_size: batch_size
     }
 
-    post("/api/v1/embed/batch", payload, "embedding_batch", context, opts)
+    post("/api/v1/embed/batch", payload, "embedding_batch", context, req_opts)
   end
 
   @doc """

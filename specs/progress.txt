@@ -862,4 +862,57 @@
 - Phase 2: Tidewave Python integration
 - Phase 3: Docker Compose dev environment
 - Phase 5: Grafana stack
-- Phase 6: Integration tests (5A, 5B)
+
+---
+
+## 2026-02-05: INFRA-002 Phase 6 - Integration Tests & AiClient Behavioral Tests (5A, 5B)
+
+### What was implemented:
+
+#### AiClient Comprehensive Behavioral Tests (unit, stub-based)
+- Expanded `test/grocery_planner/ai_client_test.exs` from 5 basic happy-path tests to 21 behavioral tests + 2 property-based tests
+- Full coverage of all 8 AiClient functions: categorize_item, categorize_batch, extract_receipt, generate_embedding, generate_embeddings, generate_embeddings_batch, submit_job, get_job
+- Error handling tests: 500 errors, connection failures (econnrefused), batch limit errors, OCR failures, service unavailability, rate limiting, 404s
+- Cross-cutting behavioral tests: endpoint routing verification (ETS-based), request_id format (req_ prefix), context propagation (tenant_id/user_id)
+- Property-based tests: request_id uniqueness across randomized inputs, context propagation for arbitrary tenant/user strings
+
+#### Integration Tests for Categorization, Embeddings & Live Contract Validation
+- Created `test/integration/ai_service_integration_test.exs` with 17 integration tests
+- Categorization tests: single item, batch, candidate list validation, contract validation
+- Embedding tests: single text, multiple texts, consistent dimensions, batch with custom batch_size, contract validation
+- Response envelope contract: BaseResponse validation for categorization and embedding responses
+- Error handling: empty candidate labels, empty text lists
+- Health check contract validation against HealthCheckResponse schema
+
+#### Bug Fix: AiClient.generate_embeddings_batch option leak
+- Fixed `batch_size` option being passed through to `Req.merge/2` which raised `ArgumentError: unknown option :batch_size`
+- Used `Keyword.pop/3` to separate `batch_size` from Req options before calling `post/5`
+
+### Key learnings:
+
+1. **Req option namespace pollution**: Custom options (like `batch_size`) passed via the `opts` parameter leak into `Req.merge/2` which only accepts known Req options. Always use `Keyword.pop/3` to extract custom options before passing the remaining opts to Req functions.
+
+2. **Req.Test retry behavior on transport errors**: `Req.Test.transport_error(conn, :timeout)` triggers Req's built-in retry middleware (3 retries with exponential backoff). The health_check function already uses `retry: false`, but other functions (categorize_item, etc.) don't - so transport error tests for those functions take ~7 seconds due to retries. This is correct behavior (production retries are desirable) but affects test speed.
+
+3. **ETS for cross-test endpoint verification**: Using `:ets.new(:name, [:set, :public])` in tests allows collecting data across multiple sequential stub calls in a single test. This pattern is useful for verifying that multiple AiClient functions each route to the correct HTTP endpoint.
+
+4. **Property-based tests with Req.Test stubs**: `ExUnitProperties.check all` works with `Req.Test.stub/2` - the stub persists across all property iterations. Use ETS to collect data from inside stubs for post-property assertions (e.g., uniqueness of request_ids).
+
+5. **Integration test separation works well**: The `:integration` tag exclusion pattern (`ExUnit.start(exclude: [:integration])` + `@moduletag :integration`) cleanly separates tests that need the Python service from unit tests. The integration tests compile and are structurally validated during `mix test` even though they're skipped.
+
+### Files created:
+- `test/integration/ai_service_integration_test.exs` - 17 integration tests (categorization, embeddings, contract validation)
+
+### Files modified:
+- `test/grocery_planner/ai_client_test.exs` - Expanded from 5 to 23 tests (21 behavioral + 2 property-based)
+- `lib/grocery_planner/ai_client.ex` - Fixed batch_size option leak in generate_embeddings_batch
+- `specs/INFRA-002-observability-devex.md` - Marked Phase 6 as DONE
+- `specs/progress.txt` - This entry
+
+### Verification:
+- `mix precommit` passes: 858 tests, 0 failures, 10 properties (5 excluded integration/smoke)
+
+### Next priorities (from INFRA-002):
+- Phase 2: Tidewave Python integration
+- Phase 3: Docker Compose dev environment
+- Phase 5: Grafana stack
