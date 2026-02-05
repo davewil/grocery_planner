@@ -55,3 +55,8 @@ config :grocery_planner, :features,
   semantic_search: false
 
 config :grocery_planner, Oban, testing: :manual
+
+# Disable OTEL tracing in tests
+config :opentelemetry,
+  traces_exporter: :none,
+  span_processor: :simple

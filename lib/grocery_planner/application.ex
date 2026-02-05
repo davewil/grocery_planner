@@ -9,6 +9,8 @@ defmodule GroceryPlanner.Application do
 
   @impl true
   def start(_type, _args) do
+    setup_opentelemetry()
+
     children = [
       GroceryPlannerWeb.Telemetry,
       GroceryPlanner.Repo,
@@ -36,6 +38,21 @@ defmodule GroceryPlanner.Application do
     end
 
     result
+  end
+
+  @doc false
+  def reinit_opentelemetry, do: setup_opentelemetry()
+
+  defp setup_opentelemetry do
+    OpentelemetryPhoenix.setup()
+    OpentelemetryEcto.setup([:grocery_planner, :repo])
+
+    if Code.ensure_loaded?(OpentelemetryOban) do
+      OpentelemetryOban.setup()
+    end
+  rescue
+    error ->
+      Logger.warning("Failed to initialize OpenTelemetry: #{inspect(error)}")
   end
 
   defp validate_ai_service do

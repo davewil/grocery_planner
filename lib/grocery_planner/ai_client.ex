@@ -151,7 +151,19 @@ defmodule GroceryPlanner.AiClient do
     Req.new(base_url: base_url)
     |> Req.Request.put_header("content-type", "application/json")
     |> Req.Request.put_option(:receive_timeout, 10_000)
+    |> attach_otel_propagation()
     |> Req.merge(merged_opts)
+  end
+
+  defp attach_otel_propagation(req) do
+    if Code.ensure_loaded?(OpentelemetryReq) do
+      req
+      |> Req.Request.register_options([:path_params])
+      |> Req.Request.put_option(:path_params, %{})
+      |> OpentelemetryReq.attach(propagate_trace_ctx: true)
+    else
+      req
+    end
   end
 
   defp handle_response({:ok, %Req.Response{status: 200, body: body}}) do

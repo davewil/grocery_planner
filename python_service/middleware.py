@@ -12,6 +12,13 @@ from contextvars import ContextVar
 from fastapi import Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware
 
+# Optional OpenTelemetry trace context
+try:
+    from opentelemetry import trace as otel_trace
+    _otel_available = True
+except ImportError:
+    _otel_available = False
+
 # Context variables for request-scoped data
 request_id_var: ContextVar[str] = ContextVar("request_id", default="")
 tenant_id_var: ContextVar[str] = ContextVar("tenant_id", default="")
@@ -38,6 +45,14 @@ class StructuredLogger(logging.Formatter):
             log_data["request_id"] = request_id
         if tenant_id := tenant_id_var.get():
             log_data["tenant_id"] = tenant_id
+
+        # Add OpenTelemetry trace context if available
+        if _otel_available:
+            span = otel_trace.get_current_span()
+            ctx = span.get_span_context() if span else None
+            if ctx and ctx.is_valid:
+                log_data["trace_id"] = format(ctx.trace_id, "032x")
+                log_data["span_id"] = format(ctx.span_id, "016x")
 
         # Add extra fields from the log record
         if hasattr(record, "request_id"):

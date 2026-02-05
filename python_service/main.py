@@ -89,6 +89,23 @@ async def lifespan(app: FastAPI):
     logger.info("Initializing database...")
     init_db()
 
+    # Initialize OpenTelemetry if enabled
+    if settings.OTEL_ENABLED:
+        try:
+            from telemetry import setup_telemetry
+            from database import get_engine
+            setup_telemetry(
+                app,
+                engine=get_engine(),
+                endpoint=settings.OTEL_EXPORTER_OTLP_ENDPOINT,
+                service_name=settings.OTEL_SERVICE_NAME,
+            )
+            logger.info("OpenTelemetry initialized")
+        except ImportError:
+            logger.warning("OpenTelemetry packages not installed, skipping")
+        except Exception as e:
+            logger.warning(f"Failed to initialize OpenTelemetry: {e}")
+
     # Load Zero-Shot Classification model if enabled
     if settings.USE_REAL_CLASSIFICATION:
         logger.info(f"Loading classification model: {settings.CLASSIFICATION_MODEL}...")

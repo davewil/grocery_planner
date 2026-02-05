@@ -86,7 +86,15 @@ defmodule GroceryPlanner.MixProject do
       {:pgvector, "~> 0.3.0"},
       {:ash_oban, "~> 0.7"},
       {:ash_ai, "~> 0.5.0"},
-      {:stream_data, "~> 1.1"}
+      {:stream_data, "~> 1.1"},
+      # OpenTelemetry - Distributed Tracing
+      {:opentelemetry_api, "~> 1.4"},
+      {:opentelemetry, "~> 1.5"},
+      {:opentelemetry_exporter, "~> 1.8"},
+      {:opentelemetry_phoenix, "~> 1.2"},
+      {:opentelemetry_ecto, "~> 1.2"},
+      {:opentelemetry_oban, "~> 1.1"},
+      {:opentelemetry_req, "~> 0.2"}
     ]
   end
 

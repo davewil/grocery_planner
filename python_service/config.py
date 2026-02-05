@@ -34,5 +34,12 @@ class Settings:
         "USE_REAL_CLASSIFICATION", "false"
     ).lower() == "true"
 
+    # OpenTelemetry settings
+    OTEL_ENABLED: bool = os.getenv("OTEL_ENABLED", "false").lower() == "true"
+    OTEL_EXPORTER_OTLP_ENDPOINT: str = os.getenv(
+        "OTEL_EXPORTER_OTLP_ENDPOINT", "http://localhost:4317"
+    )
+    OTEL_SERVICE_NAME: str = os.getenv("OTEL_SERVICE_NAME", "grocery-planner-ai")
+
 
 settings = Settings()
