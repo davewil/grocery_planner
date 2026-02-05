@@ -97,7 +97,18 @@ defmodule GroceryPlanner.MixProject do
   # See the documentation for `Mix` for more info on aliases.
   defp aliases do
     [
-      setup: ["deps.get", "ash.setup", "assets.setup", "assets.build", "run priv/repo/seeds.exs"],
+      setup: [
+        "deps.get",
+        "ash.setup",
+        "assets.setup",
+        "assets.build",
+        "python.setup",
+        "run priv/repo/seeds.exs"
+      ],
+      "python.setup": [
+        "cmd python3 -m venv python_service/.venv",
+        "cmd python_service/.venv/bin/pip install -q -r python_service/requirements.txt"
+      ],
       "ecto.setup": ["ecto.create", "ecto.migrate", "run priv/repo/seeds.exs"],
       "ecto.reset": ["ecto.drop", "ecto.setup"],
       test: ["ash.setup --quiet", "test"],
@@ -109,7 +120,13 @@ defmodule GroceryPlanner.MixProject do
         "esbuild grocery_planner --minify",
         "phx.digest"
       ],
-      precommit: ["compile --warning-as-errors", "deps.unlock --unused", "format", "test"]
+      precommit: [
+        "compile --warning-as-errors",
+        "deps.unlock --unused",
+        "format",
+        "cmd bash -c 'cd python_service && uv run ruff check .'",
+        "test"
+      ]
     ]
   end
 end

@@ -1,14 +1,42 @@
 #!/bin/bash
-# Pre-commit hook that runs mix precommit before allowing commit
+# Pre-commit hook that runs mix precommit and checks CI status
 
+# --- Run local precommit checks first ---
 echo "Running mix precommit..."
 
-if mix precommit; then
-  echo "✓ mix precommit passed"
-  exit 0
-else
+if ! mix precommit; then
   echo "✗ mix precommit failed"
   echo ""
   echo "Commit blocked. Please fix the issues above and try again."
   exit 1
 fi
+
+echo "✓ mix precommit passed"
+
+# --- Check last CI run status (informational, at the end) ---
+if command -v gh &> /dev/null; then
+  echo ""
+  echo "Checking GitHub Actions CI status..."
+
+  CI_STATUS=$(gh run list --limit 1 --status completed --json conclusion --jq '.[0].conclusion' 2>/dev/null)
+
+  if [ "$CI_STATUS" = "failure" ]; then
+    echo ""
+    echo "╔══════════════════════════════════════════════════════════════════════╗"
+    echo "║  ⚠️  WARNING: LAST CI RUN FAILED ON GITHUB ACTIONS  ⚠️               ║"
+    echo "╠══════════════════════════════════════════════════════════════════════╣"
+    echo "║  The CI is currently broken. Make sure your commit includes a fix!  ║"
+    echo "║                                                                      ║"
+    echo "║  Run: gh run view --log-failed   to see failure details             ║"
+    echo "╚══════════════════════════════════════════════════════════════════════╝"
+    echo ""
+  elif [ "$CI_STATUS" = "success" ]; then
+    echo "✓ Last CI run passed"
+  elif [ -z "$CI_STATUS" ]; then
+    echo "⚠ Could not determine CI status (no completed runs or gh not authenticated)"
+  else
+    echo "⚠ Last CI run status: $CI_STATUS"
+  fi
+fi
+
+exit 0
