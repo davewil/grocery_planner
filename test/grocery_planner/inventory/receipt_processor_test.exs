@@ -164,7 +164,7 @@ defmodule GroceryPlanner.Inventory.ReceiptProcessorTest do
         )
 
       # Try to check for duplicate with same hash
-      assert {:error, :duplicate_receipt} =
+      assert {:error, {:duplicate_receipt, _existing}} =
                ReceiptProcessor.check_duplicate("duplicate_hash_123", account.id)
     end
 

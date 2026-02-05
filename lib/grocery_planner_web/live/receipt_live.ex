@@ -28,6 +28,11 @@ defmodule GroceryPlannerWeb.ReceiptLive do
       |> assign(:catalog_search_idx, nil)
       |> assign(:catalog_search_query, "")
       |> assign(:catalog_search_results, [])
+      |> assign(:duplicate_receipt, nil)
+      |> assign(:duplicate_file_params, nil)
+      |> assign(:storage_locations, [])
+      |> assign(:item_storage_locations, %{})
+      |> assign(:item_use_by_dates, %{})
       |> allow_upload(:receipt,
         accept: ~w(.jpg .jpeg .png .heic .pdf),
         max_entries: 1,
@@ -75,6 +80,8 @@ defmodule GroceryPlannerWeb.ReceiptLive do
           <%= case @step do %>
             <% :upload -> %>
               <.upload_step uploads={@uploads} />
+            <% :duplicate_confirmation -> %>
+              <.duplicate_confirmation_step duplicate_receipt={@duplicate_receipt} />
             <% :processing -> %>
               <.processing_step status={@processing_status} />
             <% :review -> %>
@@ -84,6 +91,9 @@ defmodule GroceryPlannerWeb.ReceiptLive do
                 catalog_search_idx={@catalog_search_idx}
                 catalog_search_query={@catalog_search_query}
                 catalog_search_results={@catalog_search_results}
+                storage_locations={@storage_locations}
+                item_storage_locations={@item_storage_locations}
+                item_use_by_dates={@item_use_by_dates}
               />
             <% :complete -> %>
               <.complete_step receipt={@receipt} items={@receipt_items} />
@@ -179,6 +189,42 @@ defmodule GroceryPlannerWeb.ReceiptLive do
           Matching to catalog
         </li>
       </ul>
+    </div>
+    """
+  end
+
+  defp duplicate_confirmation_step(assigns) do
+    ~H"""
+    <div class="flex flex-col items-center gap-6 py-12">
+      <div class="w-20 h-20 rounded-full bg-warning/20 flex items-center justify-center">
+        <.icon name="hero-exclamation-triangle" class="w-10 h-10 text-warning" />
+      </div>
+      <h2 class="text-xl font-bold">Duplicate Receipt Detected</h2>
+      <p class="text-base-content/70 text-center max-w-md">
+        This receipt appears to have been uploaded before<%= if @duplicate_receipt.merchant_name do %>
+          from <span class="font-medium">{@duplicate_receipt.merchant_name}</span>
+        <% end %>
+        <%= if @duplicate_receipt.purchase_date do %>
+          on
+          <span class="font-medium">
+            {Calendar.strftime(@duplicate_receipt.purchase_date, "%B %d, %Y")}
+          </span>
+        <% end %>.
+      </p>
+      <div class="flex gap-4">
+        <button type="button" class="btn btn-ghost" phx-click="back_to_upload">
+          Cancel
+        </button>
+        <.link
+          navigate={~p"/receipts/scan?receipt_id=#{@duplicate_receipt.id}"}
+          class="btn btn-outline"
+        >
+          <.icon name="hero-eye" class="w-4 h-4" /> View Previous Import
+        </.link>
+        <button type="button" class="btn btn-primary" phx-click="proceed_with_duplicate">
+          <.icon name="hero-arrow-right" class="w-4 h-4" /> Proceed Anyway
+        </button>
+      </div>
     </div>
     """
   end
@@ -287,6 +333,38 @@ defmodule GroceryPlannerWeb.ReceiptLive do
                   Find match
                 </button>
               <% end %>
+            </div>
+            
+    <!-- Storage location and expiration date -->
+            <div class="mt-2 ml-5 flex items-center gap-4">
+              <form phx-change="update_item_storage_location" class="flex items-center gap-2">
+                <input type="hidden" name="idx" value={idx} />
+                <label class="text-xs text-base-content/60">Storage:</label>
+                <select
+                  class="select select-bordered select-xs"
+                  name={"storage_location_#{idx}"}
+                >
+                  <option value="">Select location</option>
+                  <%= for loc <- @storage_locations do %>
+                    <option
+                      value={loc.id}
+                      selected={Map.get(@item_storage_locations, idx) == loc.id}
+                    >
+                      {loc.name}
+                    </option>
+                  <% end %>
+                </select>
+              </form>
+              <div class="flex items-center gap-2">
+                <label class="text-xs text-base-content/60">Expires:</label>
+                <input
+                  type="date"
+                  class="input input-bordered input-xs"
+                  value={Map.get(@item_use_by_dates, idx, "")}
+                  phx-blur="update_item_use_by_date"
+                  phx-value-idx={idx}
+                />
+              </div>
             </div>
           </div>
         <% end %>
@@ -424,8 +502,12 @@ defmodule GroceryPlannerWeb.ReceiptLive do
 
             {:noreply, socket}
 
-          {:error, :duplicate_receipt} ->
-            {:noreply, assign(socket, :error, "This receipt has already been uploaded.")}
+          {:error, {:duplicate_receipt, existing}} ->
+            {:noreply,
+             socket
+             |> assign(:step, :duplicate_confirmation)
+             |> assign(:duplicate_receipt, existing)
+             |> assign(:duplicate_file_params, file_params)}
 
           {:error, reason} ->
             {:noreply, assign(socket, :error, "Upload failed: #{inspect(reason)}")}
@@ -519,6 +601,8 @@ defmodule GroceryPlannerWeb.ReceiptLive do
   def handle_event("confirm_import", _, socket) do
     receipt = socket.assigns.receipt
     items = socket.assigns.receipt_items
+    item_storage_locations = socket.assigns.item_storage_locations
+    item_use_by_dates = socket.assigns.item_use_by_dates
 
     # Update all items that have DB IDs as confirmed
     for item <- items, item.id do
@@ -535,8 +619,40 @@ defmodule GroceryPlannerWeb.ReceiptLive do
       )
     end
 
-    # Create inventory entries from confirmed items
-    ReceiptProcessor.create_inventory_entries(receipt)
+    # Build per-item options map (keyed by item.id) from index-based assigns
+    item_options =
+      items
+      |> Enum.with_index()
+      |> Enum.reduce(%{}, fn {item, idx}, acc ->
+        if item.id do
+          opts = %{}
+
+          opts =
+            case Map.get(item_storage_locations, idx) do
+              nil -> opts
+              slid -> Map.put(opts, :storage_location_id, slid)
+            end
+
+          opts =
+            case Map.get(item_use_by_dates, idx) do
+              nil ->
+                opts
+
+              date_str ->
+                case Date.from_iso8601(date_str) do
+                  {:ok, date} -> Map.put(opts, :use_by_date, date)
+                  _ -> opts
+                end
+            end
+
+          if opts == %{}, do: acc, else: Map.put(acc, item.id, opts)
+        else
+          acc
+        end
+      end)
+
+    # Create inventory entries from confirmed items with per-item options
+    ReceiptProcessor.create_inventory_entries(receipt, item_options: item_options)
 
     confirmed_items =
       Enum.map(items, fn item -> Map.put(item, :status, :confirmed) end)
@@ -684,6 +800,67 @@ defmodule GroceryPlannerWeb.ReceiptLive do
      |> assign(:catalog_search_results, [])}
   end
 
+  @impl true
+  def handle_event("proceed_with_duplicate", _, socket) do
+    account = socket.assigns.current_account
+    user = socket.assigns.current_user
+    file_params = socket.assigns.duplicate_file_params
+
+    case ReceiptProcessor.upload(file_params, user, account, force: true) do
+      {:ok, receipt} ->
+        if connected?(socket) do
+          Phoenix.PubSub.subscribe(GroceryPlanner.PubSub, "receipt:#{receipt.id}")
+        end
+
+        AshOban.run_trigger(receipt, :process)
+
+        {:noreply,
+         socket
+         |> assign(:step, :processing)
+         |> assign(:receipt, receipt)
+         |> assign(:processing_status, "Processing receipt...")
+         |> assign(:duplicate_receipt, nil)
+         |> assign(:duplicate_file_params, nil)}
+
+      {:error, reason} ->
+        {:noreply,
+         socket
+         |> assign(:step, :upload)
+         |> assign(:error, "Upload failed: #{inspect(reason)}")
+         |> assign(:duplicate_receipt, nil)
+         |> assign(:duplicate_file_params, nil)}
+    end
+  end
+
+  @impl true
+  def handle_event("update_item_storage_location", %{"idx" => idx} = params, socket) do
+    idx = String.to_integer(idx)
+    value = params["storage_location_#{idx}"] || ""
+
+    item_storage_locations =
+      if value == "" do
+        Map.delete(socket.assigns.item_storage_locations, idx)
+      else
+        Map.put(socket.assigns.item_storage_locations, idx, value)
+      end
+
+    {:noreply, assign(socket, :item_storage_locations, item_storage_locations)}
+  end
+
+  @impl true
+  def handle_event("update_item_use_by_date", %{"idx" => idx, "value" => value}, socket) do
+    idx = String.to_integer(idx)
+
+    item_use_by_dates =
+      if value == "" do
+        Map.delete(socket.assigns.item_use_by_dates, idx)
+      else
+        Map.put(socket.assigns.item_use_by_dates, idx, value)
+      end
+
+    {:noreply, assign(socket, :item_use_by_dates, item_use_by_dates)}
+  end
+
   # ---------------------------------------------------------------------------
   # PubSub handlers for receipt processing
   # ---------------------------------------------------------------------------
@@ -725,12 +902,17 @@ defmodule GroceryPlannerWeb.ReceiptLive do
             end
           end)
 
+        storage_locations = load_storage_locations(receipt.account_id)
+
         socket =
           socket
           |> assign(:step, :review)
           |> assign(:receipt, receipt)
           |> assign(:receipt_items, updated_items)
           |> assign(:processing_status, "Complete")
+          |> assign(:storage_locations, storage_locations)
+          |> assign(:item_storage_locations, %{})
+          |> assign(:item_use_by_dates, %{})
 
         {:noreply, socket}
 
@@ -760,6 +942,8 @@ defmodule GroceryPlannerWeb.ReceiptLive do
 
   defp step_class(step, current) do
     steps = [:upload, :processing, :review, :complete]
+    # :duplicate_confirmation is at the same level as :upload
+    current = if current == :duplicate_confirmation, do: :upload, else: current
     step_idx = Enum.find_index(steps, &(&1 == step))
     current_idx = Enum.find_index(steps, &(&1 == current))
 
@@ -798,6 +982,13 @@ defmodule GroceryPlannerWeb.ReceiptLive do
 
       _ ->
         []
+    end
+  end
+
+  defp load_storage_locations(account_id) do
+    case Inventory.list_storage_locations_sorted(authorize?: false, tenant: account_id) do
+      {:ok, locations} -> locations
+      _ -> []
     end
   end
 

@@ -18,9 +18,11 @@ defmodule GroceryPlanner.Inventory.ReceiptProcessor do
   Uploads a receipt file, stores it locally, and queues background processing.
   Returns {:ok, receipt} or {:error, reason}.
   """
-  def upload(file_params, _user, account) do
+  def upload(file_params, _user, account, opts \\ []) do
+    force = Keyword.get(opts, :force, false)
+
     with {:ok, file_path, file_hash, file_size, mime_type} <- store_file(file_params),
-         :ok <- check_duplicate(file_hash, account.id),
+         :ok <- maybe_check_duplicate(file_hash, account.id, force),
          {:ok, receipt} <- create_receipt(file_path, file_hash, file_size, mime_type, account) do
       # AshOban scheduler automatically picks up receipts with status: :pending
       {:ok, receipt}
@@ -68,13 +70,15 @@ defmodule GroceryPlanner.Inventory.ReceiptProcessor do
     |> Base.encode16(case: :lower)
   end
 
-  @doc """
-  Checks if a receipt with the same hash already exists for this account.
-  """
+  defp maybe_check_duplicate(_file_hash, _account_id, true = _force), do: :ok
+
+  defp maybe_check_duplicate(file_hash, account_id, _force),
+    do: check_duplicate(file_hash, account_id)
+
   def check_duplicate(file_hash, account_id) do
     case Inventory.find_receipt_by_hash(file_hash, authorize?: false, tenant: account_id) do
       {:ok, nil} -> :ok
-      {:ok, _existing} -> {:error, :duplicate_receipt}
+      {:ok, existing} -> {:error, {:duplicate_receipt, existing}}
       # If query fails, allow upload
       {:error, _} -> :ok
     end
@@ -137,7 +141,8 @@ defmodule GroceryPlanner.Inventory.ReceiptProcessor do
   Creates inventory entries from confirmed receipt items.
   """
   def create_inventory_entries(receipt, opts \\ []) do
-    storage_location_id = opts[:storage_location_id]
+    default_storage_location_id = opts[:storage_location_id]
+    item_options = opts[:item_options] || %{}
 
     case Inventory.list_receipt_items_for_receipt(receipt.id,
            authorize?: false,
@@ -148,7 +153,10 @@ defmodule GroceryPlanner.Inventory.ReceiptProcessor do
           receipt_items
           |> Enum.filter(fn item -> item.status == :confirmed end)
           |> Enum.map(fn item ->
-            create_entry_from_item(item, storage_location_id, receipt)
+            item_opts = Map.get(item_options, item.id, %{})
+            slid = item_opts[:storage_location_id] || default_storage_location_id
+            ubd = item_opts[:use_by_date]
+            create_entry_from_item(item, slid, ubd, receipt)
           end)
 
         {:ok, results}
@@ -333,7 +341,7 @@ defmodule GroceryPlanner.Inventory.ReceiptProcessor do
     )
   end
 
-  defp create_entry_from_item(item, storage_location_id, receipt) do
+  defp create_entry_from_item(item, storage_location_id, use_by_date, receipt) do
     # Ensure GroceryItem exists (create if needed)
     with {:ok, grocery_item_id} <- ensure_grocery_item(item, receipt.account_id) do
       attrs = %{
@@ -346,6 +354,11 @@ defmodule GroceryPlanner.Inventory.ReceiptProcessor do
       attrs =
         if storage_location_id,
           do: Map.put(attrs, :storage_location_id, storage_location_id),
+          else: attrs
+
+      attrs =
+        if use_by_date,
+          do: Map.put(attrs, :use_by_date, use_by_date),
           else: attrs
 
       Inventory.create_inventory_entry(

@@ -67,8 +67,8 @@ After a shopping trip, users must manually enter each purchased item into their 
 - [x] Create InventoryEntry for each confirmed item
 - [x] Set purchase date from receipt (or today)
 - [x] Set purchase price from receipt
-- [ ] Select default storage location
-- [ ] Option to set expiration dates
+- [x] Select default storage location
+- [x] Option to set expiration dates
 - [x] Show success summary with count of items added
 
 ### US-005: Prevent duplicate imports
@@ -79,8 +79,8 @@ After a shopping trip, users must manually enter each purchased item into their 
 **Acceptance Criteria:**
 - [x] Compute hash of receipt image/content
 - [x] Warn if same receipt uploaded before
-- [ ] Option to proceed anyway or cancel
-- [ ] Show link to previous import
+- [x] Option to proceed anyway or cancel
+- [x] Show link to previous import
 
 ## Technical Specification
 
@@ -758,10 +758,8 @@ LAYOUTLM_MODEL=microsoft/layoutlm-base-uncased
 - `python_service/tests/test_tesseract_ocr.py` - 11 Python Tesseract OCR tests
 
 ### What's Remaining
-- US-002: Confidence indicators, "upload clearer image" option
-- US-003: Item-to-catalog matching UI (ItemMatcher module exists)
-- US-004: Purchase date, price, storage location, expiration dates
-- US-005: "Proceed anyway" for duplicates, link to previous import
+- US-001: Camera capture on mobile devices
+- US-002: "Looks wrong? Upload clearer image" option
 - Mobile camera capture optimization
 
 ## References

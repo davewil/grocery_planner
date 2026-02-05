@@ -629,5 +629,52 @@
 - US-001 (Upload): Mostly complete (missing: camera capture on mobile)
 - US-002 (Review/correct): Mostly complete (missing: "upload clearer image" option)
 - US-003 (Match to catalog): **COMPLETE** - all 5 acceptance criteria met
-- US-004 (Add to inventory): Mostly complete (missing: storage location selection, expiration dates)
-- US-005 (Duplicate detection): Partially complete (missing: proceed anyway option, link to previous import)
+- US-004 (Add to inventory): **COMPLETE** - all 6 acceptance criteria met
+- US-005 (Duplicate detection): **COMPLETE** - all 4 acceptance criteria met
+
+---
+
+## 2026-02-05: AI-003 US-004 & US-005 Completion
+
+### What was implemented:
+
+#### US-004: Storage Location & Expiration Dates
+- Added per-item storage location dropdown in review step (loads from `Inventory.list_storage_locations_sorted`)
+- Added per-item expiration date picker in review step
+- Stored selections in LiveView assigns (`item_storage_locations` and `item_use_by_dates` maps keyed by item index)
+- Updated `confirm_import` handler to build per-item options map and pass to `ReceiptProcessor.create_inventory_entries`
+- Updated `create_inventory_entries/2` to accept per-item `item_options` map (keyed by item ID) with `storage_location_id` and `use_by_date`
+- Updated `create_entry_from_item/4` to accept and pass `use_by_date` to `Inventory.create_inventory_entry`
+
+#### US-005: Duplicate Receipt Handling
+- Changed `check_duplicate/2` to return `{:error, {:duplicate_receipt, existing_receipt}}` with the full existing receipt record
+- Added `maybe_check_duplicate/3` private function with `force` bypass
+- Added `force: true` option to `upload/4` to skip duplicate check
+- Added `:duplicate_confirmation` wizard step with warning UI showing merchant name and purchase date of existing receipt
+- Added "Proceed Anyway" button that re-uploads with `force: true`
+- Added "View Previous Import" link to the existing receipt
+- Added "Cancel" button to return to upload step
+- Updated `step_class/2` to handle `:duplicate_confirmation` step (treated as same level as `:upload`)
+
+### Key learnings:
+
+1. **LiveView phx-change on select requires form wrapper**: A `<select phx-change="event">` doesn't work without a wrapping `<form phx-change="event">`. Use a form element with a hidden input for the index parameter.
+
+2. **Per-item options via index-to-id mapping**: Review step items are indexed by position but inventory creation needs item IDs. Build a mapping during confirm_import by iterating with `Enum.with_index/1` and extracting options per-index, then keying the options map by item.id.
+
+3. **check_duplicate return value enrichment**: Returning the existing receipt in the error tuple `{:error, {:duplicate_receipt, existing}}` enables showing receipt details in the duplicate confirmation UI without an extra database query.
+
+4. **Existing test compatibility**: Changing `check_duplicate` return value required updating the existing `receipt_processor_test.exs` assertion from `{:error, :duplicate_receipt}` to `{:error, {:duplicate_receipt, _existing}}`.
+
+### Files changed:
+- `lib/grocery_planner/inventory/receipt_processor.ex` - Updated check_duplicate, upload, create_inventory_entries, create_entry_from_item
+- `lib/grocery_planner_web/live/receipt_live.ex` - Added duplicate_confirmation step, storage location dropdown, expiration date picker, new event handlers
+- `test/grocery_planner_web/live/receipt_live_test.exs` - 8 new tests (3 duplicate detection, 5 storage/expiration)
+- `test/grocery_planner/inventory/receipt_processor_test.exs` - Updated existing duplicate test assertion
+
+### AI-003 status after this work:
+- US-001 (Upload): Mostly complete (missing: camera capture on mobile)
+- US-002 (Review/correct): Mostly complete (missing: "upload clearer image" option)
+- US-003 (Match to catalog): **COMPLETE** - all 5 acceptance criteria met
+- US-004 (Add to inventory): **COMPLETE** - all 6 acceptance criteria met
+- US-005 (Duplicate detection): **COMPLETE** - all 4 acceptance criteria met
