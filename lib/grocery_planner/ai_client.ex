@@ -70,28 +70,41 @@ defmodule GroceryPlanner.AiClient do
   @doc """
   Generates embeddings for the given texts.
   Each text should be a map with :id and :text keys.
+
+  Note: The embed endpoints use a flat request schema (EmbedRequest)
+  with `texts` at the top level, NOT the BaseRequest envelope used by
+  categorization and extraction endpoints.
   """
-  def generate_embeddings(texts, context, opts \\ []) do
-    payload = %{
+  def generate_embeddings(texts, _context, opts \\ []) do
+    request_body = %{
+      version: "1.0",
+      request_id: "req_#{Ecto.UUID.generate()}",
       texts: texts
     }
 
-    post("/api/v1/embed", payload, "embedding", context, opts)
+    Req.post(client(opts), url: "/api/v1/embed", json: request_body)
+    |> handle_response()
   end
 
   @doc """
   Generates embeddings for a batch of texts with configurable batch size.
   Each text should be a map with :id and :text keys.
+
+  Note: The embed batch endpoint uses a flat request schema (EmbedBatchRequest)
+  with `texts` and `batch_size` at the top level.
   """
-  def generate_embeddings_batch(texts, context, opts \\ []) do
+  def generate_embeddings_batch(texts, _context, opts \\ []) do
     {batch_size, req_opts} = Keyword.pop(opts, :batch_size, 32)
 
-    payload = %{
+    request_body = %{
+      version: "1.0",
+      request_id: "req_#{Ecto.UUID.generate()}",
       texts: texts,
       batch_size: batch_size
     }
 
-    post("/api/v1/embed/batch", payload, "embedding_batch", context, req_opts)
+    Req.post(client(req_opts), url: "/api/v1/embed/batch", json: request_body)
+    |> handle_response()
   end
 
   @doc """

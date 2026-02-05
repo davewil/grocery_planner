@@ -223,11 +223,15 @@ defmodule GroceryPlanner.AiClientTest do
         {:ok, body, conn} = Plug.Conn.read_body(conn)
         decoded = Jason.decode!(body)
 
-        assert decoded["feature"] == "embedding"
-        texts = decoded["payload"]["texts"]
+        # Embed endpoints use flat schema, not BaseRequest envelope
+        assert decoded["version"] == "1.0"
+        assert String.starts_with?(decoded["request_id"], "req_")
+        texts = decoded["texts"]
         assert length(texts) == 1
         assert hd(texts)["id"] == "1"
         assert hd(texts)["text"] == "Organic Bananas"
+        refute Map.has_key?(decoded, "feature")
+        refute Map.has_key?(decoded, "payload")
 
         Req.Test.json(conn, %{
           "request_id" => decoded["request_id"],
@@ -260,7 +264,9 @@ defmodule GroceryPlanner.AiClientTest do
       Req.Test.stub(AiClient, fn conn ->
         {:ok, body, conn} = Plug.Conn.read_body(conn)
         decoded = Jason.decode!(body)
-        assert length(decoded["payload"]["texts"]) == 3
+        # Flat schema: texts at top level
+        assert length(decoded["texts"]) == 3
+        assert decoded["version"] == "1.0"
 
         Req.Test.json(conn, %{
           "request_id" => decoded["request_id"],
@@ -297,8 +303,10 @@ defmodule GroceryPlanner.AiClientTest do
         {:ok, body, conn} = Plug.Conn.read_body(conn)
         decoded = Jason.decode!(body)
 
-        assert decoded["feature"] == "embedding_batch"
-        assert decoded["payload"]["batch_size"] == 16
+        # Flat schema: batch_size at top level, not in payload
+        assert decoded["version"] == "1.0"
+        assert decoded["batch_size"] == 16
+        refute Map.has_key?(decoded, "feature")
 
         Req.Test.json(conn, %{
           "request_id" => decoded["request_id"],
@@ -321,7 +329,9 @@ defmodule GroceryPlanner.AiClientTest do
       Req.Test.stub(AiClient, fn conn ->
         {:ok, body, conn} = Plug.Conn.read_body(conn)
         decoded = Jason.decode!(body)
-        assert decoded["payload"]["batch_size"] == 32
+        # Flat schema: batch_size at top level
+        assert decoded["batch_size"] == 32
+        assert decoded["version"] == "1.0"
 
         Req.Test.json(conn, %{
           "status" => "success",

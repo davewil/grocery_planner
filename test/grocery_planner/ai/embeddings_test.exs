@@ -183,7 +183,8 @@ defmodule GroceryPlanner.AI.EmbeddingsTest do
       plug = fn conn ->
         {:ok, body, conn} = Plug.Conn.read_body(conn)
         decoded = Jason.decode!(body)
-        assert decoded["payload"]["texts"] != nil
+        # Embed endpoints use flat schema: texts at top level
+        assert decoded["texts"] != nil
 
         conn
         |> Plug.Conn.put_resp_content_type("application/json")
@@ -273,7 +274,8 @@ defmodule GroceryPlanner.AI.EmbeddingsTest do
       plug = fn conn ->
         {:ok, body, conn} = Plug.Conn.read_body(conn)
         decoded = Jason.decode!(body)
-        texts = decoded["payload"]["texts"]
+        # Embed endpoints use flat schema: texts at top level
+        texts = decoded["texts"]
         assert length(texts) == 2
 
         conn
