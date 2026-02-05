@@ -3,6 +3,7 @@
 **Status**: PLANNED
 **Priority**: Future work
 **Created**: 2026-02-04
+**Related**: INFRA-002 (Observability & Developer Experience)
 
 ## Architecture Overview
 
@@ -16,20 +17,20 @@ Internet (HTTPS)
     |       |
     |       +-- Oban workers (in-process, PostgreSQL-backed)
     |       +-- LiveView (PubSub, single-node)
-    |       +-- OTEL SDK -> Application Insights
+    |       +-- OTEL SDK -> Grafana Cloud (or self-hosted)
     |
     +-- ca-grocery-planner-ai (Python/FastAPI, Internal Only :8000)
             |
             +-- Tesseract OCR (CPU)
             +-- Zero-shot classification (CPU, local model)
-            +-- OTEL SDK -> Application Insights
+            +-- OTEL SDK -> Grafana Cloud (or self-hosted)
 
 External Services:
     +-- Azure PostgreSQL Flexible Server (pgvector, citext)
     +-- Azure Blob Storage (receipt images)
     +-- Azure Key Vault (secrets)
     +-- Azure Container Registry (Docker images)
-    +-- Application Insights + Log Analytics (observability)
+    +-- Grafana Cloud (traces: Tempo, logs: Loki, metrics: Prometheus)
     +-- Azure OpenAI (Phase 2: embeddings)
 ```
 
@@ -46,10 +47,13 @@ External Services:
 | **Blob Storage** | Standard LRS | Receipt images | ~$2 |
 | **Container Registry** | Basic | Docker image hosting | ~$5 |
 | **Key Vault** | Standard | Secrets management | ~$1 |
-| **Application Insights** | Pay-per-GB (5 GB free) | APM, traces, metrics | ~$0-10 |
-| **Log Analytics Workspace** | Pay-per-GB (5 GB free) | Centralized logs | ~$0-5 |
+| **Grafana Cloud** | Free tier (50GB traces, 50GB logs, 10k metrics) | Observability stack | ~$0 |
 | **Azure OpenAI** (Phase 2) | text-embedding-3-small | Embeddings API | ~$5-20 |
-| **Total** | | | **~$78-158/mo** |
+| **Total** | | | **~$78-143/mo** |
+
+> **Note**: Using Grafana Cloud free tier for observability. For higher volumes, consider:
+> - Grafana Cloud Pro (~$50/mo) for increased limits
+> - Self-hosted Grafana stack on a small VM (~$20-40/mo) for unlimited data
 
 ### Container App: Elixir (`ca-grocery-planner-web`)
 
@@ -60,7 +64,7 @@ External Services:
   - Startup: `GET /health`, period 2s, failure threshold 30
   - Liveness: `GET /health`, period 30s
   - Readiness: `GET /health`, initial delay 10s
-- **Env vars**: `DATABASE_URL`, `SECRET_KEY_BASE`, `AI_SERVICE_URL=http://ca-grocery-planner-ai:8000`, `PHX_HOST`, `AZURE_STORAGE_CONNECTION_STRING`, `APPLICATIONINSIGHTS_CONNECTION_STRING` (all from Key Vault)
+- **Env vars**: `DATABASE_URL`, `SECRET_KEY_BASE`, `AI_SERVICE_URL=http://ca-grocery-planner-ai:8000`, `PHX_HOST`, `AZURE_STORAGE_CONNECTION_STRING`, `OTEL_EXPORTER_OTLP_ENDPOINT`, `OTEL_EXPORTER_OTLP_HEADERS` (all from Key Vault)
 
 ### Container App: Python (`ca-grocery-planner-ai`)
 
@@ -114,6 +118,8 @@ Key Vault: Managed identity access
 
 ## 3. OpenTelemetry Integration
 
+> **See also**: INFRA-002 for detailed OTEL setup including local development with self-hosted Grafana stack.
+
 ### Elixir OTEL
 
 **New deps in `mix.exs`:**
@@ -136,6 +142,18 @@ OpentelemetryEcto.setup([:grocery_planner, :repo])
 OpentelemetryOban.setup()
 ```
 
+**Production config** (`config/prod.exs`):
+```elixir
+config :opentelemetry,
+  span_processor: :batch,
+  traces_exporter: :otlp
+
+config :opentelemetry_exporter,
+  otlp_protocol: :grpc,
+  otlp_endpoint: System.get_env("OTEL_EXPORTER_OTLP_ENDPOINT"),
+  otlp_headers: System.get_env("OTEL_EXPORTER_OTLP_HEADERS")  # For Grafana Cloud auth
+```
+
 **Structured JSON logging** via `logger_json` in `config/prod.exs`
 
 **Custom spans** for receipt processing and AI client calls
@@ -148,42 +166,51 @@ OpentelemetryOban.setup()
 ```
 opentelemetry-api>=1.24.0
 opentelemetry-sdk>=1.24.0
-opentelemetry-exporter-otlp-proto-http>=1.24.0
+opentelemetry-exporter-otlp-proto-grpc>=1.24.0
 opentelemetry-instrumentation-fastapi>=0.45b0
-opentelemetry-instrumentation-httpx>=0.45b0
-azure-monitor-opentelemetry-exporter>=1.0.0b21
+opentelemetry-instrumentation-sqlalchemy>=0.45b0
+opentelemetry-instrumentation-logging>=0.45b0
 ```
 
 **Instrumentation in `main.py` lifespan**: FastAPIInstrumentor auto-instruments all endpoints
 
 **Enhance `StructuredLogger`** in `middleware.py` with `trace_id` and `span_id` from current span context
 
+### Grafana Cloud Configuration
+
+For production, use Grafana Cloud OTLP endpoint:
+- **Endpoint**: `https://otlp-gateway-prod-us-east-0.grafana.net/otlp`
+- **Auth**: Basic auth via `OTEL_EXPORTER_OTLP_HEADERS` (Instance ID + API key from Grafana Cloud)
+- Store credentials in Azure Key Vault
+
 ### Distributed Tracing
 
-Elixir propagates W3C Trace Context headers -> Python reads them automatically via FastAPI instrumentation. A single user request produces a correlated trace spanning both services in Application Insights.
+Elixir propagates W3C Trace Context headers -> Python reads them automatically via FastAPI instrumentation. A single user request produces a correlated trace spanning both services visible in Grafana Tempo.
 
 ---
 
-## 4. Monitoring & Alerting
+## 4. Monitoring & Alerting (Grafana)
 
-### Alert Rules
+> **See also**: INFRA-002 for local development dashboards and self-hosted Grafana stack setup.
+
+### Alert Rules (Grafana Alerting)
 
 | Alert | Signal | Threshold | Severity | Notify |
 |-------|--------|-----------|----------|--------|
-| **High Error Rate** | HTTP 5xx | > 5% over 5 min | Sev 2 | Email + Webhook |
-| **High Latency** | P95 response time | > 5s over 5 min | Sev 3 | Email |
-| **Container Restarts** | Restart count | > 3 in 5 min | Sev 1 | Email + Webhook |
-| **AI Service Down** | Health check fail | > 3 consecutive | Sev 1 | Email + Webhook |
-| **DB Connection Pool** | Ecto queue_time | P95 > 500ms over 5 min | Sev 2 | Email |
-| **DB High CPU** | PostgreSQL CPU | > 80% over 10 min | Sev 2 | Email |
-| **Oban Job Failures** | Job failure count | > 10 in 15 min | Sev 2 | Email |
-| **Receipt Queue Backlog** | Pending receipts | > 20 | Sev 3 | Email |
-| **Memory Pressure** | Container memory | > 85% of limit | Sev 2 | Email |
+| **High Error Rate** | HTTP 5xx | > 5% over 5 min | Critical | Email + PagerDuty |
+| **High Latency** | P95 response time | > 5s over 5 min | Warning | Email |
+| **AI Service Down** | Health check fail | > 3 consecutive | Critical | Email + PagerDuty |
+| **DB Connection Pool** | Ecto queue_time | P95 > 500ms over 5 min | Warning | Email |
+| **DB High CPU** | PostgreSQL CPU | > 80% over 10 min | Warning | Email |
+| **Oban Job Failures** | Job failure count | > 10 in 15 min | Warning | Email |
+| **Receipt Queue Backlog** | Pending receipts | > 20 | Info | Email |
+| **Memory Pressure** | Container memory | > 85% of limit | Warning | Email |
 
-### Action Groups
+### Contact Points (Grafana)
 
-- **`ag-email`**: Email to on-call engineer (all severities)
-- **`ag-webhook`**: PagerDuty/OpsGenie integration (Sev 1 & Sev 2 only)
+- **`email-oncall`**: Email to on-call engineer (all severities)
+- **`pagerduty`**: PagerDuty integration (Critical only)
+- **`slack-alerts`**: Slack channel for Warning/Info alerts
 
 ### Custom Telemetry Events
 
@@ -197,15 +224,25 @@ Python:
 - `ai_service.embed.duration` (tags: batch_size)
 - `ai_service.ocr.duration` (tags: engine)
 
-### Dashboard
+### Grafana Dashboards
 
-Application Insights Workbook with panels:
+Provisioned dashboards in Grafana Cloud:
+
+**Service Overview Dashboard:**
 - Request volume and latency (both services)
 - Error rates by endpoint
 - AI service performance distribution
 - Oban queue depth and failure rates
-- Container CPU/memory utilization
-- Distributed trace explorer
+
+**Infrastructure Dashboard:**
+- Container CPU/memory utilization (from Azure metrics)
+- PostgreSQL connections and query latency
+- Blob storage operations
+
+**Trace Explorer:**
+- Distributed trace search via Tempo
+- Service map visualization
+- Error trace drill-down
 
 ---
 
@@ -240,12 +277,14 @@ New `GET /health` endpoint on Elixir app:
 ### On-Call Notification Flow
 
 ```
-Alert fires (Azure Monitor)
-    -> Action Group
-        -> Email: on-call@team.com
-        -> Webhook: PagerDuty/OpsGenie API
-            -> Pages on-call engineer (Sev 1)
-            -> Creates incident ticket (Sev 2+)
+Alert fires (Grafana Alerting)
+    -> Notification Policy (route by severity)
+        -> Critical: PagerDuty + Email
+        -> Warning: Slack #alerts + Email
+        -> Info: Slack #alerts only
+    -> PagerDuty
+        -> Pages on-call engineer (Critical)
+        -> Creates incident ticket
 ```
 
 ---
@@ -296,7 +335,8 @@ CI passes (existing workflow)
 ## 8. Implementation Phases
 
 ### Phase 1: Infrastructure + Dockerfiles
-- Create Azure resources (Resource Group, ACR, Key Vault, PostgreSQL, Blob Storage, Container Apps Environment, Application Insights)
+- Create Azure resources (Resource Group, ACR, Key Vault, PostgreSQL, Blob Storage, Container Apps Environment)
+- Set up Grafana Cloud account (free tier) or provision self-hosted Grafana stack
 - Create `Dockerfile.prod` for Elixir
 - Create `Dockerfile.prod` for Python (multi-stage with pre-baked models)
 - Implement `GroceryPlanner.Storage` behaviour + AzureBlob adapter
@@ -306,19 +346,20 @@ CI passes (existing workflow)
 - Add OTEL deps to both services
 - Instrument Phoenix, Ecto, Oban, Req (Elixir)
 - Instrument FastAPI (Python)
+- Configure OTLP exporter to Grafana Cloud (Tempo for traces, Loki for logs)
 - Switch to structured JSON logging in prod
 - Add trace context to Python StructuredLogger
 
 ### Phase 3: Deployment Pipeline
 - Create `deploy-azure.yml` GitHub Actions workflow
 - Configure Container Apps (scaling, health probes, init containers)
-- Set up Key Vault secret references
+- Set up Key Vault secret references (including Grafana Cloud OTLP credentials)
 - Test staging deployment
 
 ### Phase 4: Monitoring + Alerting
-- Create alert rules in Azure Monitor
-- Configure Action Groups (email + PagerDuty/OpsGenie webhook)
-- Build Application Insights Workbook dashboard
+- Create alert rules in Grafana Alerting
+- Configure contact points (email, PagerDuty, Slack)
+- Build Grafana dashboards (Service Overview, Infrastructure, Trace Explorer)
 - Implement circuit breaker in AiClient
 - Test degradation scenarios end-to-end
 
@@ -356,5 +397,8 @@ CI passes (existing workflow)
 - Build both Dockerfiles locally: `docker build -f Dockerfile.prod .` and `docker build -f python_service/Dockerfile.prod python_service/`
 - Run `docker compose` with production-like config to verify inter-service communication
 - `mix test` passes with Storage behaviour (local adapter in test)
-- Deploy to staging Container Apps Environment, verify health checks, OTEL traces in Application Insights
-- Simulate AI service failure, verify circuit breaker triggers and alerts fire
+- Deploy to staging Container Apps Environment, verify health checks
+- Verify OTEL traces appear in Grafana Cloud Tempo (or self-hosted Tempo)
+- Check logs flow to Grafana Cloud Loki
+- Verify Grafana dashboards show metrics from both services
+- Simulate AI service failure, verify circuit breaker triggers and Grafana alerts fire
