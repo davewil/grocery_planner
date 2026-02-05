@@ -678,3 +678,55 @@
 - US-003 (Match to catalog): **COMPLETE** - all 5 acceptance criteria met
 - US-004 (Add to inventory): **COMPLETE** - all 6 acceptance criteria met
 - US-005 (Duplicate detection): **COMPLETE** - all 4 acceptance criteria met
+
+---
+
+## 2026-02-05: INFRA-002 Phase 1 - Health Checks (4A, 4B, 4C)
+
+### What was implemented:
+
+#### 4A: Enhanced Python Health Endpoints
+- Added `/health/ready` endpoint with dependency validation: database connectivity (SQLAlchemy `SELECT 1`), classifier model status, embedding model availability, Tesseract OCR availability
+- Added `/health/live` simple liveness probe
+- Overall status is "ok" when all checks pass or are in acceptable non-error states ("not_loaded", "available", "not_installed"), "degraded" otherwise
+
+#### 4B: Elixir AiClient.health_check/0 + Startup Validation
+- Added `health_check/0` to `GroceryPlanner.AiClient` that calls `/health/ready` on the Python sidecar with `retry: false` and 5-second timeout
+- Added non-blocking startup validation to `GroceryPlanner.Application` (opt-in via `:validate_ai_service` config)
+- Startup validation logs info/warning/error based on AI service status; optionally stops the app if `:require_ai_service` is set
+
+#### 4C: Enhanced Elixir HealthController
+- Replaced basic text "OK" response with JSON endpoint checking database, AI service, and Oban
+- Returns 200 when healthy, 503 when database is down
+- Returns "degraded" status when AI service is unavailable (not "error" since AI is optional)
+- Moved `/health_check` route from browser pipeline to API pipeline since it now returns JSON
+- Includes app version in response
+
+### Key learnings:
+
+1. **Req retry middleware on health checks**: Req's built-in retry middleware retries 5xx responses with exponential backoff (1s, 2s, 4s). For diagnostic endpoints like health checks, always use `retry: false` to get immediate results instead of 7+ second waits.
+
+2. **Req.Test.transport_error/2 for connection failures**: To simulate connection errors in tests, use `Req.Test.transport_error(conn, :econnrefused)` instead of `raise Req.TransportError`. The `raise` approach crashes the stub function rather than returning a proper error tuple through Req's error handling.
+
+3. **Health check route pipeline**: Moving `/health_check` from `:browser` to `:api` pipeline is necessary when switching from `text/html` to `json` responses. The `:api` pipeline accepts JSON and doesn't enforce CSRF tokens or sessions.
+
+4. **Python SQLAlchemy health check**: Use `db.execute(text("SELECT 1"))` with the `text()` import from `sqlalchemy` for raw SQL in health checks. The `Session` dependency injection from FastAPI provides the database session automatically.
+
+5. **Non-blocking startup validation**: Using `Task.start/1` with a 2-second sleep for startup validation keeps the supervision tree start non-blocking. The validation is opt-in via config to avoid slowing down test boots.
+
+### Files changed:
+- `python_service/main.py` - Added `/health/ready` and `/health/live` endpoints
+- `lib/grocery_planner/ai_client.ex` - Added `health_check/0` with `retry: false`
+- `lib/grocery_planner/application.ex` - Added startup validation (opt-in)
+- `lib/grocery_planner_web/controllers/health_controller.ex` - Full rewrite with dependency checks
+- `lib/grocery_planner_web/router.ex` - Moved health_check to API pipeline
+
+### Tests added:
+- `python_service/tests/test_health.py` - 8 behavioral tests for Python health endpoints
+- `test/grocery_planner_web/controllers/health_controller_test.exs` - 6 behavioral tests for Elixir health endpoint
+- `test/grocery_planner/ai_client_health_test.exs` - 5 unit tests for AiClient.health_check/0
+
+### Next priorities (from INFRA-002):
+- Phase 2: Tidewave Python integration
+- Phase 3: Docker Compose dev environment
+- Phase 4: OTEL instrumentation

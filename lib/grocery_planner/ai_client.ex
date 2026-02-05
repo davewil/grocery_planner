@@ -14,6 +14,17 @@ defmodule GroceryPlanner.AiClient do
   @default_url "http://localhost:8000"
 
   @doc """
+  Check if the AI service is healthy and responding.
+
+  Calls `/health/ready` on the Python sidecar and returns the readiness payload.
+  Returns `{:ok, body}` on 200, `{:error, reason}` otherwise.
+  """
+  def health_check(opts \\ []) do
+    Req.get(client(opts), url: "/health/ready", receive_timeout: 5_000, retry: false)
+    |> handle_response()
+  end
+
+  @doc """
   Predicts the category for a grocery item.
   """
   def categorize_item(item_name, candidate_labels, context, opts \\ []) do

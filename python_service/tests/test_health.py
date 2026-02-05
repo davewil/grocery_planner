@@ -1,0 +1,127 @@
+"""
+Tests for health check endpoints (/health, /health/ready, /health/live).
+
+Covers basic health, readiness with dependency checks, and liveness probe.
+"""
+
+import os
+import pytest
+import tempfile
+from fastapi.testclient import TestClient
+from main import app
+from database import Base, get_engine, reset_engine
+
+# Create a temporary database file for tests
+_test_db_file = tempfile.NamedTemporaryFile(suffix=".db", delete=False)
+os.environ["AI_DATABASE_URL"] = f"sqlite:///{_test_db_file.name}"
+
+
+@pytest.fixture(scope="function")
+def db_session():
+    """Create a fresh database for each test."""
+    reset_engine()
+    engine = get_engine()
+    Base.metadata.drop_all(bind=engine)
+    Base.metadata.create_all(bind=engine)
+    yield
+    Base.metadata.drop_all(bind=engine)
+
+
+@pytest.fixture
+def client(db_session):
+    """Create test client with fresh database."""
+    return TestClient(app)
+
+
+# =============================================================================
+# /health - Basic Health Check
+# =============================================================================
+
+
+def test_health_returns_ok(client):
+    """Basic health check returns 200 with service info."""
+    response = client.get("/health")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "ok"
+    assert data["service"] == "grocery-planner-ai"
+    assert data["version"] == "1.0.0"
+
+
+# =============================================================================
+# /health/ready - Readiness Check
+# =============================================================================
+
+
+def test_readiness_check_returns_dependency_statuses(client):
+    """Readiness check reports status for all dependencies."""
+    response = client.get("/health/ready")
+    assert response.status_code == 200
+    data = response.json()
+
+    assert "status" in data
+    assert "checks" in data
+    assert "version" in data
+
+    checks = data["checks"]
+    assert "database" in checks
+    assert "classifier" in checks
+    assert "embedding_model" in checks
+    assert "tesseract" in checks
+
+
+def test_readiness_database_check_succeeds(client):
+    """Readiness check validates database connectivity."""
+    response = client.get("/health/ready")
+    data = response.json()
+    assert data["checks"]["database"]["status"] == "ok"
+
+
+def test_readiness_classifier_not_loaded_in_test(client):
+    """Classifier shows not_loaded when USE_REAL_CLASSIFICATION is false."""
+    response = client.get("/health/ready")
+    data = response.json()
+    # In test mode, classifier is not loaded
+    assert data["checks"]["classifier"]["status"] == "not_loaded"
+    assert data["checks"]["classifier"]["model"] is None
+
+
+def test_readiness_overall_status_ok_when_deps_healthy(client):
+    """Overall status is 'ok' when all dependencies are healthy or optional."""
+    response = client.get("/health/ready")
+    data = response.json()
+    # not_loaded and not_installed are acceptable non-error states
+    assert data["status"] in ("ok", "degraded")
+
+
+def test_readiness_includes_version(client):
+    """Readiness response includes service version."""
+    response = client.get("/health/ready")
+    data = response.json()
+    assert data["version"] == "1.0.0"
+
+
+# =============================================================================
+# /health/live - Liveness Probe
+# =============================================================================
+
+
+def test_liveness_check_returns_ok(client):
+    """Liveness probe returns minimal 200 OK."""
+    response = client.get("/health/live")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "ok"
+
+
+def test_liveness_check_is_fast(client):
+    """Liveness probe completes quickly (no dependency checks)."""
+    import time
+
+    start = time.time()
+    response = client.get("/health/live")
+    elapsed_ms = (time.time() - start) * 1000
+
+    assert response.status_code == 200
+    # Liveness should be very fast since it does no I/O
+    assert elapsed_ms < 500

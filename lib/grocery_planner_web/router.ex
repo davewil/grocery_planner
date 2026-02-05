@@ -20,10 +20,15 @@ defmodule GroceryPlannerWeb.Router do
   end
 
   scope "/", GroceryPlannerWeb do
+    pipe_through(:api)
+
+    get("/health_check", HealthController, :check)
+  end
+
+  scope "/", GroceryPlannerWeb do
     pipe_through(:browser)
 
     get("/", PageController, :home)
-    get("/health_check", HealthController, :check)
 
     live("/sign-up", Auth.SignUpLive)
     live("/sign-in", Auth.SignInLive)
