@@ -23,6 +23,8 @@ from schemas import (
     ArtifactResponse, ArtifactListResponse,
     FeedbackRequest, FeedbackResponse,
     ReceiptExtractRequest, ReceiptExtractResponse,
+    MealOptimizationRequestPayload, MealOptimizationResponsePayload,
+    QuickSuggestionRequestPayload, QuickSuggestionResponsePayload,
 )
 from database import init_db, get_db, JobStatus
 from jobs import submit_job, get_job, list_jobs, job_to_dict, register_job_handler
@@ -43,6 +45,13 @@ try:
     from receipt_ocr import process_receipt as _tesseract_process_receipt
 except ImportError:
     _tesseract_process_receipt = None
+
+# Optional meal optimizer import (graceful fallback if not installed)
+try:
+    from meal_optimizer import optimize_meal_plan, quick_suggestions
+except ImportError:
+    optimize_meal_plan = None
+    quick_suggestions = None
 
 # Setup structured logging
 setup_structured_logging()
@@ -680,6 +689,140 @@ async def generate_embeddings_batch(request: EmbedBatchRequest):
         latency_ms = (time.time() - start_time) * 1000
         logger.error(f"Error generating batch embeddings {request.request_id}: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/v1/optimize/meal-plan", response_model=BaseResponse)
+async def optimize_meal_plan_endpoint(request: BaseRequest, db: Session = Depends(get_db)):
+    """Generate an optimized meal plan using Z3 SMT solver."""
+    start_time = time.time()
+    try:
+        payload = MealOptimizationRequestPayload(**request.payload)
+
+        problem = {
+            "planning_horizon": payload.planning_horizon.model_dump(),
+            "inventory": [item.model_dump() for item in payload.inventory],
+            "recipes": [recipe.model_dump() for recipe in payload.recipes],
+            "constraints": payload.constraints.model_dump(),
+            "weights": payload.weights.model_dump(),
+        }
+
+        result = optimize_meal_plan(problem, timeout_ms=5000)
+        latency_ms = (time.time() - start_time) * 1000
+
+        if result.get("status") == "optimal":
+            response_payload = {
+                "status": result["status"],
+                "solve_time_ms": result.get("solve_time_ms", 0),
+                **result.get("solution", {}),
+            }
+        else:
+            response_payload = {
+                "status": result.get("status", "no_solution"),
+                "solve_time_ms": result.get("solve_time_ms", 0),
+                "meal_plan": [],
+                "shopping_list": [],
+                "metrics": {},
+                "explanation": [],
+            }
+
+        create_artifact(
+            db=db,
+            request_id=request.request_id,
+            tenant_id=request.tenant_id,
+            user_id=request.user_id,
+            feature="meal_optimization",
+            status="success" if result.get("status") == "optimal" else "no_solution",
+            input_data=request.payload,
+            output_data=response_payload,
+            latency_ms=latency_ms,
+        )
+
+        return BaseResponse(
+            request_id=request.request_id,
+            status="success",
+            payload=response_payload,
+        )
+    except Exception as e:
+        logger.error(f"Meal optimization error: {e}")
+        latency_ms = (time.time() - start_time) * 1000
+        create_artifact(
+            db=db,
+            request_id=request.request_id,
+            tenant_id=request.tenant_id,
+            user_id=request.user_id,
+            feature="meal_optimization",
+            status="error",
+            input_data=request.payload,
+            output_data={},
+            latency_ms=latency_ms,
+            error_message=str(e),
+        )
+        return BaseResponse(
+            request_id=request.request_id,
+            status="error",
+            error=str(e),
+            payload={},
+        )
+
+
+@app.post("/api/v1/optimize/suggestions", response_model=BaseResponse)
+async def optimize_suggestions_endpoint(request: BaseRequest, db: Session = Depends(get_db)):
+    """Get quick recipe suggestions based on inventory and preferences."""
+    start_time = time.time()
+    try:
+        payload = QuickSuggestionRequestPayload(**request.payload)
+
+        inventory = [item.model_dump() for item in payload.inventory]
+        recipes = [recipe.model_dump() for recipe in payload.recipes]
+
+        suggestions = quick_suggestions(
+            inventory=inventory,
+            recipes=recipes,
+            mode=payload.mode,
+            limit=payload.limit,
+        )
+
+        latency_ms = (time.time() - start_time) * 1000
+        response_payload = {"suggestions": suggestions}
+
+        create_artifact(
+            db=db,
+            request_id=request.request_id,
+            tenant_id=request.tenant_id,
+            user_id=request.user_id,
+            feature="meal_suggestions",
+            status="success",
+            input_data=request.payload,
+            output_data=response_payload,
+            latency_ms=latency_ms,
+        )
+
+        return BaseResponse(
+            request_id=request.request_id,
+            status="success",
+            payload=response_payload,
+        )
+    except Exception as e:
+        logger.error(f"Meal suggestion error: {e}")
+        latency_ms = (time.time() - start_time) * 1000
+        create_artifact(
+            db=db,
+            request_id=request.request_id,
+            tenant_id=request.tenant_id,
+            user_id=request.user_id,
+            feature="meal_suggestions",
+            status="error",
+            input_data=request.payload,
+            output_data={},
+            latency_ms=latency_ms,
+            error_message=str(e),
+        )
+        return BaseResponse(
+            request_id=request.request_id,
+            status="error",
+            error=str(e),
+            payload={},
+        )
 
 
 @app.post("/api/v1/receipts/extract", response_model=ReceiptExtractResponse)

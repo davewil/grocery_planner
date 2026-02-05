@@ -314,3 +314,99 @@ class ReceiptExtractResponse(BaseModel):
     processing_time_ms: float = Field(..., description="Processing time in milliseconds")
     model_version: str = Field(default="tesseract-5.x", description="OCR engine version")
     extraction: ExtractionResult = Field(..., description="Extraction results")
+
+
+# =============================================================================
+# Feature: Meal Optimization
+# =============================================================================
+
+class InventoryItem(BaseModel):
+    ingredient_id: str = Field(..., description="UUID of the grocery item")
+    name: str = Field(..., description="Display name")
+    quantity: float = Field(..., description="Available quantity")
+    unit: str = Field(default="", description="Unit of measurement")
+    days_until_expiry: Optional[int] = Field(default=None, description="Days until expiration")
+
+class RecipeIngredient(BaseModel):
+    ingredient_id: str = Field(..., description="UUID of the grocery item")
+    name: str = Field(default="", description="Display name")
+    quantity: float = Field(default=1.0, description="Required quantity")
+    unit: str = Field(default="", description="Unit of measurement")
+
+class OptimizationRecipe(BaseModel):
+    id: str = Field(..., description="Recipe UUID")
+    name: str = Field(..., description="Recipe name")
+    prep_time: int = Field(default=0, description="Prep time in minutes")
+    cook_time: int = Field(default=0, description="Cook time in minutes")
+    ingredients: list[RecipeIngredient] = Field(default_factory=list)
+    tags: list[str] = Field(default_factory=list)
+    is_favorite: bool = Field(default=False)
+
+class PlanningHorizon(BaseModel):
+    start_date: str = Field(..., description="ISO date string for plan start")
+    days: int = Field(default=7, description="Number of days to plan")
+    meal_types: list[str] = Field(default_factory=lambda: ["dinner"])
+
+class OptimizationConstraints(BaseModel):
+    max_shopping_items: Optional[int] = Field(default=None, description="Max items to buy")
+    time_budgets: dict[str, int] = Field(default_factory=dict, description="Date -> minutes budget")
+    locked_meals: list[dict[str, str]] = Field(default_factory=list, description="Locked recipe-day pairs")
+    excluded_recipes: list[str] = Field(default_factory=list, description="Recipe IDs to exclude")
+    dietary: list[str] = Field(default_factory=list, description="Dietary restrictions")
+
+class OptimizationWeights(BaseModel):
+    expiring_priority: float = Field(default=0.4, ge=0, le=1)
+    shopping_minimization: float = Field(default=0.3, ge=0, le=1)
+    variety: float = Field(default=0.2, ge=0, le=1)
+    time_fit: float = Field(default=0.1, ge=0, le=1)
+
+class MealOptimizationRequestPayload(BaseModel):
+    planning_horizon: PlanningHorizon
+    inventory: list[InventoryItem] = Field(default_factory=list)
+    recipes: list[OptimizationRecipe] = Field(default_factory=list)
+    constraints: OptimizationConstraints = Field(default_factory=OptimizationConstraints)
+    weights: OptimizationWeights = Field(default_factory=OptimizationWeights)
+
+class MealPlanEntry(BaseModel):
+    date: str = Field(..., description="ISO date string")
+    day_index: int = Field(..., description="0-based day index")
+    meal_type: str = Field(default="dinner")
+    recipe_id: str = Field(...)
+    recipe_name: str = Field(default="")
+
+class ShoppingListItem(BaseModel):
+    ingredient_id: str = Field(...)
+    name: str = Field(default="")
+    quantity: int = Field(default=1)
+
+class OptimizationMetrics(BaseModel):
+    expiring_ingredients_used: int = Field(default=0)
+    total_expiring_ingredients: int = Field(default=0)
+    shopping_items_count: int = Field(default=0)
+    variety_score: float = Field(default=0.0)
+    recipes_selected: int = Field(default=0)
+
+class MealOptimizationResponsePayload(BaseModel):
+    status: str = Field(...)
+    solve_time_ms: int = Field(default=0)
+    meal_plan: list[MealPlanEntry] = Field(default_factory=list)
+    shopping_list: list[ShoppingListItem] = Field(default_factory=list)
+    metrics: OptimizationMetrics = Field(default_factory=OptimizationMetrics)
+    explanation: list[str] = Field(default_factory=list)
+
+class QuickSuggestionRequestPayload(BaseModel):
+    mode: str = Field(default="use_expiring", description="Suggestion mode")
+    inventory: list[InventoryItem] = Field(default_factory=list)
+    recipes: list[OptimizationRecipe] = Field(default_factory=list)
+    limit: int = Field(default=5, ge=1, le=20)
+
+class SuggestionItem(BaseModel):
+    recipe_id: str = Field(...)
+    recipe_name: str = Field(default="")
+    score: float = Field(default=0.0)
+    expiring_used: list[str] = Field(default_factory=list)
+    missing: list[str] = Field(default_factory=list)
+    reason: str = Field(default="")
+
+class QuickSuggestionResponsePayload(BaseModel):
+    suggestions: list[SuggestionItem] = Field(default_factory=list)

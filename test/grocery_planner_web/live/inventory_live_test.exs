@@ -318,9 +318,7 @@ defmodule GroceryPlannerWeb.InventoryLiveTest do
 
       html = render(view)
       assert html =~ "Dairy"
-      assert html =~ "Icon: milk"
       assert html =~ "Produce"
-      assert html =~ "Icon: apple"
     end
 
     test "shows empty state when no categories exist", %{conn: conn} do
@@ -373,7 +371,6 @@ defmodule GroceryPlannerWeb.InventoryLiveTest do
 
       html = render(view)
       assert html =~ "Beverages"
-      assert html =~ "Icon: drink"
       refute has_element?(view, "form#category-form")
     end
 

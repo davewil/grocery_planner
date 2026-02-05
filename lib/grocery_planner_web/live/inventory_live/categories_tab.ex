@@ -65,7 +65,13 @@ defmodule GroceryPlannerWeb.InventoryLive.CategoriesTab do
       >
         <div class="flex items-center gap-4">
           <div class="w-12 h-12 bg-secondary/10 rounded-lg flex items-center justify-center flex-shrink-0">
+            <.icon
+              :if={category.icon && String.starts_with?(category.icon, "hero-")}
+              name={category.icon}
+              class="w-6 h-6 text-secondary"
+            />
             <svg
+              :if={!category.icon || !String.starts_with?(category.icon, "hero-")}
               class="w-6 h-6 text-secondary"
               fill="none"
               stroke="currentColor"
@@ -81,9 +87,6 @@ defmodule GroceryPlannerWeb.InventoryLive.CategoriesTab do
           </div>
           <div>
             <div class="font-semibold text-base-content">{category.name}</div>
-            <div :if={category.icon} class="text-sm text-secondary mt-1">
-              Icon: {category.icon}
-            </div>
           </div>
         </div>
         <.button

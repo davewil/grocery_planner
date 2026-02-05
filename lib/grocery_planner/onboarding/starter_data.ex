@@ -19,8 +19,8 @@ defmodule GroceryPlanner.Onboarding.StarterData do
       %{name: "Meat", icon: "hero-fire"},
       %{name: "Pantry", icon: "hero-archive-box"},
       %{name: "Bakery", icon: "hero-cake"},
-      %{name: "Frozen", icon: "hero-snowflake"},
-      %{name: "Beverage", icon: "hero-variable"},
+      %{name: "Frozen", icon: "hero-moon"},
+      %{name: "Beverage", icon: "hero-cube"},
       %{name: "Household", icon: "hero-home"}
     ]
   end
