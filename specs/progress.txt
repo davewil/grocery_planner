@@ -730,3 +730,51 @@
 - Phase 2: Tidewave Python integration
 - Phase 3: Docker Compose dev environment
 - Phase 4: OTEL instrumentation
+
+---
+
+## 2026-02-05: INFRA-002 Phase 7 - Contract Testing (6A, 6B)
+
+### What was implemented:
+
+#### 6A: Schema Validation Module
+- Created `GroceryPlanner.AiClient.Contracts` module with Ecto embedded schemas for all Python service response types
+- 10 contract schemas covering every API response: BaseResponse, CategorizationResponse, BatchCategorizationResponse, BatchPrediction, ReceiptExtractionResponse, ReceiptLineItem, EmbeddingResponse, EmbeddingEntry, HealthCheckResponse, MealOptimizationResponse, MealPlanEntry, QuickSuggestionResponse, QuickSuggestionEntry
+- Each schema has a `validate/1` function that returns `{:ok, struct}` or `{:error, changeset | reason}`
+- Validates required fields, numeric ranges (confidence 0.0-1.0), inclusion constraints (status, confidence_level), and nested structures
+
+#### 6B: Contract Tests
+- 79 behavioral tests covering valid payloads, missing required fields, invalid values, non-map input rejection, and edge cases
+- 8 property-based tests using StreamData for fuzzing: confidence values, batch sizes, embedding dimensions, health statuses, meal plan entries, and suggestion lists
+- Cross-cutting test suite verifying all Ecto-based contracts reject nil, string, integer, and list inputs
+- Added `stream_data` dependency (already transitively required by Ash, now explicit)
+
+### Key learnings:
+
+1. **StreamData + Ash dependency overlap**: Ash already depends on `stream_data` in `:prod`, so adding it with `only: [:test]` causes a Mix dependency conflict. Must add without env restriction since the transitive dependency is already present.
+
+2. **Ecto embedded schemas for contract validation**: Using `@primary_key false` + `embedded_schema` with `cast/3` and `validate_required/2` provides lightweight response validation without needing a database. The `apply_action(:validate)` call returns `{:ok, struct}` or `{:error, changeset}`.
+
+3. **String-keyed vs atom-keyed maps**: Python service returns string-keyed JSON maps. Contract validators accept both via an `atomize/1` helper that converts string keys to existing atoms. Using `String.to_existing_atom/1` prevents atom table pollution.
+
+4. **Nested response validation pattern**: For complex responses (receipts, embeddings, batches), validate inner structures first with their own contract, then compose results. Use `Enum.find(results, &match?({:error, _}, &1))` to short-circuit on first invalid entry.
+
+5. **Property-based testing for API contracts**: StreamData generators for confidence values (`float(min: 0.0, max: 1.0)`), UUIDs (`map(constant(nil), fn _ -> Ecto.UUID.generate() end)`), and variable-length lists effectively fuzz edge cases that hand-written tests miss.
+
+### Files created:
+- `lib/grocery_planner/ai_client/contracts.ex` - 10+ contract schemas mirroring Python Pydantic models
+- `test/grocery_planner/ai_client/contracts_test.exs` - 79 behavioral tests + 8 property-based tests
+
+### Files modified:
+- `mix.exs` - Added explicit `stream_data` dependency
+- `specs/INFRA-002-observability-devex.md` - Marked Phase 7 as DONE
+
+### Verification:
+- `mix precommit` passes: 832 tests, 0 failures, 8 properties (5 excluded integration/smoke)
+
+### Next priorities (from INFRA-002):
+- Phase 2: Tidewave Python integration
+- Phase 3: Docker Compose dev environment
+- Phase 4: OTEL instrumentation
+- Phase 5: Grafana stack
+- Phase 6: Integration tests (5A, 5B)
