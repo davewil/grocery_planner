@@ -3,7 +3,7 @@ import logging
 import time
 from typing import Any
 
-from z3 import Bool, If, Implies, Int, Not, Optimize, Or, Sum, sat
+from z3 import Bool, If, Int, Optimize, Or, Sum, sat
 
 logger = logging.getLogger("grocery-planner-ai.meal_optimizer")
 
@@ -108,11 +108,13 @@ class MealPlanOptimizer:
 
             if 0 <= day_idx < days and lock_recipe_id in self.recipe_vars:
                 # Force this recipe on this day
-                self.optimizer.add(self.assign_vars[(lock_recipe_id, day_idx)] == True)
+                self.optimizer.add(self.assign_vars[(lock_recipe_id, day_idx)])
                 # No other recipe on this day
                 for rid in self.recipe_vars:
                     if rid != lock_recipe_id:
-                        self.optimizer.add(self.assign_vars[(rid, day_idx)] == False)
+                        self.optimizer.add(
+                            self.assign_vars[(rid, day_idx)] == False  # noqa: E712
+                        )
 
     def _add_time_constraints(self, recipes: list, days: int) -> None:
         """Respect time budgets per day."""
@@ -123,7 +125,7 @@ class MealPlanOptimizer:
             return
 
         try:
-            from datetime import date as dt_date, timedelta
+            from datetime import date as dt_date
             start = dt_date.fromisoformat(start_date)
         except (ValueError, TypeError):
             return
@@ -142,7 +144,9 @@ class MealPlanOptimizer:
                     total_time = recipe.get("prep_time", 0) + recipe.get("cook_time", 0)
                     if total_time > budget_minutes:
                         # Recipe too slow for this day
-                        self.optimizer.add(self.assign_vars[(rid, day_idx)] == False)
+                        self.optimizer.add(
+                            self.assign_vars[(rid, day_idx)] == False  # noqa: E712
+                        )
 
     def _add_inventory_constraints(self, recipes: list) -> None:
         """Ensure used ingredients <= available + buy."""

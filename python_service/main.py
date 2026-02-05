@@ -23,8 +23,8 @@ from schemas import (
     ArtifactResponse, ArtifactListResponse,
     FeedbackRequest, FeedbackResponse,
     ReceiptExtractRequest, ReceiptExtractResponse,
-    MealOptimizationRequestPayload, MealOptimizationResponsePayload,
-    QuickSuggestionRequestPayload, QuickSuggestionResponsePayload,
+    MealOptimizationRequestPayload,
+    QuickSuggestionRequestPayload,
 )
 from database import init_db, get_db, JobStatus
 from jobs import submit_job, get_job, list_jobs, job_to_dict, register_job_handler
