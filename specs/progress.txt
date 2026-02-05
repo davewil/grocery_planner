@@ -678,3 +678,60 @@
 - US-003 (Match to catalog): **COMPLETE** - all 5 acceptance criteria met
 - US-004 (Add to inventory): **COMPLETE** - all 6 acceptance criteria met
 - US-005 (Duplicate detection): **COMPLETE** - all 4 acceptance criteria met
+
+---
+
+## 2026-02-05: INFRA-002 Phase 1 - Health Checks & Contract Testing
+
+### What was implemented:
+
+#### Phase 1: Health Checks (4A, 4B, 4C)
+- **Python `/health/ready` endpoint**: Full readiness check with database connectivity, classifier status, embedding model availability, and Tesseract OCR availability. Returns overall status ("ok" or "degraded") with per-dependency checks.
+- **Python `/health/live` endpoint**: Simple liveness probe returning `{"status": "ok"}`.
+- **`AiClient.health_check/1`**: New function that calls `/health/ready` with configurable timeout. Returns `{:ok, body}`, `{:error, {:unhealthy, status, body}}`, or `{:error, {:connection_failed, reason}}`.
+- **Enhanced `HealthController`**: Rewrote with `check/2` (liveness, returns JSON `{"status": "ok"}`) and `ready/2` (readiness with database, AI service, and Oban checks). Liveness returns 200 always. Readiness returns 200 for "ok"/"degraded", 503 for "error".
+- **`/health_check/ready` route**: Added to router, no authentication required.
+- **Startup validation in `Application`**: `validate_ai_service/0` runs as a non-blocking Task 2 seconds after supervisor starts. Logs info/warning/error based on AI service state. Configurable via `:validate_ai_on_startup` (enabled in dev, disabled in test).
+
+#### Phase 7: Contract Testing (6A)
+- **`AiClient.Contracts` module**: Three embedded schemas for validating AI service responses:
+  - `CategorizationResponse` - validates category, confidence (0-1 range), confidence_level (high/medium/low)
+  - `ExtractionResponse` - validates items list (each must have name), optional merchant/date/total
+  - `HealthResponse` - validates status (ok/degraded/error), version (required)
+
+### Key learnings:
+
+1. **Req.Test stubs in ConnCase**: When using `Req.Test.stub/2` in Phoenix ConnCase tests, the stub is available to controller code because ConnTest dispatches synchronously in the same process. No need for `Req.Test.allow/3`.
+
+2. **Startup validation vs test environment**: `Task.start` in `Application.start/2` fires after 2 seconds and calls `AiClient.health_check()`. In test, Req.Test stubs are registered per-process, and a background Task runs in a different process. Solution: gate startup validation behind a config flag (`:validate_ai_on_startup`) that's `false` by default and `true` only in dev.
+
+3. **Oban process detection in test**: With `testing: :manual` config, the Oban process IS registered and `Process.whereis(Oban)` returns a pid. This means the Oban health check works correctly in tests without mocking.
+
+4. **Health check status semantics**: Database failure -> "error" (503). AI service failure -> "degraded" (200). This reflects that the app can function without AI features but not without a database.
+
+5. **Ecto embedded_schema for contract validation**: Using `Ecto.Schema` with `embedded_schema` and `Ecto.Changeset` for response validation provides built-in type casting, required field checks, range validation, and inclusion validation. `apply_action(:validate)` converts changeset to `{:ok, struct}` or `{:error, changeset}`.
+
+6. **Python health readiness pattern**: The `/health/ready` endpoint checks all dependencies and returns an overall status. Individual checks use "ok", "not_loaded", "available", "not_installed", or "error". Overall status is "ok" if all checks are in acceptable states, "degraded" otherwise.
+
+### Files changed:
+- `lib/grocery_planner/ai_client.ex` - Added `health_check/1` and `handle_health_response/1`
+- `lib/grocery_planner_web/controllers/health_controller.ex` - Rewrote with JSON responses, readiness check
+- `lib/grocery_planner_web/router.ex` - Added `/health_check/ready` route
+- `lib/grocery_planner/application.ex` - Added startup validation with `validate_ai_service/0`
+- `config/dev.exs` - Added `validate_ai_on_startup: true`
+- `python_service/main.py` - Added `/health/ready` and `/health/live` endpoints
+- `lib/grocery_planner/ai_client/contracts.ex` - New contract validation module (3 schemas)
+- `test/grocery_planner_web/controllers/health_controller_test.exs` - 9 behavioral tests
+- `test/grocery_planner/ai_client_health_test.exs` - 6 unit tests
+- `test/grocery_planner/ai_client/contracts_test.exs` - 23 unit tests
+
+### Test counts:
+- HealthController: 9 behavioral tests (2 liveness, 7 readiness)
+- AiClient.health_check: 6 unit tests with Req.Test stubs
+- Contract validation: 23 unit tests (9 categorization, 5 extraction, 6 health, 3 edge cases)
+- **Total new tests: 38**
+
+### Next priorities (INFRA-002):
+- Phase 2: Tidewave Python integration
+- Phase 3: Docker Compose development environment
+- Phase 4: OpenTelemetry instrumentation

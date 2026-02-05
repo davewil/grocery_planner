@@ -89,6 +89,9 @@ config :phoenix_live_view,
 # Disable swoosh api client as it is only required for production adapters.
 config :swoosh, :api_client, false
 
+# Validate AI service connectivity on startup in dev
+config :grocery_planner, :validate_ai_on_startup, true
+
 # Enable AI categorization in development
 config :grocery_planner, :features,
   ai_categorization: true,

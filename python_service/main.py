@@ -133,8 +133,59 @@ app.add_middleware(RequestTracingMiddleware)
 
 @app.get("/health")
 def health_check():
-    """Health check endpoint for load balancers and monitoring."""
+    """Basic health check for load balancers."""
     return {"status": "ok", "service": "grocery-planner-ai", "version": "1.0.0"}
+
+
+@app.get("/health/ready")
+def readiness_check(db: Session = Depends(get_db)):
+    """Full readiness check with dependency validation."""
+    from sqlalchemy import text
+
+    checks = {}
+
+    # Database connectivity
+    try:
+        db.execute(text("SELECT 1"))
+        checks["database"] = {"status": "ok"}
+    except Exception as e:
+        checks["database"] = {"status": "error", "error": str(e)}
+
+    # Classification model loaded
+    checks["classifier"] = {
+        "status": "ok" if classifier is not None else "not_loaded",
+        "model": settings.CLASSIFICATION_MODEL if classifier else None,
+    }
+
+    # Embedding model availability (lazy-loaded, check importability)
+    try:
+        from sentence_transformers import SentenceTransformer  # noqa: F401
+
+        checks["embedding_model"] = {"status": "available"}
+    except ImportError:
+        checks["embedding_model"] = {"status": "not_installed"}
+
+    # Tesseract OCR availability
+    checks["tesseract"] = {
+        "status": "available" if _tesseract_process_receipt is not None else "not_installed",
+    }
+
+    overall = (
+        "ok"
+        if all(
+            c.get("status") in ("ok", "available", "not_loaded", "not_installed")
+            for c in checks.values()
+        )
+        else "degraded"
+    )
+
+    return {"status": overall, "checks": checks, "version": "1.0.0"}
+
+
+@app.get("/health/live")
+def liveness_check():
+    """Simple liveness probe."""
+    return {"status": "ok"}
 
 
 # =============================================================================

@@ -1,6 +1,6 @@
 # INFRA-002: Observability & Developer Experience
 
-**Status**: PLANNED
+**Status**: IN PROGRESS
 **Priority**: High (blocking receipt processing debugging)
 **Created**: 2026-02-05
 **Related**: INFRA-001 (Azure Deployment), AI-003 (Receipt Scanning)
@@ -968,3 +968,35 @@ docker compose down
    docker compose stop python-service
    mix phx.server  # Should log warning about AI service
    ```
+
+---
+
+## Implementation Status
+
+### Phase 1: Health Checks (4A, 4B, 4C) - COMPLETE
+
+**Implemented 2026-02-05:**
+
+- [x] **4A: Enhanced Python Health Endpoints** - Added `/health/ready` (full readiness with DB, classifier, embedding, tesseract checks) and `/health/live` (simple liveness probe) to `python_service/main.py`
+- [x] **4B: Elixir Startup Validation** - Added `health_check/1` to `AiClient`, `validate_ai_service/0` to `Application` with non-blocking Task.start on startup (configurable via `:validate_ai_on_startup`)
+- [x] **4C: Enhanced Elixir Health Endpoint** - Rewrote `HealthController` with `check/2` (liveness) and `ready/2` (readiness with DB + AI service + Oban checks). Added `/health_check/ready` route.
+
+**Test Coverage (28 tests):**
+- `test/grocery_planner_web/controllers/health_controller_test.exs` - 9 behavioral tests for liveness and readiness endpoints
+- `test/grocery_planner/ai_client_health_test.exs` - 6 unit tests for AiClient.health_check with Req.Test stubs
+- `test/grocery_planner/ai_client/contracts_test.exs` - 23 unit tests for contract validation schemas
+
+### Phase 7: Contract Testing (6A) - COMPLETE
+
+**Implemented 2026-02-05:**
+
+- [x] **6A: Schema Validation Module** - Created `GroceryPlanner.AiClient.Contracts` with `CategorizationResponse`, `ExtractionResponse`, and `HealthResponse` validation schemas using Ecto embedded schemas and changesets
+
+### Remaining Phases
+
+- [ ] Phase 2: Tidewave integration (Section 1)
+- [ ] Phase 3: Docker Compose (Section 7A, 7B)
+- [ ] Phase 4: OTEL instrumentation (Section 2A, 2B, 2C)
+- [ ] Phase 5: Grafana stack (Section 3)
+- [ ] Phase 6: Integration tests CI (Section 5A, 5B)
+- [ ] Phase 7 remaining: Contract tests for integration (Section 6B)

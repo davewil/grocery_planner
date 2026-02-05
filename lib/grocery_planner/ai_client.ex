@@ -107,6 +107,31 @@ defmodule GroceryPlanner.AiClient do
     |> handle_response()
   end
 
+  @doc """
+  Check if the AI service is healthy and responding.
+
+  Calls the /health/ready endpoint with a short timeout.
+  Returns {:ok, body} on success, or {:error, reason} on failure.
+  """
+  def health_check(opts \\ []) do
+    timeout = Keyword.get(opts, :receive_timeout, 5_000)
+
+    Req.get(client(opts), url: "/health/ready", receive_timeout: timeout)
+    |> handle_health_response()
+  end
+
+  defp handle_health_response({:ok, %Req.Response{status: 200, body: body}}) do
+    {:ok, body}
+  end
+
+  defp handle_health_response({:ok, %Req.Response{status: status, body: body}}) do
+    {:error, {:unhealthy, status, body}}
+  end
+
+  defp handle_health_response({:error, reason}) do
+    {:error, {:connection_failed, reason}}
+  end
+
   # --- Internal Helpers ---
 
   defp post(url, payload, feature, context, opts) do

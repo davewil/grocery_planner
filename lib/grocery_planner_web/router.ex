@@ -24,6 +24,7 @@ defmodule GroceryPlannerWeb.Router do
 
     get("/", PageController, :home)
     get("/health_check", HealthController, :check)
+    get("/health_check/ready", HealthController, :ready)
 
     live("/sign-up", Auth.SignUpLive)
     live("/sign-in", Auth.SignInLive)
