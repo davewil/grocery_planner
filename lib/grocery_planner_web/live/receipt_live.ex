@@ -25,6 +25,9 @@ defmodule GroceryPlannerWeb.ReceiptLive do
       |> assign(:receipt_items, [])
       |> assign(:processing_status, nil)
       |> assign(:error, nil)
+      |> assign(:catalog_search_idx, nil)
+      |> assign(:catalog_search_query, "")
+      |> assign(:catalog_search_results, [])
       |> allow_upload(:receipt,
         accept: ~w(.jpg .jpeg .png .heic .pdf),
         max_entries: 1,
@@ -75,7 +78,13 @@ defmodule GroceryPlannerWeb.ReceiptLive do
             <% :processing -> %>
               <.processing_step status={@processing_status} />
             <% :review -> %>
-              <.review_step receipt={@receipt} items={@receipt_items} />
+              <.review_step
+                receipt={@receipt}
+                items={@receipt_items}
+                catalog_search_idx={@catalog_search_idx}
+                catalog_search_query={@catalog_search_query}
+                catalog_search_results={@catalog_search_results}
+              />
             <% :complete -> %>
               <.complete_step receipt={@receipt} items={@receipt_items} />
           <% end %>
@@ -253,12 +262,30 @@ defmodule GroceryPlannerWeb.ReceiptLive do
             </div>
             
     <!-- Match status -->
-            <div class="mt-2 ml-5 text-sm">
+            <div class="mt-2 ml-5 text-sm flex items-center gap-2">
               <%= if item.grocery_item_id do %>
-                <span class="badge badge-success badge-sm">Matched</span>
+                <span class="badge badge-success badge-sm">
+                  Matched ({format_confidence(item.match_confidence)})
+                </span>
+                <button
+                  type="button"
+                  class="link link-primary text-xs"
+                  phx-click="open_catalog_search"
+                  phx-value-idx={idx}
+                >
+                  Change
+                </button>
               <% else %>
                 <span class="badge badge-warning badge-sm">No match</span>
-                <span class="text-base-content/50 ml-1">Will create new item</span>
+                <span class="text-base-content/50">Will create new item</span>
+                <button
+                  type="button"
+                  class="link link-primary text-xs"
+                  phx-click="open_catalog_search"
+                  phx-value-idx={idx}
+                >
+                  Find match
+                </button>
               <% end %>
             </div>
           </div>
@@ -279,6 +306,52 @@ defmodule GroceryPlannerWeb.ReceiptLive do
           </button>
         </div>
       </div>
+
+      <%= if assigns[:catalog_search_idx] do %>
+        <div class="modal modal-open">
+          <div class="modal-box">
+            <h3 class="font-bold text-lg mb-4">Match to Catalog Item</h3>
+            <form id="catalog-search-form" phx-change="catalog_search" phx-submit="catalog_search">
+              <input
+                type="text"
+                value={@catalog_search_query}
+                placeholder="Search grocery items..."
+                class="input input-bordered w-full mb-4"
+                phx-debounce="200"
+                name="query"
+              />
+            </form>
+            <div class="max-h-60 overflow-y-auto space-y-1">
+              <%= for gi <- @catalog_search_results do %>
+                <button
+                  type="button"
+                  class="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-base-200 text-left"
+                  phx-click="select_catalog_match"
+                  phx-value-grocery-item-id={gi.id}
+                  phx-value-grocery-item-name={gi.name}
+                >
+                  <span class="font-medium text-sm">{gi.name}</span>
+                  <%= if gi.default_unit do %>
+                    <span class="text-xs text-base-content/50">{gi.default_unit}</span>
+                  <% end %>
+                </button>
+              <% end %>
+              <%= if @catalog_search_results == [] and @catalog_search_query != "" do %>
+                <p class="text-center text-base-content/50 py-4">No items found</p>
+              <% end %>
+            </div>
+            <div class="modal-action">
+              <button type="button" class="btn btn-ghost" phx-click="close_catalog_search">
+                Cancel
+              </button>
+              <button type="button" class="btn btn-outline" phx-click="create_and_match">
+                Create New Item
+              </button>
+            </div>
+          </div>
+          <div class="modal-backdrop" phx-click="close_catalog_search"></div>
+        </div>
+      <% end %>
     </div>
     """
   end
@@ -457,7 +530,7 @@ defmodule GroceryPlannerWeb.ReceiptLive do
           final_quantity: item.final_quantity || item.quantity,
           final_unit: item.final_unit || item.unit
         },
-        actor: nil,
+        authorize?: false,
         tenant: receipt.account_id
       )
     end
@@ -498,6 +571,117 @@ defmodule GroceryPlannerWeb.ReceiptLive do
        error: nil,
        processing_status: nil
      )}
+  end
+
+  @impl true
+  def handle_event("open_catalog_search", %{"idx" => idx}, socket) do
+    idx = String.to_integer(idx)
+    item = Enum.at(socket.assigns.receipt_items, idx)
+    query = item.final_name || item.raw_name || ""
+
+    # Pre-populate search results with the item name
+    results = search_catalog(query, socket.assigns.current_account.id)
+
+    {:noreply,
+     socket
+     |> assign(:catalog_search_idx, idx)
+     |> assign(:catalog_search_query, query)
+     |> assign(:catalog_search_results, results)}
+  end
+
+  @impl true
+  def handle_event("catalog_search", %{"query" => query}, socket) do
+    results = search_catalog(query, socket.assigns.current_account.id)
+
+    {:noreply,
+     socket
+     |> assign(:catalog_search_query, query)
+     |> assign(:catalog_search_results, results)}
+  end
+
+  @impl true
+  def handle_event(
+        "select_catalog_match",
+        %{"grocery-item-id" => gi_id, "grocery-item-name" => _name},
+        socket
+      ) do
+    idx = socket.assigns.catalog_search_idx
+    receipt = socket.assigns.receipt
+
+    items =
+      List.update_at(socket.assigns.receipt_items, idx, fn item ->
+        # Update the DB record if it exists
+        if item.id do
+          Inventory.update_receipt_item(
+            item,
+            %{grocery_item_id: gi_id, match_confidence: 1.0, user_corrected: true},
+            authorize?: false,
+            tenant: receipt.account_id
+          )
+        end
+
+        Map.merge(item, %{grocery_item_id: gi_id, match_confidence: 1.0, user_corrected: true})
+      end)
+
+    {:noreply,
+     socket
+     |> assign(:receipt_items, items)
+     |> assign(:catalog_search_idx, nil)
+     |> assign(:catalog_search_query, "")
+     |> assign(:catalog_search_results, [])}
+  end
+
+  @impl true
+  def handle_event("create_and_match", _, socket) do
+    idx = socket.assigns.catalog_search_idx
+    item = Enum.at(socket.assigns.receipt_items, idx)
+    receipt = socket.assigns.receipt
+    name = item.final_name || item.raw_name
+
+    case Inventory.create_grocery_item(
+           receipt.account_id,
+           %{name: name, default_unit: item.final_unit || item.unit},
+           authorize?: false,
+           tenant: receipt.account_id
+         ) do
+      {:ok, grocery_item} ->
+        items =
+          List.update_at(socket.assigns.receipt_items, idx, fn item ->
+            if item.id do
+              Inventory.update_receipt_item(
+                item,
+                %{grocery_item_id: grocery_item.id, match_confidence: 1.0, user_corrected: true},
+                authorize?: false,
+                tenant: receipt.account_id
+              )
+            end
+
+            Map.merge(item, %{
+              grocery_item_id: grocery_item.id,
+              match_confidence: 1.0,
+              user_corrected: true
+            })
+          end)
+
+        {:noreply,
+         socket
+         |> assign(:receipt_items, items)
+         |> assign(:catalog_search_idx, nil)
+         |> assign(:catalog_search_query, "")
+         |> assign(:catalog_search_results, [])}
+
+      {:error, _reason} ->
+        {:noreply, assign(socket, :error, "Failed to create grocery item '#{name}'")}
+    end
+  end
+
+  @impl true
+  def handle_event("close_catalog_search", _, socket) do
+    {:noreply,
+     socket
+     |> assign(:catalog_search_idx, nil)
+     |> assign(:catalog_search_query, "")
+     |> assign(:catalog_search_results, [])}
   end
 
   # ---------------------------------------------------------------------------
@@ -598,4 +782,25 @@ defmodule GroceryPlannerWeb.ReceiptLive do
   defp error_to_string(:not_accepted), do: "Invalid file type. Use JPEG, PNG, HEIC, or PDF"
   defp error_to_string(:too_many_files), do: "Only one file at a time"
   defp error_to_string(err), do: "Error: #{inspect(err)}"
+
+  defp search_catalog("", _account_id), do: []
+
+  defp search_catalog(query, account_id) do
+    case Inventory.list_grocery_items(authorize?: false, tenant: account_id) do
+      {:ok, items} ->
+        query_down = String.downcase(query)
+
+        items
+        |> Enum.filter(fn item ->
+          String.contains?(String.downcase(item.name), query_down)
+        end)
+        |> Enum.take(10)
+
+      _ ->
+        []
+    end
+  end
+
+  defp format_confidence(nil), do: "?"
+  defp format_confidence(c) when is_number(c), do: "#{round(c * 100)}%"
 end

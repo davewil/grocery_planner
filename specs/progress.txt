@@ -592,3 +592,42 @@
 ### Verification:
 - `mix precommit` passes: 697 tests, 0 failures (5 integration tests excluded)
 - Integration tests require Python service: `./scripts/test-integration.sh`
+
+---
+
+## 2026-02-04: AI-003 US-003 - Item-to-Catalog Matching & Auto-Create
+
+### What was implemented:
+- **ItemMatcher authorization fix**: Changed all 3 matching strategies (exact, normalized, fuzzy) from `actor: nil` to `authorize?: false` in `item_matcher.ex`. This fixed silent policy failures that prevented catalog matching from ever finding items.
+- **ensure_grocery_item/3**: New public function in `ReceiptProcessor` that auto-creates GroceryItems for unmatched receipt items during inventory import. Uses find-or-create pattern: tries `Inventory.create_grocery_item`, falls back to `Inventory.get_item_by_name` if creation fails.
+- **create_entry_from_item**: Updated to call `ensure_grocery_item` before creating InventoryEntry, fixing the critical bug where unmatched items would fail import (nil grocery_item_id).
+- **Catalog search modal UI**: Added interactive modal in ReceiptLive review step with search input, result list, "Create New Item" and "Cancel" buttons. Items can be matched to existing grocery items or new ones created on the spot.
+- **Match confidence display**: Review step shows colored confidence badges ("Matched (95%)", "No match") with "Change"/"Find match" action buttons.
+- **User correction tracking**: `select_catalog_match` and `create_and_match` handlers set `user_corrected: true` on receipt items for future matching improvement.
+- **confirm_import authorization fix**: Changed `actor: nil` to `authorize?: false` in the confirm_import handler, fixing silent policy failures that prevented items from being set to `:confirmed` status.
+
+### Key learnings:
+
+1. **Function component prop passing in LiveView**: When using `<.review_step items={@items} />`, the function component only receives explicitly passed assigns. If the main render assigns `catalog_search_idx` but doesn't pass it to the component, `assigns[:catalog_search_idx]` is always nil inside the component. Always pass all needed assigns to function components.
+
+2. **phx-change requires a form**: A bare `<input phx-change="event">` doesn't work in LiveView. The `phx-change` binding must be on a `<form>` element (or an input inside a form with `phx-change`). Wrap search inputs in `<form phx-change="event_name">`.
+
+3. **Ash `actor: nil` vs `authorize?: false` (repeated lesson)**: This pattern caused bugs in THREE places in this session: ItemMatcher strategies, confirm_import handler, and was previously fixed in handle_info. `actor: nil` triggers Ash policy authorization with a nil actor, which fails `relates_to_actor_via` policies silently (returns empty results). Always use `authorize?: false` for system-level operations outside user context.
+
+4. **GroceryItem has no name uniqueness constraint**: Multiple GroceryItems with the same name can exist within an account. The `ensure_grocery_item` find-or-create pattern creates a new item rather than finding an existing one by name (the fallback path only triggers if creation fails).
+
+5. **ItemMatcher strategy**: exact_match uses `get_item_by_name` with `fragment("lower(?) = lower(?)")` for case-insensitive matching. normalized_match expands abbreviations. fuzzy_match uses `String.jaro_distance` with >0.8 threshold. All strategies were broken by `actor: nil` auth until this fix.
+
+### Files changed:
+- `lib/grocery_planner/inventory/receipt_processor.ex` - Added `ensure_grocery_item/3`, updated `create_entry_from_item/3`
+- `lib/grocery_planner/inventory/item_matcher.ex` - Fixed 3 strategies to use `authorize?: false`
+- `lib/grocery_planner_web/live/receipt_live.ex` - Added catalog search modal, match confidence display, 5 new event handlers, fixed confirm_import auth, passed catalog assigns to review_step component
+- `test/grocery_planner/inventory/receipt_processor_test.exs` - 6 new tests for ensure_grocery_item and auto-create flow
+- `test/grocery_planner_web/live/receipt_live_test.exs` - 10 new tests for catalog search, confidence display, unmatched import
+
+### AI-003 status after this work:
+- US-001 (Upload): Mostly complete (missing: camera capture on mobile)
+- US-002 (Review/correct): Mostly complete (missing: "upload clearer image" option)
+- US-003 (Match to catalog): **COMPLETE** - all 5 acceptance criteria met
+- US-004 (Add to inventory): Mostly complete (missing: storage location selection, expiration dates)
+- US-005 (Duplicate detection): Partially complete (missing: proceed anyway option, link to previous import)

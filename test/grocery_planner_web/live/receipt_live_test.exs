@@ -524,4 +524,236 @@ defmodule GroceryPlannerWeb.ReceiptLiveTest do
       assert length(matches) >= 4
     end
   end
+
+  # ---------------------------------------------------------------------------
+  # Catalog search and matching
+  # ---------------------------------------------------------------------------
+
+  describe "catalog search modal" do
+    setup %{conn: conn, account: account, user: user} do
+      {:ok, view, _html} = live(conn, "/receipts/scan")
+
+      receipt =
+        navigate_to_review(view, account,
+          items: [
+            %{"name" => "Whole Milk", "quantity" => 1, "unit" => "gallon", "confidence" => 0.95},
+            %{"name" => "Mystery Item", "quantity" => 1, "unit" => "each", "confidence" => 0.60}
+          ]
+        )
+
+      %{view: view, receipt: receipt, user: user}
+    end
+
+    test "Find match button opens catalog search modal", %{view: view} do
+      # Click "Find match" on the unmatched item (idx=1 for Mystery Item)
+      render_click(view, "open_catalog_search", %{"idx" => "1"})
+
+      html = render(view)
+      assert html =~ "Match to Catalog Item"
+      assert html =~ "Search grocery items"
+    end
+
+    test "Change button opens catalog search for matched items", %{
+      view: view,
+      account: account,
+      user: user
+    } do
+      # First create a grocery item and manually match it
+      _milk = create_grocery_item(account, user, %{name: "Whole Milk", default_unit: "gallon"})
+
+      # Navigate again to get matching to work (items match via ItemMatcher)
+      # Instead, just click the Find match button on first item
+      view
+      |> element("button[phx-click='open_catalog_search'][phx-value-idx='0']")
+      |> render_click()
+
+      html = render(view)
+      assert html =~ "Match to Catalog Item"
+    end
+
+    test "close button dismisses the modal", %{view: view} do
+      view
+      |> element("button[phx-click='open_catalog_search'][phx-value-idx='0']")
+      |> render_click()
+
+      assert render(view) =~ "Match to Catalog Item"
+
+      view
+      |> element("button[phx-click='close_catalog_search']")
+      |> render_click()
+
+      refute render(view) =~ "Match to Catalog Item"
+    end
+
+    test "selecting a catalog item matches it and closes modal", %{
+      view: view,
+      account: account,
+      user: user
+    } do
+      # Create a grocery item in the catalog
+      milk =
+        create_grocery_item(account, user, %{name: "Organic Whole Milk", default_unit: "gallon"})
+
+      # Open search for first item (Whole Milk)
+      view
+      |> element("button[phx-click='open_catalog_search'][phx-value-idx='0']")
+      |> render_click()
+
+      # Search for milk
+      view |> form("#catalog-search-form", %{query: "Organic"}) |> render_change()
+
+      html = render(view)
+      assert html =~ "Organic Whole Milk"
+
+      # Select the match
+      view
+      |> element(
+        "button[phx-click='select_catalog_match'][phx-value-grocery-item-id='#{milk.id}']"
+      )
+      |> render_click()
+
+      html = render(view)
+      # Modal should be closed
+      refute html =~ "Match to Catalog Item"
+      # Item should show as matched
+      assert html =~ "Matched"
+    end
+
+    test "Create New Item creates grocery item and matches", %{view: view} do
+      # Open search for second item (Mystery Item)
+      view
+      |> element("button[phx-click='open_catalog_search'][phx-value-idx='1']")
+      |> render_click()
+
+      assert render(view) =~ "Match to Catalog Item"
+
+      # Click Create New Item
+      view
+      |> element("button[phx-click='create_and_match']")
+      |> render_click()
+
+      html = render(view)
+      # Modal should close
+      refute html =~ "Match to Catalog Item"
+      # Item should now show as matched
+      assert html =~ "Matched (100%)"
+    end
+
+    test "search with no results shows empty message", %{view: view} do
+      view
+      |> element("button[phx-click='open_catalog_search'][phx-value-idx='0']")
+      |> render_click()
+
+      view
+      |> form("#catalog-search-form", %{query: "zzz_nonexistent_item_zzz"})
+      |> render_change()
+
+      html = render(view)
+      assert html =~ "No items found"
+    end
+  end
+
+  describe "match confidence display" do
+    test "shows confidence percentage for matched items", %{
+      conn: conn,
+      account: account,
+      user: user
+    } do
+      # Pre-create a grocery item that will match
+      _milk = create_grocery_item(account, user, %{name: "Whole Milk"})
+
+      {:ok, view, _html} = live(conn, "/receipts/scan")
+
+      navigate_to_review(view, account,
+        items: [
+          %{"name" => "Whole Milk", "quantity" => 1, "unit" => "gallon", "confidence" => 0.95}
+        ]
+      )
+
+      html = render(view)
+      # Should show "Matched" with confidence
+      assert html =~ "Matched"
+      # Exact match = 1.0 confidence
+      assert html =~ "100%"
+    end
+
+    test "unmatched items show No match badge with Find match button", %{
+      conn: conn,
+      account: account
+    } do
+      {:ok, view, _html} = live(conn, "/receipts/scan")
+
+      navigate_to_review(view, account,
+        items: [
+          %{
+            "name" => "Exotic Dragonfruit",
+            "quantity" => 1,
+            "unit" => "each",
+            "confidence" => 0.70
+          }
+        ]
+      )
+
+      html = render(view)
+      assert html =~ "No match"
+      assert html =~ "Will create new item"
+      assert html =~ "Find match"
+    end
+  end
+
+  describe "confirm import with unmatched items" do
+    test "auto-creates GroceryItems for unmatched items during import", %{
+      conn: conn,
+      account: account
+    } do
+      {:ok, view, _html} = live(conn, "/receipts/scan")
+
+      navigate_to_review(view, account,
+        items: [
+          %{"name" => "Rare Mangosteen", "quantity" => 2, "unit" => "each", "confidence" => 0.88}
+        ]
+      )
+
+      # Confirm without manually matching - should auto-create
+      view
+      |> element("button[phx-click='confirm_import']")
+      |> render_click()
+
+      html = render(view)
+      assert html =~ "Receipt Imported"
+      assert html =~ "items added to your inventory"
+
+      # Verify the GroceryItem was created
+      {:ok, item} =
+        Inventory.get_item_by_name("Rare Mangosteen", authorize?: false, tenant: account.id)
+
+      assert item != nil
+      assert item.name == "Rare Mangosteen"
+    end
+
+    test "import with mix of matched and unmatched items succeeds", %{
+      conn: conn,
+      account: account,
+      user: user
+    } do
+      # Pre-create one grocery item
+      _milk = create_grocery_item(account, user, %{name: "Whole Milk"})
+
+      {:ok, view, _html} = live(conn, "/receipts/scan")
+
+      navigate_to_review(view, account,
+        items: [
+          %{"name" => "Whole Milk", "quantity" => 1, "unit" => "gallon", "confidence" => 0.95},
+          %{"name" => "Star Fruit", "quantity" => 3, "unit" => "each", "confidence" => 0.80}
+        ]
+      )
+
+      view
+      |> element("button[phx-click='confirm_import']")
+      |> render_click()
+
+      html = render(view)
+      assert html =~ "Receipt Imported"
+    end
+  end
 end

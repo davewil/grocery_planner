@@ -43,7 +43,7 @@ After a shopping trip, users must manually enter each purchased item into their 
 - [x] Items can be edited inline
 - [x] Items can be deleted
 - [x] Add missing items manually
-- [ ] Show confidence indicators for uncertain extractions
+- [x] Show confidence indicators for uncertain extractions
 - [ ] "Looks wrong? Upload clearer image" option
 
 ### US-003: Match items to catalog
@@ -52,11 +52,11 @@ After a shopping trip, users must manually enter each purchased item into their 
 **So that** inventory entries are consistent
 
 **Acceptance Criteria:**
-- [ ] Auto-suggest matching GroceryItem from catalog
-- [ ] Show match confidence (high/medium/low)
-- [ ] Allow user to select different match
-- [ ] Create new GroceryItem if no match exists
-- [ ] Remember user corrections for future matching
+- [x] Auto-suggest matching GroceryItem from catalog
+- [x] Show match confidence (high/medium/low)
+- [x] Allow user to select different match
+- [x] Create new GroceryItem if no match exists
+- [x] Remember user corrections for future matching
 
 ### US-004: Add to inventory
 **As a** user finalizing receipt import
@@ -65,8 +65,8 @@ After a shopping trip, users must manually enter each purchased item into their 
 
 **Acceptance Criteria:**
 - [x] Create InventoryEntry for each confirmed item
-- [ ] Set purchase date from receipt (or today)
-- [ ] Set purchase price from receipt
+- [x] Set purchase date from receipt (or today)
+- [x] Set purchase price from receipt
 - [ ] Select default storage location
 - [ ] Option to set expiration dates
 - [x] Show success summary with count of items added

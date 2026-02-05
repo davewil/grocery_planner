@@ -557,4 +557,234 @@ defmodule GroceryPlanner.Inventory.ReceiptProcessorTest do
       assert entry.storage_location_id == nil
     end
   end
+
+  describe "ensure_grocery_item/3" do
+    test "returns existing grocery_item_id when already set", %{account: account, user: user} do
+      item = create_grocery_item(account, user, %{name: "Existing Item"})
+
+      receipt_item = %{
+        grocery_item_id: item.id,
+        final_name: "Existing Item",
+        raw_name: "EXISTING ITEM",
+        final_unit: nil,
+        unit: "each",
+        id: nil
+      }
+
+      expected_id = item.id
+      assert {:ok, ^expected_id} = ReceiptProcessor.ensure_grocery_item(receipt_item, account.id)
+    end
+
+    test "creates new GroceryItem when grocery_item_id is nil", %{account: account} do
+      # Create a receipt and receipt item in DB so the linking update works
+      {:ok, receipt} =
+        Inventory.create_receipt(
+          account.id,
+          %{
+            file_path: "/tmp/test.jpg",
+            file_hash: "ensure_new_#{System.unique_integer()}",
+            file_size: 1000,
+            mime_type: "image/jpeg"
+          },
+          authorize?: false,
+          tenant: account.id
+        )
+
+      {:ok, receipt_item} =
+        Inventory.create_receipt_item(
+          receipt.id,
+          account.id,
+          %{
+            raw_name: "ORGANIC AVOCADOS",
+            final_name: "Organic Avocados",
+            quantity: Decimal.new("3"),
+            unit: "each"
+          },
+          authorize?: false,
+          tenant: account.id
+        )
+
+      assert {:ok, grocery_item_id} =
+               ReceiptProcessor.ensure_grocery_item(receipt_item, account.id)
+
+      assert is_binary(grocery_item_id)
+
+      # Verify the GroceryItem was created
+      {:ok, grocery_item} =
+        Inventory.get_grocery_item(grocery_item_id, authorize?: false, tenant: account.id)
+
+      assert grocery_item.name == "Organic Avocados"
+      assert grocery_item.default_unit == "each"
+    end
+
+    test "uses raw_name when final_name is nil", %{account: account} do
+      {:ok, receipt} =
+        Inventory.create_receipt(
+          account.id,
+          %{
+            file_path: "/tmp/test.jpg",
+            file_hash: "ensure_raw_#{System.unique_integer()}",
+            file_size: 1000,
+            mime_type: "image/jpeg"
+          },
+          authorize?: false,
+          tenant: account.id
+        )
+
+      {:ok, receipt_item} =
+        Inventory.create_receipt_item(
+          receipt.id,
+          account.id,
+          %{raw_name: "FRESH SALMON", quantity: Decimal.new("1"), unit: "lb"},
+          authorize?: false,
+          tenant: account.id
+        )
+
+      assert {:ok, grocery_item_id} =
+               ReceiptProcessor.ensure_grocery_item(receipt_item, account.id)
+
+      {:ok, grocery_item} =
+        Inventory.get_grocery_item(grocery_item_id, authorize?: false, tenant: account.id)
+
+      assert grocery_item.name == "FRESH SALMON"
+    end
+
+    test "creates new GroceryItem even when one with same name exists (no uniqueness constraint)",
+         %{account: account, user: user} do
+      # Pre-create a grocery item
+      _existing = create_grocery_item(account, user, %{name: "Bananas", default_unit: "bunch"})
+
+      {:ok, receipt} =
+        Inventory.create_receipt(
+          account.id,
+          %{
+            file_path: "/tmp/test.jpg",
+            file_hash: "ensure_dup_#{System.unique_integer()}",
+            file_size: 1000,
+            mime_type: "image/jpeg"
+          },
+          authorize?: false,
+          tenant: account.id
+        )
+
+      {:ok, receipt_item} =
+        Inventory.create_receipt_item(
+          receipt.id,
+          account.id,
+          %{raw_name: "BANANAS", final_name: "Bananas", quantity: Decimal.new("6"), unit: "each"},
+          authorize?: false,
+          tenant: account.id
+        )
+
+      # Should create a new GroceryItem (no name uniqueness enforced)
+      assert {:ok, grocery_item_id} =
+               ReceiptProcessor.ensure_grocery_item(receipt_item, account.id)
+
+      assert is_binary(grocery_item_id)
+
+      {:ok, grocery_item} =
+        Inventory.get_grocery_item(grocery_item_id, authorize?: false, tenant: account.id)
+
+      assert grocery_item.name == "Bananas"
+    end
+
+    test "links receipt item to newly created GroceryItem", %{account: account} do
+      {:ok, receipt} =
+        Inventory.create_receipt(
+          account.id,
+          %{
+            file_path: "/tmp/test.jpg",
+            file_hash: "ensure_link_#{System.unique_integer()}",
+            file_size: 1000,
+            mime_type: "image/jpeg"
+          },
+          authorize?: false,
+          tenant: account.id
+        )
+
+      {:ok, receipt_item} =
+        Inventory.create_receipt_item(
+          receipt.id,
+          account.id,
+          %{
+            raw_name: "KALE CHIPS",
+            final_name: "Kale Chips",
+            quantity: Decimal.new("1"),
+            unit: "bag"
+          },
+          authorize?: false,
+          tenant: account.id
+        )
+
+      assert is_nil(receipt_item.grocery_item_id)
+
+      {:ok, grocery_item_id} = ReceiptProcessor.ensure_grocery_item(receipt_item, account.id)
+
+      # Verify the receipt item was updated with the grocery_item_id
+      {:ok, updated_item} =
+        Inventory.get_receipt_item(receipt_item.id, authorize?: false, tenant: account.id)
+
+      assert updated_item.grocery_item_id == grocery_item_id
+    end
+  end
+
+  describe "create_inventory_entries/2 with unmatched items" do
+    test "auto-creates GroceryItems for confirmed items without grocery_item_id", %{
+      account: account
+    } do
+      {:ok, receipt} =
+        Inventory.create_receipt(
+          account.id,
+          %{
+            file_path: "/tmp/test.jpg",
+            file_hash: "auto_create_#{System.unique_integer()}",
+            file_size: 1000,
+            mime_type: "image/jpeg"
+          },
+          authorize?: false,
+          tenant: account.id
+        )
+
+      {:ok, receipt} =
+        Inventory.update_receipt(receipt, %{purchase_date: ~D[2026-02-01]},
+          authorize?: false,
+          tenant: account.id
+        )
+
+      # Create a confirmed receipt item WITHOUT grocery_item_id
+      {:ok, receipt_item} =
+        Inventory.create_receipt_item(
+          receipt.id,
+          account.id,
+          %{
+            raw_name: "DRAGON FRUIT",
+            final_name: "Dragon Fruit",
+            quantity: Decimal.new("2"),
+            unit: "each"
+          },
+          authorize?: false,
+          tenant: account.id
+        )
+
+      {:ok, _} =
+        Inventory.update_receipt_item(
+          receipt_item,
+          %{status: :confirmed, final_quantity: Decimal.new("2"), final_unit: "each"},
+          authorize?: false,
+          tenant: account.id
+        )
+
+      # Should succeed - auto-creating the GroceryItem
+      assert {:ok, results} = ReceiptProcessor.create_inventory_entries(receipt)
+      assert length(results) == 1
+      assert {:ok, entry} = List.first(results)
+      assert entry.quantity == Decimal.new("2")
+
+      # Verify the GroceryItem was created
+      {:ok, grocery_item} =
+        Inventory.get_grocery_item(entry.grocery_item_id, authorize?: false, tenant: account.id)
+
+      assert grocery_item.name == "Dragon Fruit"
+    end
+  end
 end

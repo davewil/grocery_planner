@@ -68,9 +68,9 @@ defmodule GroceryPlanner.Inventory.ItemMatcher do
   # Private functions
 
   # Strategy 1: Exact case-insensitive match
-  defp exact_match(name, account_id, actor) do
+  defp exact_match(name, account_id, _actor) do
     case Inventory.get_item_by_name(String.downcase(name),
-           actor: actor,
+           authorize?: false,
            tenant: account_id
          ) do
       {:ok, item} when not is_nil(item) ->
@@ -84,12 +84,12 @@ defmodule GroceryPlanner.Inventory.ItemMatcher do
   end
 
   # Strategy 2: Normalized match (expand common abbreviations)
-  defp normalized_match(name, account_id, actor) do
+  defp normalized_match(name, account_id, _actor) do
     normalized = normalize_name(name)
 
     if normalized != String.downcase(name) do
       case Inventory.get_item_by_name(normalized,
-             actor: actor,
+             authorize?: false,
              tenant: account_id
            ) do
         {:ok, item} when not is_nil(item) ->
@@ -106,8 +106,8 @@ defmodule GroceryPlanner.Inventory.ItemMatcher do
   end
 
   # Strategy 3: Fuzzy string matching using Jaro distance
-  defp fuzzy_match(name, account_id, actor) do
-    case Inventory.list_grocery_items(actor: actor, tenant: account_id) do
+  defp fuzzy_match(name, account_id, _actor) do
+    case Inventory.list_grocery_items(authorize?: false, tenant: account_id) do
       {:ok, items} when items != [] ->
         best =
           items

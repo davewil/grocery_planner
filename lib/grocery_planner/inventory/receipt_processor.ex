@@ -159,6 +159,61 @@ defmodule GroceryPlanner.Inventory.ReceiptProcessor do
   end
 
   @doc """
+  Ensures a GroceryItem exists for the given receipt item.
+  If grocery_item_id is set, returns it. Otherwise creates a new GroceryItem
+  or finds an existing one by name.
+  Returns {:ok, grocery_item_id} or {:error, reason}.
+  """
+  def ensure_grocery_item(item, account_id, opts \\ []) do
+    # If grocery_item_id already exists, use it
+    if item.grocery_item_id do
+      {:ok, item.grocery_item_id}
+    else
+      # Extract name and unit from item
+      name = item.final_name || item.raw_name
+      default_unit = item.final_unit || item.unit
+
+      # Try to create new GroceryItem
+      case Inventory.create_grocery_item(
+             account_id,
+             %{name: name, default_unit: default_unit},
+             Keyword.merge([authorize?: false, tenant: account_id], opts)
+           ) do
+        {:ok, grocery_item} ->
+          # Update the ReceiptItem to link it
+          Inventory.update_receipt_item(
+            item,
+            %{grocery_item_id: grocery_item.id},
+            authorize?: false,
+            tenant: account_id
+          )
+
+          {:ok, grocery_item.id}
+
+        {:error, error} ->
+          # If creation failed, try to look up existing item by name
+          # (handles duplicate name errors and other validation failures)
+          case Inventory.get_item_by_name(name, authorize?: false, tenant: account_id) do
+            {:ok, existing_item} ->
+              # Update the ReceiptItem to link it
+              Inventory.update_receipt_item(
+                item,
+                %{grocery_item_id: existing_item.id},
+                authorize?: false,
+                tenant: account_id
+              )
+
+              {:ok, existing_item.id}
+
+            {:error, _} ->
+              # If lookup also fails, return the original creation error
+              {:error, error}
+          end
+      end
+    end
+  end
+
+  @doc """
   Batch-categorizes extracted receipt items using AI.
   Returns {:ok, predictions} or {:error, reason}.
   Non-critical - failures are logged but don't affect receipt processing.
@@ -279,25 +334,28 @@ defmodule GroceryPlanner.Inventory.ReceiptProcessor do
   end
 
   defp create_entry_from_item(item, storage_location_id, receipt) do
-    attrs = %{
-      quantity: item.final_quantity || item.quantity || Decimal.new(1),
-      unit: item.final_unit || item.unit,
-      purchase_date: receipt.purchase_date || Date.utc_today(),
-      purchase_price: item.total_price
-    }
+    # Ensure GroceryItem exists (create if needed)
+    with {:ok, grocery_item_id} <- ensure_grocery_item(item, receipt.account_id) do
+      attrs = %{
+        quantity: item.final_quantity || item.quantity || Decimal.new(1),
+        unit: item.final_unit || item.unit,
+        purchase_date: receipt.purchase_date || Date.utc_today(),
+        purchase_price: item.total_price
+      }
 
-    attrs =
-      if storage_location_id,
-        do: Map.put(attrs, :storage_location_id, storage_location_id),
-        else: attrs
+      attrs =
+        if storage_location_id,
+          do: Map.put(attrs, :storage_location_id, storage_location_id),
+          else: attrs
 
-    Inventory.create_inventory_entry(
-      receipt.account_id,
-      item.grocery_item_id,
-      attrs,
-      authorize?: false,
-      tenant: receipt.account_id
-    )
+      Inventory.create_inventory_entry(
+        receipt.account_id,
+        grocery_item_id,
+        attrs,
+        authorize?: false,
+        tenant: receipt.account_id
+      )
+    end
   end
 
   defp parse_date(nil), do: nil
