@@ -125,6 +125,75 @@
         )}
       </p>
     </div>
+    
+<!-- Waste Watch Banner -->
+    <div
+      :if={@expiring_count > 0 && !@waste_watch_dismissed}
+      class="mb-4 p-4 bg-warning/10 border border-warning/30 rounded-xl"
+      id="waste-watch-banner"
+    >
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <.icon name="hero-shield-exclamation" class="w-5 h-5 text-warning shrink-0" />
+          <div>
+            <span class="font-semibold text-base-content">
+              {@expiring_count} items expiring this week
+            </span>
+            <span class="text-sm text-base-content/60 ml-2">
+              Use them before they go to waste
+            </span>
+          </div>
+        </div>
+        <div class="flex items-center gap-2">
+          <button
+            phx-click="waste_watch_suggestions"
+            class="btn btn-warning btn-sm"
+          >
+            <.icon name="hero-sparkles" class="w-4 h-4" /> Rescue Recipes
+          </button>
+          <button
+            phx-click="open_cook_with_modal"
+            class="btn btn-outline btn-sm"
+          >
+            <.icon name="hero-beaker" class="w-4 h-4" /> Cook With These
+          </button>
+          <button
+            phx-click="dismiss_waste_watch"
+            class="btn btn-ghost btn-sm btn-circle"
+            aria-label="Dismiss"
+          >
+            <.icon name="hero-x-mark" class="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+      
+<!-- Inline rescue suggestions -->
+      <div
+        :if={@waste_watch_suggestions}
+        class="mt-3 space-y-2"
+        id="waste-watch-inline-suggestions"
+      >
+        <div
+          :for={suggestion <- @waste_watch_suggestions}
+          class="flex items-center justify-between p-3 bg-base-100 rounded-lg border border-base-300"
+        >
+          <div class="flex-1 min-w-0">
+            <span class="font-medium text-base-content">{suggestion.recipe.name}</span>
+            <span class="text-sm text-success ml-2">
+              Uses: {Enum.join(suggestion.expiring_used, ", ")}
+            </span>
+          </div>
+          <button
+            phx-click="waste_watch_add_to_plan"
+            phx-value-recipe-id={suggestion.recipe.id}
+            phx-value-date={Date.to_iso8601(Date.utc_today())}
+            class="btn btn-sm btn-primary ml-3 shrink-0"
+          >
+            Add to Today
+          </button>
+        </div>
+      </div>
+    </div>
 
     {render_layout(assigns)}
   </div>
@@ -485,6 +554,118 @@
             </button>
           </div>
         </form>
+      </div>
+    </div>
+  <% end %>
+
+  <%= if @show_cook_with_modal do %>
+    <div
+      class="fixed inset-0 bg-neutral/50 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-in fade-in duration-200"
+      phx-click="close_cook_with_modal"
+      phx-window-keydown="close_cook_with_modal"
+      phx-key="Escape"
+      id="cook-with-modal-backdrop"
+    >
+      <div
+        class="bg-base-100 rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden animate-in zoom-in-95 duration-200 border border-base-200"
+        phx-click="prevent_close"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="cook-with-title"
+      >
+        <div class="bg-accent p-6 text-accent-content">
+          <div class="flex items-center justify-between">
+            <div>
+              <h2 id="cook-with-title" class="text-2xl font-bold">Cook With These</h2>
+              <p class="opacity-80 mt-1 text-sm">
+                Select ingredients you want to use, then find matching recipes
+              </p>
+            </div>
+            <button
+              phx-click="close_cook_with_modal"
+              class="p-2 hover:bg-black/10 rounded-lg transition-colors"
+            >
+              <.icon name="hero-x-mark" class="w-6 h-6" />
+            </button>
+          </div>
+        </div>
+
+        <div class="p-6">
+          <!-- Ingredient selection -->
+          <div class="mb-4">
+            <label class="text-sm font-semibold text-base-content mb-2 block">
+              Your Ingredients ({MapSet.size(@cook_with_selected)} selected)
+            </label>
+            <div class="flex flex-wrap gap-2 max-h-[30vh] overflow-y-auto p-1">
+              <%= for entry <- @cook_with_inventory do %>
+                <button
+                  phx-click="toggle_cook_with_ingredient"
+                  phx-value-id={entry.grocery_item_id}
+                  class={[
+                    "px-3 py-2 rounded-lg border text-sm font-medium transition-all",
+                    MapSet.member?(@cook_with_selected, entry.grocery_item_id) &&
+                      "border-primary bg-primary/10 text-primary",
+                    !MapSet.member?(@cook_with_selected, entry.grocery_item_id) &&
+                      "border-base-300 bg-base-100 text-base-content hover:border-primary/40"
+                  ]}
+                >
+                  {entry.grocery_item.name}
+                </button>
+              <% end %>
+            </div>
+          </div>
+
+          <button
+            phx-click="find_cook_with_recipes"
+            class="btn btn-primary w-full mb-4"
+            disabled={MapSet.size(@cook_with_selected) == 0}
+          >
+            <.icon name="hero-magnifying-glass" class="w-4 h-4" /> Find Recipes
+          </button>
+          
+<!-- Results -->
+          <%= if @cook_with_suggestions do %>
+            <div class="divider text-sm text-base-content/50">
+              {length(@cook_with_suggestions)} recipes found
+            </div>
+            <div class="space-y-2 max-h-[30vh] overflow-y-auto">
+              <%= if @cook_with_suggestions == [] do %>
+                <p class="text-center text-base-content/50 py-4">
+                  No recipes match your selected ingredients. Try selecting different ones.
+                </p>
+              <% else %>
+                <%= for suggestion <- @cook_with_suggestions do %>
+                  <div class="flex items-center justify-between p-3 bg-base-200/50 rounded-lg border border-base-300">
+                    <div class="flex-1 min-w-0">
+                      <div class="font-semibold text-base-content">{suggestion.recipe.name}</div>
+                      <div class="text-xs text-success mt-1">
+                        Match: {Float.round(suggestion.match_score * 100, 0)}% &mdash;
+                        Uses: {Enum.join(suggestion.matched, ", ")}
+                      </div>
+                      <div
+                        :if={suggestion.missing != []}
+                        class="text-xs text-base-content/50 mt-1"
+                      >
+                        Missing: {Enum.join(suggestion.missing, ", ")}
+                      </div>
+                    </div>
+                    <button
+                      phx-click="cook_with_add_to_plan"
+                      phx-value-recipe-id={suggestion.recipe.id}
+                      class="btn btn-sm btn-primary ml-3 shrink-0"
+                    >
+                      Add to Today
+                    </button>
+                  </div>
+                <% end %>
+              <% end %>
+            </div>
+          <% end %>
+        </div>
+
+        <div class="p-6 border-t border-base-200 bg-base-200/50 flex justify-end">
+          <button phx-click="close_cook_with_modal" class="btn btn-ghost">Close</button>
+        </div>
       </div>
     </div>
   <% end %>

@@ -59,10 +59,75 @@
       </div>
     </div>
     
+<!-- Waste Watch Widget -->
+    <div :if={@expiring_summary.total_count > 0} class="mb-8">
+      <div class="p-6 bg-warning/10 rounded-xl border border-warning/30">
+        <div class="flex items-center justify-between mb-4">
+          <div class="flex items-center gap-3">
+            <.icon name="hero-shield-exclamation" class="w-6 h-6 text-warning" />
+            <h2 class="text-2xl font-bold text-base-content">Waste Watch</h2>
+          </div>
+          <button
+            phx-click="get_rescue_plan"
+            class="btn btn-warning btn-sm"
+            disabled={@rescue_loading}
+          >
+            <.icon :if={!@rescue_loading} name="hero-sparkles" class="w-4 h-4" />
+            <span :if={@rescue_loading} class="loading loading-spinner loading-xs"></span>
+            {if @rescue_loading, do: "Generating...", else: "Get Rescue Plan"}
+          </button>
+        </div>
+
+        <div class="flex items-center gap-4 mb-4">
+          <div class="text-3xl font-bold text-warning">{@expiring_summary.total_count}</div>
+          <div>
+            <p class="font-medium text-base-content">items expiring soon</p>
+            <p class="text-sm text-base-content/70">
+              Use them before they go to waste
+            </p>
+          </div>
+        </div>
+        
+<!-- Rescue Suggestions -->
+        <div :if={@rescue_suggestions} id="rescue-suggestions">
+          <div class="divider text-sm text-base-content/50">Rescue Recipes</div>
+          <div class="space-y-3">
+            <div
+              :for={suggestion <- @rescue_suggestions}
+              class="flex items-center justify-between p-4 bg-base-100 rounded-lg border border-base-300"
+            >
+              <div class="flex-1 min-w-0">
+                <.link
+                  navigate={~p"/recipes/#{suggestion.recipe.id}"}
+                  class="font-semibold text-base-content hover:text-primary"
+                >
+                  {suggestion.recipe.name}
+                </.link>
+                <p class="text-sm text-success mt-1">
+                  Uses: {Enum.join(suggestion.expiring_used, ", ")}
+                </p>
+                <p :if={length(suggestion.missing) > 0} class="text-xs text-base-content/50 mt-1">
+                  Missing: {Enum.join(suggestion.missing, ", ")}
+                </p>
+                <p class="text-xs text-base-content/60 mt-1">{suggestion.reason}</p>
+              </div>
+              <button
+                phx-click="add_rescue_to_plan"
+                phx-value-recipe-id={suggestion.recipe.id}
+                class="btn btn-sm btn-primary ml-4 shrink-0"
+              >
+                Add to Today
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
 <!-- Recipe Suggestions -->
     <div :if={length(@recipe_suggestions) > 0} class="mb-8">
       <h2 class="text-2xl font-bold text-base-content mb-4">
-        💡 Suggested Recipes (Use Expiring Items)
+        Suggested Recipes (Use Expiring Items)
       </h2>
       <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <.link

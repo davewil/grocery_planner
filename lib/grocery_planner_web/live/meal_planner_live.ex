@@ -4,7 +4,9 @@ defmodule GroceryPlannerWeb.MealPlannerLive do
 
   on_mount {GroceryPlannerWeb.Auth, :require_authenticated_user}
 
+  alias GroceryPlanner.AI.MealOptimizer
   alias GroceryPlanner.MealPlanning.Voting
+  alias GroceryPlanner.Notifications.ExpirationAlerts
   alias GroceryPlannerWeb.MealPlannerLive.{DataLoader, Terminology, UndoSystem, UndoActions}
   alias GroceryPlannerWeb.MealPlannerLive.{ExplorerLayout, FocusLayout, PowerLayout}
 
@@ -53,6 +55,15 @@ defmodule GroceryPlannerWeb.MealPlannerLive do
       # Undo System
       |> assign(:undo_system, UndoSystem.new())
       |> assign(:recipes_loaded, false)
+      # Waste Watch & Cook With These
+      |> assign(:expiring_count, 0)
+      |> assign(:waste_watch_dismissed, false)
+      |> assign(:waste_watch_suggestions, nil)
+      |> assign(:show_cook_with_modal, false)
+      |> assign(:cook_with_inventory, [])
+      |> assign(:cook_with_selected, MapSet.new())
+      |> assign(:cook_with_suggestions, nil)
+      |> load_expiring_count()
       # Load data
       |> DataLoader.load_week_meals()
       # Layout specific init
@@ -1016,6 +1027,145 @@ defmodule GroceryPlannerWeb.MealPlannerLive do
     end
   end
 
+  # --- Waste Watch ---
+
+  def handle_event("dismiss_waste_watch", _params, socket) do
+    {:noreply, assign(socket, :waste_watch_dismissed, true)}
+  end
+
+  def handle_event("waste_watch_suggestions", _params, socket) do
+    account_id = socket.assigns.current_account.id
+    user = socket.assigns.current_user
+
+    case MealOptimizer.suggest_for_expiring(account_id, user, limit: 3) do
+      {:ok, suggestions} ->
+        {:noreply, assign(socket, :waste_watch_suggestions, suggestions)}
+
+      {:error, _} ->
+        {:noreply, put_flash(socket, :error, "Couldn't load rescue suggestions.")}
+    end
+  end
+
+  def handle_event(
+        "waste_watch_add_to_plan",
+        %{"recipe-id" => recipe_id, "date" => date_str},
+        socket
+      ) do
+    account_id = socket.assigns.current_account.id
+    date = Date.from_iso8601!(date_str)
+
+    case GroceryPlanner.MealPlanning.create_meal_plan(
+           account_id,
+           %{recipe_id: recipe_id, scheduled_date: date, meal_type: :dinner, servings: 2},
+           authorize?: false,
+           tenant: account_id
+         ) do
+      {:ok, _} ->
+        socket =
+          socket
+          |> DataLoader.load_week_meals()
+          |> maybe_refresh_layout()
+          |> put_flash(:info, "Rescue recipe added to plan!")
+
+        {:noreply, socket}
+
+      {:error, _} ->
+        {:noreply, put_flash(socket, :error, "Couldn't add to plan.")}
+    end
+  end
+
+  # --- Cook With These ---
+
+  def handle_event("open_cook_with_modal", _params, socket) do
+    account_id = socket.assigns.current_account.id
+
+    {:ok, entries} =
+      GroceryPlanner.Inventory.list_inventory_entries_filtered(
+        %{status: :available},
+        authorize?: false,
+        tenant: account_id
+      )
+
+    inventory_items =
+      entries
+      |> Enum.uniq_by(& &1.grocery_item_id)
+      |> Enum.filter(& &1.grocery_item)
+      |> Enum.sort_by(& &1.grocery_item.name)
+
+    {:noreply,
+     socket
+     |> assign(:show_cook_with_modal, true)
+     |> assign(:cook_with_inventory, inventory_items)
+     |> assign(:cook_with_selected, MapSet.new())
+     |> assign(:cook_with_suggestions, nil)}
+  end
+
+  def handle_event("close_cook_with_modal", _params, socket) do
+    {:noreply,
+     socket
+     |> assign(:show_cook_with_modal, false)
+     |> assign(:cook_with_suggestions, nil)
+     |> assign(:cook_with_selected, MapSet.new())}
+  end
+
+  def handle_event("toggle_cook_with_ingredient", %{"id" => item_id}, socket) do
+    selected = socket.assigns.cook_with_selected
+
+    updated =
+      if MapSet.member?(selected, item_id) do
+        MapSet.delete(selected, item_id)
+      else
+        MapSet.put(selected, item_id)
+      end
+
+    {:noreply, assign(socket, :cook_with_selected, updated)}
+  end
+
+  def handle_event("find_cook_with_recipes", _params, socket) do
+    account_id = socket.assigns.current_account.id
+    user = socket.assigns.current_user
+    selected_ids = MapSet.to_list(socket.assigns.cook_with_selected)
+
+    if selected_ids == [] do
+      {:noreply, put_flash(socket, :info, "Select at least one ingredient.")}
+    else
+      case MealOptimizer.suggest_for_ingredients(account_id, selected_ids, user, limit: 5) do
+        {:ok, suggestions} ->
+          {:noreply, assign(socket, :cook_with_suggestions, suggestions)}
+
+        {:error, _} ->
+          {:noreply, put_flash(socket, :error, "Couldn't find recipes.")}
+      end
+    end
+  end
+
+  def handle_event("cook_with_add_to_plan", %{"recipe-id" => recipe_id}, socket) do
+    account_id = socket.assigns.current_account.id
+    today = Date.utc_today()
+
+    case GroceryPlanner.MealPlanning.create_meal_plan(
+           account_id,
+           %{recipe_id: recipe_id, scheduled_date: today, meal_type: :dinner, servings: 2},
+           authorize?: false,
+           tenant: account_id
+         ) do
+      {:ok, _} ->
+        socket =
+          socket
+          |> assign(:show_cook_with_modal, false)
+          |> assign(:cook_with_suggestions, nil)
+          |> assign(:cook_with_selected, MapSet.new())
+          |> DataLoader.load_week_meals()
+          |> maybe_refresh_layout()
+          |> put_flash(:info, "Recipe added to today's plan!")
+
+        {:noreply, socket}
+
+      {:error, _} ->
+        {:noreply, put_flash(socket, :error, "Couldn't add to plan.")}
+    end
+  end
+
   # Delegate catch-all (Must be last handle_event)
   def handle_event(event, params, socket) do
     # Delegate to the current layout module
@@ -1516,5 +1666,15 @@ defmodule GroceryPlannerWeb.MealPlannerLive do
     |> assign(:chain_suggestion_follow_ups, [])
     |> assign(:chain_suggestion_slot, nil)
     |> assign(:selected_follow_up_id, nil)
+  end
+
+  defp load_expiring_count(socket) do
+    account_id = socket.assigns.current_account.id
+    user = socket.assigns.current_user
+
+    case ExpirationAlerts.get_expiring_summary(account_id, user, days_threshold: 7) do
+      {:ok, summary} -> assign(socket, :expiring_count, summary.total_count)
+      _ -> socket
+    end
   end
 end
