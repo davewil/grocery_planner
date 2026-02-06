@@ -139,6 +139,18 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+# Initialize Tidewave AI-assisted debugging in debug mode
+if settings.DEBUG and settings.TIDEWAVE_ENABLED:
+    try:
+        from tidewave import install as tidewave_install
+        from database import get_engine as _get_engine
+        tidewave_install(app, sqlalchemy_engine=_get_engine())
+        logger.info("Tidewave debugging enabled")
+    except ImportError:
+        logger.debug("Tidewave not installed, skipping AI-assisted debugging")
+    except Exception as e:
+        logger.warning(f"Failed to initialize Tidewave: {e}")
+
 # Add middleware (order matters - first added is outermost)
 app.add_middleware(TenantValidationMiddleware)
 app.add_middleware(RequestTracingMiddleware)

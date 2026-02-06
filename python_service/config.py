@@ -34,6 +34,12 @@ class Settings:
         "USE_REAL_CLASSIFICATION", "false"
     ).lower() == "true"
 
+    # Debug mode
+    DEBUG: bool = os.getenv("DEBUG", "false").lower() == "true"
+
+    # Tidewave AI-assisted debugging (only active when DEBUG=True)
+    TIDEWAVE_ENABLED: bool = os.getenv("TIDEWAVE_ENABLED", "true").lower() == "true"
+
     # OpenTelemetry settings
     OTEL_ENABLED: bool = os.getenv("OTEL_ENABLED", "false").lower() == "true"
     OTEL_EXPORTER_OTLP_ENDPOINT: str = os.getenv(

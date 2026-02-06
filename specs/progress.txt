@@ -964,3 +964,50 @@ The integration tests were asserting `body["status"] == "success"` and `body["pa
 ### Verification:
 - `mix precommit` passes: 858 tests, 0 failures, 10 properties (21 excluded)
 - CI fully green: Elixir Test & Lint, Python AI Service Test, Elixir <-> Python Integration Tests
+
+---
+
+## 2026-02-05: INFRA-002 Phase 2 - Tidewave Python Integration (Section 1)
+
+### What was implemented:
+
+#### Tidewave AI-Assisted Debugging
+- Added `tidewave>=0.1.0` to `python_service/requirements.txt`
+- Added `DEBUG` config setting to `python_service/config.py` (default: False, env: `DEBUG`)
+- Added `TIDEWAVE_ENABLED` config setting to `python_service/config.py` (default: True, env: `TIDEWAVE_ENABLED`)
+- Added conditional Tidewave initialization in `python_service/main.py` after app creation, before middleware
+- Tidewave only activates when BOTH `DEBUG=true` AND `TIDEWAVE_ENABLED=true`
+- Graceful degradation: ImportError caught if tidewave not installed (logs debug message)
+- Graceful degradation: Generic Exception caught if tidewave.install fails (logs warning)
+- SQLAlchemy engine passed to `tidewave.install` for SQL query debugging capability
+
+### Features Enabled by Tidewave (when DEBUG=true):
+- `get_logs`: Access server logs from AI assistant
+- `execute_sql_query`: Query artifact/job SQLite database
+- `project_eval`: Execute code in running server context
+- `get_source_location`: Find code paths
+- `get_models`: Discover application modules
+
+### Key learnings:
+
+1. **Tidewave is a dev-only tool**: No tests needed for Tidewave integration itself - it's an AI-assisted debugging tool that only runs in development mode. Testing it would require mocking the entire tidewave package which provides no value.
+
+2. **Config pattern for dev-only features**: Gate behind TWO flags: a general `DEBUG` flag (enables debug mode) and a feature-specific `TIDEWAVE_ENABLED` flag (allows disabling even in debug). This gives operators fine-grained control.
+
+3. **Initialization ordering matters**: Tidewave must be installed AFTER `FastAPI()` app creation but BEFORE middleware registration. Tidewave hooks into the ASGI app internals and middleware added after Tidewave wraps the debug endpoints.
+
+4. **Python Settings class uses class-level evaluation**: Settings attributes are evaluated at import time via `os.getenv()`. Changing env vars after import requires `importlib.reload(config)` to take effect. This is the same pattern used for OTEL settings.
+
+### Files modified:
+- `python_service/config.py` - Added `DEBUG` and `TIDEWAVE_ENABLED` settings
+- `python_service/main.py` - Added conditional Tidewave initialization block
+- `python_service/requirements.txt` - Added `tidewave>=0.1.0`
+- `specs/INFRA-002-observability-devex.md` - Marked Phase 2 as DONE
+
+### Verification:
+- Python tests pass: 88 passed, 1 skipped, 0 failures
+- `mix precommit` passes: 858 tests, 0 failures, 10 properties (21 excluded)
+
+### Remaining INFRA-002 phases:
+- Phase 3: Docker Compose dev environment (7A, 7B)
+- Phase 5: Grafana observability stack (3)

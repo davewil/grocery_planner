@@ -1,6 +1,6 @@
 # INFRA-002: Observability & Developer Experience
 
-**Status**: IN PROGRESS (Phase 1 + Phase 4 + Phase 6 + Phase 7 Complete)
+**Status**: IN PROGRESS (Phase 1 + Phase 2 + Phase 4 + Phase 6 + Phase 7 Complete)
 **Priority**: High (blocking receipt processing debugging)
 **Created**: 2026-02-05
 **Related**: INFRA-001 (Azure Deployment), AI-003 (Receipt Scanning)
@@ -889,7 +889,7 @@ docker compose down
 | Phase | Tasks | Effort | Impact |
 |-------|-------|--------|--------|
 | **1** | Health checks (4A, 4B, 4C) | 1 day | High - immediate visibility | **DONE** |
-| **2** | Tidewave integration (1) | 0.5 day | Medium - debugging capability |
+| **2** | Tidewave integration (1) | 0.5 day | Medium - debugging capability | **DONE** |
 | **3** | Docker Compose (7A, 7B) | 1 day | High - dev parity |
 | **4** | OTEL instrumentation (2A, 2B, 2C) | 2 days | High - distributed tracing | **DONE** |
 | **5** | Grafana stack (3) | 1 day | High - visualization |
