@@ -73,7 +73,7 @@ config :grocery_planner,
     GroceryPlanner.AI
   ]
 
-config :grocery_planner, :receipt_upload_dir, "priv/uploads/receipts"
+config :grocery_planner, :receipt_upload_dir, "priv/static/uploads/receipts"
 
 config :grocery_planner, Oban,
   repo: GroceryPlanner.Repo,

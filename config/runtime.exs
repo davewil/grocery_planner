@@ -29,7 +29,7 @@ config :grocery_planner, :features,
 # Receipt processing
 config :grocery_planner,
        :receipt_upload_dir,
-       System.get_env("RECEIPT_STORAGE_PATH", "priv/uploads/receipts")
+       System.get_env("RECEIPT_STORAGE_PATH", "priv/static/uploads/receipts")
 
 if config_env() == :prod do
   database_url =

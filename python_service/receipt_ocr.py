@@ -112,9 +112,9 @@ def extract_text(image: np.ndarray) -> str:
     """
     try:
         # Configure Tesseract for receipt-style text
-        # PSM 6 = Assume a single uniform block of text
+        # PSM 4 = Assume a single column of text of variable sizes (better for receipts)
         # OEM 1 = LSTM engine only (more accurate for modern receipts)
-        custom_config = r'--oem 1 --psm 6'
+        custom_config = r'--oem 1 --psm 4'
 
         text = pytesseract.image_to_string(image, config=custom_config)
 
@@ -147,6 +147,9 @@ def parse_receipt(raw_text: str) -> ExtractionResult:
     Returns:
         ExtractionResult with parsed receipt data
     """
+    # Debug logging for OCR quality
+    logger.info(f"OCR raw text (first 500 chars): {raw_text[:500]}")
+
     lines = [line.strip() for line in raw_text.split('\n') if line.strip()]
 
     result = ExtractionResult(raw_ocr_text=raw_text)
@@ -155,9 +158,20 @@ def parse_receipt(raw_text: str) -> ExtractionResult:
         logger.warning("No text extracted from receipt")
         return result
 
-    # Extract merchant (first non-empty line, usually store name)
-    merchant_name = lines[0] if lines else None
-    merchant_confidence = 0.6 if merchant_name else 0.0
+    # Extract merchant - skip lines with mostly non-alpha characters (likely OCR noise)
+    merchant_name = None
+    merchant_confidence = 0.0
+    for line in lines[:5]:  # Check first 5 lines
+        alpha_chars = sum(c.isalpha() for c in line)
+        if alpha_chars >= max(2, len(line) * 0.5):  # At least 50% alpha or 2+ chars
+            merchant_name = line
+            merchant_confidence = 0.6
+            break
+
+    if not merchant_name and lines:  # Fallback to first line
+        merchant_name = lines[0]
+        merchant_confidence = 0.4
+
     result.merchant = MerchantInfo(name=merchant_name, confidence=merchant_confidence)
 
     # Extract date - multiple common formats
@@ -184,10 +198,11 @@ def parse_receipt(raw_text: str) -> ExtractionResult:
 
     # Extract total - look for total/subtotal keywords
     # Prioritize TOTAL over SUBTOTAL by checking TOTAL first
+    # Currency-agnostic: supports £, $, €
     total_patterns = [
-        (r'(?:^|\s)TOTAL\s*[:$]?\s*\$?(\d+\.\d{2})', 0.9),  # TOTAL gets higher confidence
-        (r'(?:AMOUNT\s+DUE|BALANCE)\s*[:$]?\s*\$?(\d+\.\d{2})', 0.85),
-        (r'SUBTOTAL\s*[:$]?\s*\$?(\d+\.\d{2})', 0.75),  # SUBTOTAL is fallback
+        (r'(?:^|\s)TOTAL\s*[:£$€]?\s*[£$€]?(\d+\.\d{2})', 0.9),  # TOTAL gets higher confidence
+        (r'(?:AMOUNT\s+DUE|BALANCE)\s*[:£$€]?\s*[£$€]?(\d+\.\d{2})', 0.85),
+        (r'SUBTOTAL\s*[:£$€]?\s*[£$€]?(\d+\.\d{2})', 0.75),  # SUBTOTAL is fallback
     ]
 
     total_amount = None
@@ -226,13 +241,14 @@ def parse_receipt(raw_text: str) -> ExtractionResult:
     )
 
     # Extract line items - patterns for items with prices
+    # Currency-agnostic (£, $, €), flexible decimal places, minimum 2-char item names
     line_item_patterns = [
-        # Pattern: "ITEM NAME  QTY @ $X.XX  $TOTAL" (check this first for quantity info)
-        (r'^(.+?)\s+(\d+(?:\.\d+)?)\s*@\s*\$?(\d+\.\d{2})\s+\$?(\d+\.\d{2})$', 'qty_at_price'),
-        # Pattern: "ITEM NAME  QTY x $X.XX" or "ITEM NAME  QTY x $X.XX  $TOTAL"
-        (r'^(.+?)\s+(\d+(?:\.\d+)?)\s*x\s*\$?(\d+\.\d{2})(?:\s+\$?(\d+\.\d{2}))?$', 'qty_x_price'),
-        # Pattern: "ITEM NAME  $X.XX" or "ITEM NAME  X.XX" (simple case, no quantity)
-        (r'^(.+?)\s+\$?(\d+\.\d{2})$', 'simple'),
+        # Pattern: "ITEM NAME  QTY @ £X.XX  £TOTAL" (check this first for quantity info)
+        (r'^(.{2,}?)\s+(\d+(?:\.\d+)?)\s*@\s*[£$€]?(\d*\.\d{2})\s+[£$€]?(\d*\.\d{2})\s*$', 'qty_at_price'),
+        # Pattern: "ITEM NAME  QTY x £X.XX" or "ITEM NAME  QTY x £X.XX  £TOTAL"
+        (r'^(.{2,}?)\s+(\d+(?:\.\d+)?)\s*x\s*[£$€]?(\d*\.\d{2})(?:\s+[£$€]?(\d*\.\d{2}))?\s*$', 'qty_x_price'),
+        # Pattern: "ITEM NAME  £X.XX" or "ITEM NAME  X.XX" (simple case, no quantity)
+        (r'^(.{2,}?)\s+[£$€]?(\d*\.\d{2})\s*$', 'simple'),
     ]
 
     line_items = []
