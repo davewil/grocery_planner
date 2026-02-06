@@ -100,7 +100,9 @@ defmodule GroceryPlanner.Inventory.Changes.ProcessReceipt do
         candidates = [
           # Web URL path -> priv/static path
           Path.join([priv_dir, "static", String.trim_leading(path, "/")]),
-          # Basename in receipts upload dir
+          # Basename in static uploads/receipts (new location)
+          Path.join([priv_dir, "static", "uploads", "receipts", Path.basename(path)]),
+          # Basename in receipts upload dir (legacy location)
           Path.join([priv_dir, "uploads", "receipts", Path.basename(path)]),
           # Basename in static uploads
           Path.join([priv_dir, "static", "uploads", Path.basename(path)])

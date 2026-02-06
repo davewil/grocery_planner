@@ -8,11 +8,13 @@ defmodule GroceryPlanner.Inventory.ReceiptProcessor do
 
   alias GroceryPlanner.Inventory
 
-  @upload_dir Application.compile_env(
-                :grocery_planner,
-                :receipt_upload_dir,
-                "priv/uploads/receipts"
-              )
+  defp upload_dir do
+    Application.get_env(
+      :grocery_planner,
+      :receipt_upload_dir,
+      Path.join([:code.priv_dir(:grocery_planner) |> to_string(), "static", "uploads", "receipts"])
+    )
+  end
 
   @doc """
   Uploads a receipt file, stores it locally, and queues background processing.
@@ -36,12 +38,12 @@ defmodule GroceryPlanner.Inventory.ReceiptProcessor do
   """
   def store_file(%{path: temp_path, client_name: filename}) do
     # Ensure upload directory exists
-    File.mkdir_p!(@upload_dir)
+    File.mkdir_p!(upload_dir())
 
     # Generate unique filename
     ext = Path.extname(filename)
     unique_name = "#{Ecto.UUID.generate()}#{ext}"
-    dest_path = Path.join(@upload_dir, unique_name)
+    dest_path = Path.join(upload_dir(), unique_name)
 
     # Compute hash before moving
     file_hash = compute_file_hash(temp_path)

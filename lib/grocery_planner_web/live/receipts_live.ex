@@ -779,8 +779,8 @@ defmodule GroceryPlannerWeb.ReceiptsLive do
     if String.starts_with?(file_path, "/") and not String.contains?(file_path, "priv") do
       file_path
     else
-      # Extract filename from filesystem path
-      "/uploads/" <> Path.basename(file_path)
+      # Files are stored in priv/static/uploads/receipts/
+      "/uploads/receipts/" <> Path.basename(file_path)
     end
   end
 
