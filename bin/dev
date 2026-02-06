@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+set -e
+
+# Start dependencies in Docker (postgres + python-service only)
+echo "Starting dependencies (postgres + python-service)..."
+docker compose up -d postgres python-service
+
+# Wait for Python service to be healthy
+echo "Waiting for Python service to be ready..."
+MAX_ATTEMPTS=30
+ATTEMPT=0
+until curl -sf http://localhost:8000/health > /dev/null 2>&1; do
+  ATTEMPT=$((ATTEMPT + 1))
+  if [ $ATTEMPT -ge $MAX_ATTEMPTS ]; then
+    echo "Python service failed to start after $MAX_ATTEMPTS attempts"
+    docker compose logs python-service
+    exit 1
+  fi
+  echo "Waiting for Python service... ($ATTEMPT/$MAX_ATTEMPTS)"
+  sleep 2
+done
+
+echo "Python service is ready!"
+echo ""
+echo "Starting Elixir app locally with IEx..."
+echo "Phoenix server will be available at http://localhost:4000"
+echo ""
+
+# Start Elixir locally with IEx for interactive development
+iex -S mix phx.server

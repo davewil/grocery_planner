@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+set -e
+
+# Start everything in Docker including the Elixir app
+echo "Starting all services in Docker (postgres + python-service + elixir-app)..."
+docker compose up -d
+
+echo ""
+echo "All services starting..."
+echo ""
+echo "Service URLs:"
+echo "  - Phoenix app:     http://localhost:4000"
+echo "  - Python service:  http://localhost:8000"
+echo "  - Postgres:        localhost:5432"
+echo ""
+echo "View logs with: docker compose logs -f"
+echo "Stop services with: docker compose down"

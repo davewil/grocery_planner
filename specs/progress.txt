@@ -1011,3 +1011,73 @@ The integration tests were asserting `body["status"] == "success"` and `body["pa
 ### Remaining INFRA-002 phases:
 - Phase 3: Docker Compose dev environment (7A, 7B)
 - Phase 5: Grafana observability stack (3)
+
+---
+
+## 2026-02-06: INFRA-002 Phase 3 - Docker Compose Dev Environment (7A, 7B)
+
+### What was implemented:
+
+#### 7A: Full Stack Docker Compose
+- Created `docker-compose.yml` with 3 services: postgres (16), python-service (FastAPI), elixir-app (Phoenix)
+- PostgreSQL with health checks (`pg_isready`), persistent volume, standard dev credentials
+- Python service with live-reload volume mount (`./python_service:/app`), DEBUG=true, Tesseract OCR enabled
+- Elixir app with DATABASE_URL, AI_SERVICE_URL, PHX_HOST configured for inter-container networking
+- Service dependency chain: elixir-app → python-service → postgres (all health-checked)
+- Modern docker-compose syntax (no deprecated `version` field)
+
+#### 7B: Development Scripts
+- `bin/dev` - Hybrid development: starts deps (postgres + python-service) in Docker, runs Elixir locally with `iex -S mix phx.server` for fast code reload
+- `bin/dev-full` - Full Docker: starts all 3 services, shows URLs for each
+- `bin/test-integration` - Docker-based integration testing: starts deps, runs `mix test test/integration/ --include integration`, cleans up
+
+### Tests added (54 new: 52 behavioral + 2 property-based):
+
+#### Infrastructure Tests (test/grocery_planner/infrastructure_test.exs) - 14 tests
+- Application startup validation: config-driven health check behavior, non-required AI service mode
+- Health controller status determination: database error → "error", AI unavailable → "degraded", all healthy → "ok"
+- Property-based tests: `determine_status` always returns valid status string, database error always overrides AI status
+
+#### Docker Compose Validation (test/grocery_planner/infrastructure/docker_compose_test.exs) - 18 tests
+- YAML structure validation: file exists, parseable, contains required services
+- Service definitions: postgres, python-service, elixir-app all defined
+- Health checks configured for postgres and python-service
+- Dependency chain verification: python-service depends on postgres, elixir-app depends on both
+- Environment variables: DATABASE_URL, AI_SERVICE_URL, PHX_HOST, SECRET_KEY_BASE, DEBUG
+- Port mappings: 5432, 8000, 4000
+- Volume persistence for postgres data
+
+#### Dev Scripts Validation (test/grocery_planner/infrastructure/dev_scripts_test.exs) - 24 tests
+- File existence and executable permissions for all 3 scripts
+- Proper bash shebang (#!/bin/bash) and error handling (set -e)
+- bin/dev: starts only postgres + python-service, doesn't start elixir-app in Docker
+- bin/dev-full: starts all services including elixir-app
+- bin/test-integration: starts deps, runs mix test with integration flag, cleans up
+- Cross-script consistency: all reference docker compose, all have cleanup
+
+### Key learnings:
+
+1. **Docker Compose health check dependency chain**: Using `depends_on` with `condition: service_healthy` ensures services start in order. PostgreSQL must be healthy before Python service starts, and both must be healthy before Elixir starts. This prevents race conditions during `mix ash.setup`.
+
+2. **Hybrid vs full Docker development**: The hybrid approach (bin/dev) is superior for daily development - Docker manages stateful deps (DB, Python service) while Elixir runs locally with instant code reload and IEx access. Full Docker (bin/dev-full) is for testing containerized parity.
+
+3. **Testing infrastructure as code**: Docker Compose YAML and shell scripts can be validated with behavioral tests by parsing file content and checking for expected patterns. This catches configuration drift (e.g., missing health checks, wrong port mappings) without needing to actually run Docker.
+
+4. **Volume mounts for live reload**: Mounting `./python_service:/app` enables Python code changes to take effect immediately (uvicorn with --reload). The Elixir app doesn't need this in hybrid mode since it runs locally.
+
+5. **Modern docker-compose syntax**: The `version` field is deprecated in modern Docker Compose. Omitting it uses the latest schema automatically.
+
+### Files created:
+- `docker-compose.yml` - Full stack dev environment
+- `bin/dev` - Hybrid development script
+- `bin/dev-full` - Full Docker development script
+- `bin/test-integration` - Docker-based integration test runner
+- `test/grocery_planner/infrastructure_test.exs` - 14 tests (12 behavioral + 2 property-based)
+- `test/grocery_planner/infrastructure/docker_compose_test.exs` - 18 behavioral tests
+- `test/grocery_planner/infrastructure/dev_scripts_test.exs` - 24 behavioral tests
+
+### Verification:
+- `mix precommit` passes: 910 tests, 0 failures, 12 properties (21 excluded)
+
+### Remaining INFRA-002 phases:
+- Phase 5: Grafana observability stack (3)

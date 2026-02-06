@@ -1,0 +1,41 @@
+#!/usr/bin/env bash
+set -e
+
+# Start dependencies for integration tests
+echo "Starting dependencies (postgres + python-service)..."
+docker compose up -d postgres python-service
+
+# Wait for Python service to be healthy
+echo "Waiting for Python service to be ready..."
+MAX_ATTEMPTS=30
+ATTEMPT=0
+until curl -sf http://localhost:8000/health > /dev/null 2>&1; do
+  ATTEMPT=$((ATTEMPT + 1))
+  if [ $ATTEMPT -ge $MAX_ATTEMPTS ]; then
+    echo "Python service failed to start after $MAX_ATTEMPTS attempts"
+    docker compose logs python-service
+    docker compose down
+    exit 1
+  fi
+  echo "Waiting for Python service... ($ATTEMPT/$MAX_ATTEMPTS)"
+  sleep 2
+done
+
+echo "Python service is ready!"
+echo ""
+echo "Running integration tests..."
+echo ""
+
+# Run integration tests
+mix test test/integration/ --include integration
+
+# Capture test exit code
+TEST_EXIT=$?
+
+# Stop services
+echo ""
+echo "Stopping services..."
+docker compose down
+
+# Exit with test result
+exit $TEST_EXIT
