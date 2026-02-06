@@ -35,7 +35,9 @@ defmodule GroceryPlanner.Inventory.Changes.ProcessReceipt do
   end
 
   defp call_extraction_service(receipt) do
-    case File.read(receipt.file_path) do
+    file_path = resolve_file_path(receipt.file_path)
+
+    case File.read(file_path) do
       {:ok, file_data} ->
         image_base64 = Base.encode64(file_data)
 
@@ -47,8 +49,20 @@ defmodule GroceryPlanner.Inventory.Changes.ProcessReceipt do
         AiClient.extract_receipt(image_base64, context)
 
       {:error, reason} ->
-        Logger.error("Failed to read receipt file #{receipt.file_path}: #{inspect(reason)}")
+        Logger.error("Failed to read receipt file #{file_path}: #{inspect(reason)}")
         {:error, :file_read_failed}
+    end
+  end
+
+  defp resolve_file_path(path) when is_binary(path) do
+    if File.exists?(path) do
+      path
+    else
+      # Try resolving web URL path to filesystem path
+      resolved =
+        Path.join([:code.priv_dir(:grocery_planner), "static", String.trim_leading(path, "/")])
+
+      if File.exists?(resolved), do: resolved, else: path
     end
   end
 end

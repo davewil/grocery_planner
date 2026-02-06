@@ -336,7 +336,7 @@ defmodule GroceryPlanner.Inventory.ReceiptProcessor do
         file_size: file_size,
         mime_type: mime_type
       },
-      actor: nil,
+      authorize?: false,
       tenant: account.id
     )
   end

@@ -479,7 +479,15 @@ defmodule GroceryPlannerWeb.ReceiptLive do
 
     consumed_entries =
       consume_uploaded_entries(socket, :receipt, fn %{path: path}, entry ->
-        {:ok, %{path: path, client_name: entry.client_name}}
+        # Copy temp file before LiveView cleans it up
+        tmp_path =
+          Path.join(
+            System.tmp_dir!(),
+            "receipt_#{Ecto.UUID.generate()}#{Path.extname(entry.client_name)}"
+          )
+
+        File.cp!(path, tmp_path)
+        {:ok, %{path: tmp_path, client_name: entry.client_name}}
       end)
 
     case consumed_entries do

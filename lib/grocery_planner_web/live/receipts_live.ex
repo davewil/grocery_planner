@@ -26,7 +26,8 @@ defmodule GroceryPlannerWeb.ReceiptsLive do
       |> allow_upload(:receipt_image,
         accept: ~w(.jpg .jpeg .png .webp),
         max_entries: 1,
-        max_file_size: 10_000_000
+        max_file_size: 10_000_000,
+        auto_upload: true
       )
 
     socket = if connected?(socket), do: load_receipts(socket), else: socket
@@ -151,7 +152,10 @@ defmodule GroceryPlannerWeb.ReceiptsLive do
           </button>
           <button
             type="submit"
-            disabled={Enum.empty?(@uploads.receipt_image.entries) || @uploading}
+            disabled={
+              Enum.empty?(@uploads.receipt_image.entries) || @uploading ||
+                not Enum.all?(@uploads.receipt_image.entries, &(&1.progress == 100))
+            }
             class="btn btn-primary"
           >
             <%= if @uploading do %>
@@ -183,49 +187,61 @@ defmodule GroceryPlannerWeb.ReceiptsLive do
       <% else %>
         <div class="divide-y divide-base-200">
           <%= for receipt <- @receipts do %>
-            <.link
-              patch={~p"/receipts/#{receipt.id}"}
-              class="flex items-center gap-4 p-4 hover:bg-base-200/50 transition-colors"
-            >
-              <div class="w-16 h-16 bg-base-200 rounded-lg flex items-center justify-center overflow-hidden">
-                <%= if receipt.file_path do %>
-                  <img src={receipt.file_path} class="w-full h-full object-cover" />
-                <% else %>
-                  <.icon name="hero-document-text" class="w-8 h-8 text-base-content/40" />
-                <% end %>
-              </div>
-
-              <div class="flex-1 min-w-0">
-                <div class="flex items-center gap-2">
-                  <p class="font-medium truncate">
-                    {receipt.merchant_name || "Unknown Merchant"}
-                  </p>
-                  <.status_badge status={receipt.status} />
-                </div>
-                <p class="text-sm text-base-content/70">
-                  <%= if receipt.purchase_date do %>
-                    {Calendar.strftime(receipt.purchase_date, "%B %d, %Y")}
+            <div class="flex items-center gap-4 p-4 hover:bg-base-200/50 transition-colors">
+              <.link
+                patch={~p"/receipts/#{receipt.id}"}
+                class="flex items-center gap-4 flex-1 min-w-0"
+              >
+                <div class="w-16 h-16 bg-base-200 rounded-lg flex items-center justify-center overflow-hidden">
+                  <%= if receipt.file_path do %>
+                    <img src={file_path_to_url(receipt.file_path)} class="w-full h-full object-cover" />
                   <% else %>
-                    {Calendar.strftime(receipt.created_at, "%B %d, %Y at %I:%M %p")}
+                    <.icon name="hero-document-text" class="w-8 h-8 text-base-content/40" />
                   <% end %>
-                </p>
-                <%= if receipt.receipt_items && length(receipt.receipt_items) > 0 do %>
-                  <p class="text-sm text-base-content/50">
-                    {length(receipt.receipt_items)} items
-                  </p>
-                <% end %>
-              </div>
+                </div>
 
-              <div class="text-right">
-                <%= if receipt.total_amount do %>
-                  <p class="font-semibold">
-                    {Money.to_string(receipt.total_amount)}
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-center gap-2">
+                    <p class="font-medium truncate">
+                      {receipt.merchant_name || "Unknown Merchant"}
+                    </p>
+                    <.status_badge status={receipt.status} />
+                  </div>
+                  <p class="text-sm text-base-content/70">
+                    <%= if receipt.purchase_date do %>
+                      {Calendar.strftime(receipt.purchase_date, "%B %d, %Y")}
+                    <% else %>
+                      {Calendar.strftime(receipt.created_at, "%B %d, %Y at %I:%M %p")}
+                    <% end %>
                   </p>
-                <% end %>
-              </div>
+                  <%= if is_list(receipt.receipt_items) and length(receipt.receipt_items) > 0 do %>
+                    <p class="text-sm text-base-content/50">
+                      {length(receipt.receipt_items)} items
+                    </p>
+                  <% end %>
+                </div>
 
-              <.icon name="hero-chevron-right" class="w-5 h-5 text-base-content/40" />
-            </.link>
+                <div class="text-right">
+                  <%= if receipt.total_amount do %>
+                    <p class="font-semibold">
+                      {Money.to_string(receipt.total_amount)}
+                    </p>
+                  <% end %>
+                </div>
+
+                <.icon name="hero-chevron-right" class="w-5 h-5 text-base-content/40" />
+              </.link>
+
+              <button
+                phx-click="delete_receipt"
+                phx-value-id={receipt.id}
+                data-confirm="Are you sure you want to delete this receipt?"
+                class="btn btn-ghost btn-sm text-error"
+                title="Delete receipt"
+              >
+                <.icon name="hero-trash" class="w-4 h-4" />
+              </button>
+            </div>
           <% end %>
         </div>
       <% end %>
@@ -249,6 +265,14 @@ defmodule GroceryPlannerWeb.ReceiptsLive do
           {@receipt.merchant_name || "Receipt Details"}
         </h2>
         <.status_badge status={@receipt.status} />
+        <button
+          phx-click="delete_receipt"
+          phx-value-id={@receipt.id}
+          data-confirm="Are you sure you want to delete this receipt?"
+          class="btn btn-ghost btn-sm text-error ml-auto"
+        >
+          <.icon name="hero-trash" class="w-4 h-4" /> Delete
+        </button>
       </div>
 
       <%= case @receipt.status do %>
@@ -295,7 +319,7 @@ defmodule GroceryPlannerWeb.ReceiptsLive do
       <div class="bg-base-100 rounded-box shadow-sm border border-base-200 p-6">
         <h3 class="font-semibold mb-4">Receipt Image</h3>
         <%= if @receipt.file_path do %>
-          <img src={@receipt.file_path} class="w-full rounded-lg" />
+          <img src={file_path_to_url(@receipt.file_path)} class="w-full rounded-lg" />
         <% else %>
           <div class="bg-base-200 rounded-lg h-64 flex items-center justify-center">
             <.icon name="hero-photo" class="w-16 h-16 text-base-content/20" />
@@ -445,7 +469,7 @@ defmodule GroceryPlannerWeb.ReceiptsLive do
         dest = Path.join(dest_dir, filename)
 
         File.cp!(path, dest)
-        {:ok, "/uploads/#{filename}"}
+        {:ok, dest}
       end)
 
     case uploaded_files do
@@ -454,9 +478,12 @@ defmodule GroceryPlannerWeb.ReceiptsLive do
         case Inventory.create_receipt(
                socket.assigns.current_account.id,
                %{file_path: file_path},
-               actor: socket.assigns.current_user
+               actor: socket.assigns.current_user,
+               tenant: socket.assigns.current_account.id
              ) do
           {:ok, receipt} ->
+            AshOban.run_trigger(receipt, :process)
+
             socket =
               socket
               |> assign(:uploading, false)
@@ -574,6 +601,42 @@ defmodule GroceryPlannerWeb.ReceiptsLive do
     end
   end
 
+  @impl true
+  def handle_event("delete_receipt", %{"id" => id}, socket) do
+    case Inventory.get_receipt(id,
+           actor: socket.assigns.current_user,
+           tenant: socket.assigns.current_account.id
+         ) do
+      {:ok, receipt} ->
+        # Delete the file from disk
+        if receipt.file_path do
+          file_path = resolve_file_path(receipt.file_path)
+          if file_path, do: File.rm(file_path)
+        end
+
+        case Inventory.destroy_receipt(receipt,
+               actor: socket.assigns.current_user,
+               tenant: socket.assigns.current_account.id
+             ) do
+          :ok ->
+            socket =
+              socket
+              |> load_receipts()
+              |> assign(:selected_receipt, nil)
+              |> put_flash(:info, "Receipt deleted")
+              |> push_patch(to: ~p"/receipts")
+
+            {:noreply, socket}
+
+          {:error, _} ->
+            {:noreply, put_flash(socket, :error, "Failed to delete receipt")}
+        end
+
+      {:error, _} ->
+        {:noreply, put_flash(socket, :error, "Receipt not found")}
+    end
+  end
+
   # Note: Polling is no longer needed as processing is handled by AshOban
   # This function is kept for backward compatibility
   @impl true
@@ -594,7 +657,10 @@ defmodule GroceryPlannerWeb.ReceiptsLive do
   end
 
   defp load_receipt_detail(socket, id) do
-    case Inventory.get_receipt(id, actor: socket.assigns.current_user) do
+    case Inventory.get_receipt(id,
+           actor: socket.assigns.current_user,
+           tenant: socket.assigns.current_account.id
+         ) do
       {:ok, receipt} ->
         # Load receipt_items relationship
         receipt = Ash.load!(receipt, :receipt_items)
@@ -659,4 +725,30 @@ defmodule GroceryPlannerWeb.ReceiptsLive do
       _ -> :not_found
     end
   end
+
+  defp file_path_to_url(file_path) when is_binary(file_path) do
+    # Already a web URL path
+    if String.starts_with?(file_path, "/") and not String.contains?(file_path, "priv") do
+      file_path
+    else
+      # Extract filename from filesystem path
+      "/uploads/" <> Path.basename(file_path)
+    end
+  end
+
+  defp file_path_to_url(_), do: nil
+
+  defp resolve_file_path(path) when is_binary(path) do
+    if File.exists?(path) do
+      path
+    else
+      # Try resolving web URL path to filesystem path
+      resolved =
+        Path.join([:code.priv_dir(:grocery_planner), "static", String.trim_leading(path, "/")])
+
+      if File.exists?(resolved), do: resolved, else: path
+    end
+  end
+
+  defp resolve_file_path(_), do: nil
 end
