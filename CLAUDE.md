@@ -137,10 +137,28 @@ User
 
 ### Important Development Patterns
 
-**Multi-Tenancy:**
-- Account-based multi-tenancy is implemented via relationships
+**Multi-Tenancy (CRITICAL - read carefully):**
+- Account-based multi-tenancy is implemented via `multitenancy strategy: :attribute, attribute: :account_id`
 - Users belong to multiple Accounts via AccountMembership
-- Inventory resources are scoped to Accounts
+- All domain resources are scoped to Accounts
+
+**Tenant context rules - these cause SILENT FAILURES if wrong:**
+1. **NEVER use `actor: nil`** for system-level operations (Oban workers, PubSub handlers, background tasks). Use `authorize?: false` instead. `actor: nil` triggers policy authorization with a nil actor, which silently returns empty results for `relates_to_actor_via` policies instead of raising errors.
+2. **AshOban triggers on multi-tenant resources MUST set `use_tenant_from_record?(true)`** in the trigger config. Without this, the worker reads the record globally but then fails to update it because no tenant context is set. The worker_read action needs `multitenancy :allow_global`, AND the trigger needs `use_tenant_from_record?(true)` so the update action gets the tenant from the record's `account_id`.
+3. **`multitenancy :allow_global` is only valid on read actions**, not on create/update/destroy. For non-read actions in background workers, tenant must be set via `use_tenant_from_record?` (AshOban) or `Ash.Changeset.set_tenant/2`.
+4. **LiveView `handle_info` callbacks** that query Ash resources need `authorize?: false` since there's no actor in the socket's handle_info context.
+
+**AshOban trigger checklist for multi-tenant resources:**
+```elixir
+trigger :my_trigger do
+  queue(:my_queue)
+  action :my_action
+  read_action :scheduler_read       # needs: multitenancy :allow_global
+  worker_read_action(:worker_read)  # needs: multitenancy :allow_global
+  use_tenant_from_record?(true)     # REQUIRED for update/create actions
+  on_error(:on_error_action)
+end
+```
 
 **Authentication Flow:**
 - Password hashing with bcrypt happens in User resource action changes

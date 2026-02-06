@@ -21,11 +21,12 @@ defmodule GroceryPlanner.Inventory.Receipt do
         where expr(status == :pending)
         max_attempts(3)
         read_action :pending_for_scheduler
-        worker_read_action(:read)
+        worker_read_action(:worker_read)
         on_error(:on_process_error)
         scheduler_cron("* * * * *")
         scheduler_module_name(GroceryPlanner.Workers.ReceiptProcessScheduler)
         worker_module_name(GroceryPlanner.Workers.ReceiptProcessWorker)
+        use_tenant_from_record?(true)
       end
     end
   end
@@ -51,6 +52,10 @@ defmodule GroceryPlanner.Inventory.Receipt do
       multitenancy :allow_global
       filter expr(status == :pending)
       pagination keyset?: true
+    end
+
+    read :worker_read do
+      multitenancy :allow_global
     end
 
     read :find_by_hash do
@@ -95,19 +100,15 @@ defmodule GroceryPlanner.Inventory.Receipt do
   end
 
   policies do
+    bypass AshOban.Checks.AshObanInteraction do
+      authorize_if always()
+    end
+
     policy action_type(:read) do
       authorize_if relates_to_actor_via([:account, :memberships, :user])
     end
 
     policy action_type(:create) do
-      authorize_if always()
-    end
-
-    policy action(:process) do
-      authorize_if always()
-    end
-
-    policy action(:on_process_error) do
       authorize_if always()
     end
 
