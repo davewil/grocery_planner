@@ -77,7 +77,7 @@ defmodule GroceryPlanner.Inventory.Changes.ProcessReceipt do
 
         context = %{
           tenant_id: receipt.account_id,
-          user_id: nil
+          user_id: "system"
         }
 
         AiClient.extract_receipt(image_base64, context)

@@ -116,7 +116,7 @@ class AIArtifact(Base):
     job_id = Column(String(64), ForeignKey("ai_jobs.id"), nullable=True, index=True)
     request_id = Column(String(64), nullable=False, index=True)
     tenant_id = Column(String(64), nullable=False, index=True)
-    user_id = Column(String(64), nullable=False)
+    user_id = Column(String(64), nullable=True)
     feature = Column(String(64), nullable=False, index=True)
 
     # Input/output
