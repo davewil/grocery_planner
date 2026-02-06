@@ -12,7 +12,12 @@ defmodule GroceryPlanner.Inventory.ReceiptProcessor do
     Application.get_env(
       :grocery_planner,
       :receipt_upload_dir,
-      Path.join([:code.priv_dir(:grocery_planner) |> to_string(), "static", "uploads", "receipts"])
+      Path.join([
+        :code.priv_dir(:grocery_planner) |> to_string(),
+        "static",
+        "uploads",
+        "receipts"
+      ])
     )
   end
 
