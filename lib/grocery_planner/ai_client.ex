@@ -165,7 +165,7 @@ defmodule GroceryPlanner.AiClient do
 
     Req.new(base_url: base_url)
     |> Req.Request.put_header("content-type", "application/json")
-    |> Req.Request.put_option(:receive_timeout, 10_000)
+    |> Req.Request.put_option(:receive_timeout, 60_000)
     |> attach_otel_propagation()
     |> Req.merge(merged_opts)
   end

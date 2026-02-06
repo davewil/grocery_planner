@@ -15,23 +15,57 @@ defmodule GroceryPlanner.Inventory.Changes.ProcessReceipt do
     Ash.Changeset.after_action(changeset, fn _changeset, receipt ->
       Logger.info("Processing receipt #{receipt.id}")
 
-      with {:ok, extraction} <- call_extraction_service(receipt),
-           {:ok, updated_receipt} <- ReceiptProcessor.save_extraction_results(receipt, extraction) do
-        Logger.info("Receipt #{receipt.id} processed successfully")
+      case process_receipt(receipt) do
+        {:ok, updated_receipt} ->
+          Logger.info("Receipt #{receipt.id} processed successfully")
 
-        Phoenix.PubSub.broadcast(
-          GroceryPlanner.PubSub,
-          "receipt:#{receipt.id}",
-          {:receipt_processed, updated_receipt}
-        )
+          Phoenix.PubSub.broadcast(
+            GroceryPlanner.PubSub,
+            "receipt:#{receipt.id}",
+            {:receipt_processed, updated_receipt}
+          )
 
-        {:ok, updated_receipt}
-      else
+          {:ok, updated_receipt}
+
         {:error, reason} ->
           Logger.error("Receipt processing failed for #{receipt.id}: #{inspect(reason)}")
-          {:error, reason}
+          broadcast_failure(receipt, reason)
+          {:error, format_error(reason)}
       end
     end)
+  end
+
+  defp process_receipt(receipt) do
+    with {:ok, extraction} <- call_extraction_service(receipt),
+         {:ok, updated_receipt} <- ReceiptProcessor.save_extraction_results(receipt, extraction) do
+      {:ok, updated_receipt}
+    end
+  rescue
+    e ->
+      Logger.error("Unexpected error processing receipt #{receipt.id}: #{Exception.message(e)}")
+      {:error, Exception.message(e)}
+  end
+
+  defp broadcast_failure(receipt, reason) do
+    Phoenix.PubSub.broadcast(
+      GroceryPlanner.PubSub,
+      "receipt:#{receipt.id}",
+      {:receipt_failed, receipt, reason}
+    )
+  end
+
+  defp format_error(reason) when is_binary(reason) do
+    Ash.Error.Changes.InvalidChanges.exception(
+      fields: [:status],
+      message: reason
+    )
+  end
+
+  defp format_error(reason) do
+    Ash.Error.Changes.InvalidChanges.exception(
+      fields: [:status],
+      message: "Processing failed: #{inspect(reason)}"
+    )
   end
 
   defp call_extraction_service(receipt) do
@@ -55,14 +89,24 @@ defmodule GroceryPlanner.Inventory.Changes.ProcessReceipt do
   end
 
   defp resolve_file_path(path) when is_binary(path) do
-    if File.exists?(path) do
-      path
-    else
-      # Try resolving web URL path to filesystem path
-      resolved =
-        Path.join([:code.priv_dir(:grocery_planner), "static", String.trim_leading(path, "/")])
+    cond do
+      File.exists?(path) ->
+        path
 
-      if File.exists?(resolved), do: resolved, else: path
+      true ->
+        # Try multiple resolution strategies
+        priv_dir = :code.priv_dir(:grocery_planner) |> to_string()
+
+        candidates = [
+          # Web URL path -> priv/static path
+          Path.join([priv_dir, "static", String.trim_leading(path, "/")]),
+          # Basename in receipts upload dir
+          Path.join([priv_dir, "uploads", "receipts", Path.basename(path)]),
+          # Basename in static uploads
+          Path.join([priv_dir, "static", "uploads", Path.basename(path)])
+        ]
+
+        Enum.find(candidates, path, &File.exists?/1)
     end
   end
 end

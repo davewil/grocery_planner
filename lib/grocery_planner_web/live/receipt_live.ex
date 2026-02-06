@@ -494,6 +494,9 @@ defmodule GroceryPlannerWeb.ReceiptLive do
       [file_params | _] ->
         case ReceiptProcessor.upload(file_params, user, account) do
           {:ok, receipt} ->
+            # Clean up temp file - it's been copied to uploads by ReceiptProcessor
+            File.rm(file_params.path)
+
             # Subscribe to processing updates
             if connected?(socket) do
               Phoenix.PubSub.subscribe(GroceryPlanner.PubSub, "receipt:#{receipt.id}")
@@ -511,6 +514,7 @@ defmodule GroceryPlannerWeb.ReceiptLive do
             {:noreply, socket}
 
           {:error, {:duplicate_receipt, existing}} ->
+            # Don't delete temp file - user may proceed with duplicate
             {:noreply,
              socket
              |> assign(:step, :duplicate_confirmation)
@@ -518,6 +522,7 @@ defmodule GroceryPlannerWeb.ReceiptLive do
              |> assign(:duplicate_file_params, file_params)}
 
           {:error, reason} ->
+            File.rm(file_params.path)
             {:noreply, assign(socket, :error, "Upload failed: #{inspect(reason)}")}
         end
 
@@ -611,6 +616,32 @@ defmodule GroceryPlannerWeb.ReceiptLive do
     items = socket.assigns.receipt_items
     item_storage_locations = socket.assigns.item_storage_locations
     item_use_by_dates = socket.assigns.item_use_by_dates
+
+    # Persist manual items first (those with id: nil and a non-empty name)
+    {items, _} =
+      Enum.map_reduce(items, nil, fn item, acc ->
+        if item.id == nil and (item.final_name || item.raw_name || "") != "" do
+          case Inventory.create_receipt_item(
+                 receipt.id,
+                 receipt.account_id,
+                 %{
+                   raw_name: item.raw_name || item.final_name,
+                   final_name: item.final_name || item.raw_name,
+                   quantity: item.final_quantity || item.quantity,
+                   unit: item.final_unit || item.unit,
+                   confidence: 1.0,
+                   status: :confirmed
+                 },
+                 authorize?: false,
+                 tenant: receipt.account_id
+               ) do
+            {:ok, persisted} -> {Map.put(item, :id, persisted.id), acc}
+            {:error, _} -> {item, acc}
+          end
+        else
+          {item, acc}
+        end
+      end)
 
     # Update all items that have DB IDs as confirmed
     for item <- items, item.id do

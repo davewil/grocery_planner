@@ -13,6 +13,7 @@ defmodule GroceryPlannerWeb.ReceiptsLive do
   on_mount({GroceryPlannerWeb.Auth, :require_authenticated_user})
 
   alias GroceryPlanner.Inventory
+  alias GroceryPlanner.Inventory.ReceiptProcessor
 
   @impl true
   def mount(_params, _session, socket) do
@@ -456,33 +457,35 @@ defmodule GroceryPlannerWeb.ReceiptsLive do
   @impl true
   def handle_event("save_upload", _params, socket) do
     socket = assign(socket, :uploading, true)
+    account = socket.assigns.current_account
+    user = socket.assigns.current_user
 
-    uploaded_files =
+    consumed_entries =
       consume_uploaded_entries(socket, :receipt_image, fn %{path: path}, entry ->
-        # Generate a unique filename
-        ext = Path.extname(entry.client_name)
-        filename = "receipt_#{Ecto.UUID.generate()}#{ext}"
+        tmp_path =
+          Path.join(
+            System.tmp_dir!(),
+            "receipt_#{Ecto.UUID.generate()}#{Path.extname(entry.client_name)}"
+          )
 
-        # Store in priv/static/uploads (for dev) - production would use S3
-        dest_dir = Path.join([:code.priv_dir(:grocery_planner), "static", "uploads"])
-        File.mkdir_p!(dest_dir)
-        dest = Path.join(dest_dir, filename)
-
-        File.cp!(path, dest)
-        {:ok, dest}
+        File.cp!(path, tmp_path)
+        {:ok, %{path: tmp_path, client_name: entry.client_name}}
       end)
 
-    case uploaded_files do
-      [file_path] ->
-        # Create receipt record
-        case Inventory.create_receipt(
-               socket.assigns.current_account.id,
-               %{file_path: file_path},
-               actor: socket.assigns.current_user,
-               tenant: socket.assigns.current_account.id
-             ) do
+    case consumed_entries do
+      [file_params | _] ->
+        case ReceiptProcessor.upload(file_params, user, account) do
           {:ok, receipt} ->
+            # Subscribe to PubSub for real-time updates
+            if connected?(socket) do
+              Phoenix.PubSub.subscribe(GroceryPlanner.PubSub, "receipt:#{receipt.id}")
+            end
+
+            # Trigger immediate processing
             AshOban.run_trigger(receipt, :process)
+
+            # Clean up temp file
+            File.rm(file_params.path)
 
             socket =
               socket
@@ -493,11 +496,24 @@ defmodule GroceryPlannerWeb.ReceiptsLive do
 
             {:noreply, socket}
 
-          {:error, error} ->
+          {:error, {:duplicate_receipt, existing}} ->
+            File.rm(file_params.path)
+
             socket =
               socket
               |> assign(:uploading, false)
-              |> put_flash(:error, "Failed to save receipt: #{inspect(error)}")
+              |> put_flash(:warning, "This receipt was already uploaded. View it below.")
+              |> push_patch(to: ~p"/receipts/#{existing.id}")
+
+            {:noreply, socket}
+
+          {:error, reason} ->
+            File.rm(file_params.path)
+
+            socket =
+              socket
+              |> assign(:uploading, false)
+              |> put_flash(:error, "Failed to upload receipt: #{inspect(reason)}")
 
             {:noreply, socket}
         end
@@ -637,10 +653,37 @@ defmodule GroceryPlannerWeb.ReceiptsLive do
     end
   end
 
-  # Note: Polling is no longer needed as processing is handled by AshOban
-  # This function is kept for backward compatibility
   @impl true
-  def handle_info({:poll_job, _job_id, _receipt_id}, socket) do
+  def handle_info({:receipt_processed, receipt}, socket) do
+    socket =
+      socket
+      |> load_receipts()
+      |> then(fn s ->
+        if s.assigns.selected_receipt && s.assigns.selected_receipt.id == receipt.id do
+          load_receipt_detail(s, receipt.id)
+        else
+          s
+        end
+      end)
+      |> put_flash(:info, "Receipt processed successfully!")
+
+    {:noreply, socket}
+  end
+
+  @impl true
+  def handle_info({:receipt_failed, receipt, reason}, socket) do
+    socket =
+      socket
+      |> load_receipts()
+      |> then(fn s ->
+        if s.assigns.selected_receipt && s.assigns.selected_receipt.id == receipt.id do
+          load_receipt_detail(s, receipt.id)
+        else
+          s
+        end
+      end)
+      |> put_flash(:error, "Receipt processing failed: #{inspect(reason)}")
+
     {:noreply, socket}
   end
 
@@ -665,6 +708,11 @@ defmodule GroceryPlannerWeb.ReceiptsLive do
         # Load receipt_items relationship
         receipt = Ash.load!(receipt, :receipt_items)
         socket = assign(socket, :selected_receipt, receipt)
+
+        # Subscribe to PubSub for real-time updates on pending/processing receipts
+        if receipt.status in [:pending, :processing] and connected?(socket) do
+          Phoenix.PubSub.subscribe(GroceryPlanner.PubSub, "receipt:#{receipt.id}")
+        end
 
         socket
 
