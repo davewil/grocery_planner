@@ -296,6 +296,20 @@ defmodule GroceryPlannerWeb.ReceiptLive do
                 />
               </div>
               
+    <!-- Price -->
+              <div class="w-24">
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={format_money_input(item.total_price)}
+                  class="input input-sm input-bordered w-full"
+                  placeholder="price"
+                  phx-blur="update_item_price"
+                  phx-value-idx={idx}
+                />
+              </div>
+              
     <!-- Delete -->
               <button
                 type="button"
@@ -584,6 +598,28 @@ defmodule GroceryPlannerWeb.ReceiptLive do
   end
 
   @impl true
+  def handle_event("update_item_price", %{"idx" => idx, "value" => value}, socket) do
+    idx = String.to_integer(idx)
+
+    total_price =
+      case Float.parse(value) do
+        {amount, _} when amount >= 0 ->
+          currency = detect_currency(socket.assigns.receipt)
+          Money.new(round(amount * 100), currency)
+
+        _ ->
+          nil
+      end
+
+    items =
+      List.update_at(socket.assigns.receipt_items, idx, fn item ->
+        Map.put(item, :total_price, total_price)
+      end)
+
+    {:noreply, assign(socket, :receipt_items, items)}
+  end
+
+  @impl true
   def handle_event("remove_item", %{"idx" => idx}, socket) do
     idx = String.to_integer(idx)
     items = List.delete_at(socket.assigns.receipt_items, idx)
@@ -603,7 +639,9 @@ defmodule GroceryPlannerWeb.ReceiptLive do
       status: :pending,
       final_quantity: nil,
       final_unit: nil,
-      match_confidence: nil
+      match_confidence: nil,
+      unit_price: nil,
+      total_price: nil
     }
 
     items = socket.assigns.receipt_items ++ [new_item]
@@ -645,14 +683,23 @@ defmodule GroceryPlannerWeb.ReceiptLive do
 
     # Update all items that have DB IDs as confirmed
     for item <- items, item.id do
+      update_attrs = %{
+        status: :confirmed,
+        final_name: item.final_name || item.raw_name,
+        final_quantity: item.final_quantity || item.quantity,
+        final_unit: item.final_unit || item.unit
+      }
+
+      update_attrs =
+        if item.total_price do
+          Map.put(update_attrs, :total_price, item.total_price)
+        else
+          update_attrs
+        end
+
       Inventory.update_receipt_item(
         item,
-        %{
-          status: :confirmed,
-          final_name: item.final_name || item.raw_name,
-          final_quantity: item.final_quantity || item.quantity,
-          final_unit: item.final_unit || item.unit
-        },
+        update_attrs,
         authorize?: false,
         tenant: receipt.account_id
       )
@@ -1033,4 +1080,25 @@ defmodule GroceryPlannerWeb.ReceiptLive do
 
   defp format_confidence(nil), do: "?"
   defp format_confidence(c) when is_number(c), do: "#{round(c * 100)}%"
+
+  defp format_money_input(nil), do: ""
+  defp format_money_input(%Money{} = m), do: Money.to_decimal(m) |> Decimal.to_string()
+
+  defp format_money_input(m) when is_map(m) do
+    case Map.get(m, :amount) || Map.get(m, "amount") do
+      nil -> ""
+      amount -> "#{amount}"
+    end
+  end
+
+  defp format_money_input(_), do: ""
+
+  defp detect_currency(nil), do: :GBP
+
+  defp detect_currency(receipt) do
+    case receipt.total_amount do
+      %Money{currency: c} -> c
+      _ -> :GBP
+    end
+  end
 end

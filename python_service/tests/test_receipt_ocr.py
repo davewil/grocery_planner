@@ -27,11 +27,10 @@ class TestPreprocessImage:
     @patch('receipt_ocr.Image.open')
     @patch('receipt_ocr.cv2.fastNlMeansDenoising')
     @patch('receipt_ocr.cv2.createCLAHE')
-    @patch('receipt_ocr.cv2.adaptiveThreshold')
     def test_preprocessing_pipeline(
-        self, mock_threshold, mock_clahe, mock_denoise, mock_image_open, mock_exists
+        self, mock_clahe, mock_denoise, mock_image_open, mock_exists
     ):
-        """Should execute full preprocessing pipeline."""
+        """Should execute grayscale preprocessing pipeline (denoise + CLAHE)."""
         # Mock path exists
         mock_exists.return_value = True
 
@@ -49,9 +48,6 @@ class TestPreprocessImage:
         mock_clahe_obj.apply.return_value = gray_image
         mock_clahe.return_value = mock_clahe_obj
 
-        binary_image = np.random.randint(0, 255, (1000, 800), dtype=np.uint8)
-        mock_threshold.return_value = binary_image
-
         with patch('receipt_ocr.np.array', return_value=mock_pil_array):
             with patch('receipt_ocr.cv2.cvtColor', return_value=gray_image):
                 result = preprocess_image("/fake/path/receipt.jpg")
@@ -59,7 +55,6 @@ class TestPreprocessImage:
         assert isinstance(result, np.ndarray)
         mock_denoise.assert_called_once()
         mock_clahe.assert_called_once()
-        mock_threshold.assert_called_once()
 
     @patch('receipt_ocr.Path.exists')
     @patch('receipt_ocr.Image.open')
@@ -103,7 +98,8 @@ class TestExtractText:
 
         assert "WALMART" in result
         assert "TOTAL 6.48" in result
-        mock_tesseract.assert_called_once()
+        # Called 3 times for PSM modes 6, 4, 3
+        assert mock_tesseract.call_count == 3
 
     @patch('receipt_ocr.pytesseract.image_to_string')
     def test_tesseract_not_found(self, mock_tesseract):
@@ -225,14 +221,16 @@ class TestProcessReceipt:
     """Tests for full receipt processing pipeline."""
 
     @patch('receipt_ocr.extract_text')
-    @patch('receipt_ocr.preprocess_image')
-    def test_full_pipeline(self, mock_preprocess, mock_extract):
+    @patch('receipt_ocr._preprocess_binary')
+    @patch('receipt_ocr._preprocess_grayscale')
+    @patch('receipt_ocr._load_and_prepare')
+    def test_full_pipeline(self, mock_load, mock_gray, mock_binary, mock_extract):
         """Should execute full processing pipeline."""
-        # Mock preprocessing
         mock_image = np.zeros((100, 100), dtype=np.uint8)
-        mock_preprocess.return_value = mock_image
+        mock_load.return_value = mock_image
+        mock_gray.return_value = mock_image
+        mock_binary.return_value = mock_image
 
-        # Mock OCR
         mock_extract.return_value = """GROCERY STORE
 01/20/2024
 MILK    3.99
@@ -240,8 +238,7 @@ BREAD   2.49
 TOTAL   6.48
 """
 
-        with patch('receipt_ocr.Path.exists', return_value=True):
-            result = process_receipt("/fake/receipt.jpg")
+        result = process_receipt("/fake/receipt.jpg")
 
         assert isinstance(result, ExtractionResult)
         assert result.merchant.name == "GROCERY STORE"
@@ -249,39 +246,49 @@ TOTAL   6.48
         assert result.total.amount == "6.48"
         assert result.overall_confidence > 0.0
 
-        mock_preprocess.assert_called_once()
-        mock_extract.assert_called_once()
+        mock_load.assert_called_once()
+        # extract_text called twice (grayscale + binary strategies)
+        assert mock_extract.call_count == 2
 
-    @patch('receipt_ocr.preprocess_image')
-    def test_file_not_found_error(self, mock_preprocess):
+    @patch('receipt_ocr._load_and_prepare')
+    def test_file_not_found_error(self, mock_load):
         """Should propagate FileNotFoundError from preprocessing."""
-        mock_preprocess.side_effect = FileNotFoundError("Image file not found")
+        mock_load.side_effect = FileNotFoundError("Image file not found")
 
         with pytest.raises(FileNotFoundError):
             process_receipt("/nonexistent/receipt.jpg")
 
     @patch('receipt_ocr.extract_text')
-    @patch('receipt_ocr.preprocess_image')
-    def test_tesseract_runtime_error(self, mock_preprocess, mock_extract):
+    @patch('receipt_ocr._preprocess_binary')
+    @patch('receipt_ocr._preprocess_grayscale')
+    @patch('receipt_ocr._load_and_prepare')
+    def test_tesseract_runtime_error(self, mock_load, mock_gray, mock_binary, mock_extract):
         """Should propagate RuntimeError from OCR."""
-        mock_preprocess.return_value = np.zeros((100, 100), dtype=np.uint8)
+        mock_image = np.zeros((100, 100), dtype=np.uint8)
+        mock_load.return_value = mock_image
+        mock_gray.return_value = mock_image
+        mock_binary.return_value = mock_image
         mock_extract.side_effect = RuntimeError("Tesseract OCR not found")
 
         with pytest.raises(RuntimeError, match="Tesseract"):
             process_receipt("/fake/receipt.jpg")
 
     @patch('receipt_ocr.extract_text')
-    @patch('receipt_ocr.preprocess_image')
-    def test_with_custom_options(self, mock_preprocess, mock_extract):
+    @patch('receipt_ocr._preprocess_binary')
+    @patch('receipt_ocr._preprocess_grayscale')
+    @patch('receipt_ocr._load_and_prepare')
+    def test_with_custom_options(self, mock_load, mock_gray, mock_binary, mock_extract):
         """Should accept custom processing options."""
-        mock_preprocess.return_value = np.zeros((100, 100), dtype=np.uint8)
+        mock_image = np.zeros((100, 100), dtype=np.uint8)
+        mock_load.return_value = mock_image
+        mock_gray.return_value = mock_image
+        mock_binary.return_value = mock_image
         mock_extract.return_value = "STORE\nTOTAL 10.00"
 
-        with patch('receipt_ocr.Path.exists', return_value=True):
-            result = process_receipt(
-                "/fake/receipt.jpg",
-                options={"enhance": True, "deskew": True}
-            )
+        result = process_receipt(
+            "/fake/receipt.jpg",
+            options={"enhance": True, "deskew": True}
+        )
 
         assert isinstance(result, ExtractionResult)
         # Options don't change behavior in MVP, but should not cause errors

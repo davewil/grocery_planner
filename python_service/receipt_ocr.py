@@ -22,17 +22,67 @@ from schemas import (
 logger = logging.getLogger("grocery-planner-ai")
 
 
+def _load_and_prepare(image_path: str) -> np.ndarray:
+    """Load image and convert to grayscale numpy array, resizing if needed."""
+    path = Path(image_path)
+    if not path.exists():
+        raise FileNotFoundError(f"Image file not found: {image_path}")
+
+    try:
+        pil_image = Image.open(image_path)
+        pil_image.load()  # Force load to detect corrupt files early
+    except Exception as e:
+        raise ValueError(f"Cannot load image: {e}")
+
+    # Convert to RGB if needed (handles RGBA, P, etc.)
+    if pil_image.mode not in ('RGB', 'L'):
+        pil_image = pil_image.convert('RGB')
+
+    image = np.array(pil_image)
+
+    # Convert to grayscale if not already
+    if len(image.shape) == 3:
+        gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
+    else:
+        gray = image
+
+    # Resize if too large (maintains aspect ratio)
+    height, width = gray.shape
+    max_dimension = 4000
+    if max(height, width) > max_dimension:
+        scale = max_dimension / max(height, width)
+        new_width = int(width * scale)
+        new_height = int(height * scale)
+        gray = cv2.resize(gray, (new_width, new_height), interpolation=cv2.INTER_AREA)
+        logger.info(f"Resized image from {width}x{height} to {new_width}x{new_height}")
+
+    return gray
+
+
+def _preprocess_grayscale(gray: np.ndarray) -> np.ndarray:
+    """Light preprocessing: denoise + contrast. Best for Tesseract 5 LSTM."""
+    denoised = cv2.fastNlMeansDenoising(gray, None, h=10, templateWindowSize=7, searchWindowSize=21)
+    clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
+    return clahe.apply(denoised)
+
+
+def _preprocess_binary(gray: np.ndarray) -> np.ndarray:
+    """Aggressive preprocessing with binarization. Better for clean scans."""
+    denoised = cv2.fastNlMeansDenoising(gray, None, h=10, templateWindowSize=7, searchWindowSize=21)
+    clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
+    enhanced = clahe.apply(denoised)
+    return cv2.adaptiveThreshold(
+        enhanced, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, 2
+    )
+
+
 def preprocess_image(image_path: str) -> np.ndarray:
     """
     Preprocess receipt image for better OCR accuracy.
 
-    Steps:
-    1. Load image with PIL
-    2. Convert to grayscale
-    3. Enhance contrast
-    4. Denoise with OpenCV
-    5. Deskew if needed
-    6. Resize if too large (>4000px)
+    Tries grayscale-only preprocessing first (better for Tesseract 5 LSTM
+    with phone photos), falls back to binary thresholding if grayscale
+    produces poor results.
 
     Args:
         image_path: Path to the receipt image file
@@ -44,62 +94,55 @@ def preprocess_image(image_path: str) -> np.ndarray:
         FileNotFoundError: If image file doesn't exist
         ValueError: If image cannot be loaded
     """
-    path = Path(image_path)
-    if not path.exists():
-        raise FileNotFoundError(f"Image file not found: {image_path}")
-
     try:
-        # Load with PIL first for format compatibility
-        pil_image = Image.open(image_path)
+        gray = _load_and_prepare(image_path)
 
-        # Convert to RGB if needed (handles RGBA, P, etc.)
-        if pil_image.mode not in ('RGB', 'L'):
-            pil_image = pil_image.convert('RGB')
-
-        # Convert to numpy array for OpenCV processing
-        image = np.array(pil_image)
-
-        # Convert to grayscale if not already
-        if len(image.shape) == 3:
-            gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
-        else:
-            gray = image
-
-        # Resize if too large (maintains aspect ratio)
-        height, width = gray.shape
-        max_dimension = 4000
-        if max(height, width) > max_dimension:
-            scale = max_dimension / max(height, width)
-            new_width = int(width * scale)
-            new_height = int(height * scale)
-            gray = cv2.resize(gray, (new_width, new_height), interpolation=cv2.INTER_AREA)
-            logger.info(f"Resized image from {width}x{height} to {new_width}x{new_height}")
-
-        # Denoise - reduce noise while preserving edges
-        denoised = cv2.fastNlMeansDenoising(gray, None, h=10, templateWindowSize=7, searchWindowSize=21)
-
-        # Enhance contrast using CLAHE (Contrast Limited Adaptive Histogram Equalization)
-        clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
-        enhanced = clahe.apply(denoised)
-
-        # Adaptive thresholding for better text extraction
-        binary = cv2.adaptiveThreshold(
-            enhanced, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, 2
-        )
+        # Try grayscale preprocessing first (best for LSTM engine with phone photos)
+        grayscale_result = _preprocess_grayscale(gray)
 
         logger.info(f"Preprocessed image: {image_path}")
-        return binary
+        return grayscale_result
 
+    except FileNotFoundError:
+        raise
     except Exception as e:
         logger.error(f"Failed to preprocess image {image_path}: {e}")
         raise ValueError(f"Cannot load or process image: {e}")
+
+
+def _ocr_quality_score(text: str) -> float:
+    """Score OCR output quality based on readable content indicators."""
+    if not text.strip():
+        return 0.0
+    lines = [ln.strip() for ln in text.split('\n') if ln.strip()]
+    if not lines:
+        return 0.0
+
+    score = 0.0
+    # Reward lines with recognizable price patterns (£X.XX, $X.XX, X.XX)
+    price_lines = sum(1 for ln in lines if re.search(r'[£$€]?\d+\.\d{2}', ln))
+    score += price_lines * 10
+
+    # Reward lines with high alpha ratio (readable words)
+    for line in lines:
+        alpha = sum(c.isalpha() for c in line)
+        if len(line) > 0 and alpha / len(line) > 0.5:
+            score += 2
+
+    # Reward finding key receipt keywords
+    full_text_upper = text.upper()
+    for keyword in ['TOTAL', 'SUBTOTAL', 'TESCO', 'DATE', 'CARD', 'OFFER']:
+        if keyword in full_text_upper:
+            score += 5
+
+    return score
 
 
 def extract_text(image: np.ndarray) -> str:
     """
     Run Tesseract OCR to extract text from preprocessed image.
 
-    Uses LSTM engine with optimized config for receipt text.
+    Tries multiple PSM modes and picks the best result.
 
     Args:
         image: Preprocessed image as numpy array
@@ -111,15 +154,23 @@ def extract_text(image: np.ndarray) -> str:
         RuntimeError: If Tesseract is not installed or fails
     """
     try:
-        # Configure Tesseract for receipt-style text
-        # PSM 4 = Assume a single column of text of variable sizes (better for receipts)
-        # OEM 1 = LSTM engine only (more accurate for modern receipts)
-        custom_config = r'--oem 1 --psm 4'
+        # Try multiple PSM modes and pick the best result
+        # PSM 4 = single column variable sizes, PSM 6 = uniform block, PSM 3 = fully automatic
+        best_text = ""
+        best_score = -1.0
 
-        text = pytesseract.image_to_string(image, config=custom_config)
+        for psm in [6, 4, 3]:
+            config = f'--oem 1 --psm {psm}'
+            text = pytesseract.image_to_string(image, config=config)
+            score = _ocr_quality_score(text)
+            logger.debug(f"PSM {psm}: score={score:.1f}, chars={len(text)}")
+            if score > best_score:
+                best_score = score
+                best_text = text
 
-        logger.info(f"Extracted {len(text)} characters via OCR")
-        return text
+        logger.info(f"Extracted {len(best_text)} characters via OCR (best score: {best_score:.1f})")
+        logger.debug(f"Raw OCR output:\n{best_text}")
+        return best_text
 
     except pytesseract.TesseractNotFoundError:
         logger.error("Tesseract OCR is not installed or not in PATH")
@@ -234,32 +285,59 @@ def parse_receipt(raw_text: str) -> ExtractionResult:
             if total_amount:
                 break
 
+    # Detect currency from raw text
+    currency = "USD"
+    if '£' in raw_text:
+        currency = "GBP"
+    elif '€' in raw_text:
+        currency = "EUR"
+
     result.total = MoneyInfo(
         amount=total_amount,
-        currency="USD",
+        currency=currency,
         confidence=total_confidence
     )
 
     # Extract line items - patterns for items with prices
     # Currency-agnostic (£, $, €), flexible decimal places, minimum 2-char item names
     line_item_patterns = [
-        # Pattern: "ITEM NAME  QTY @ £X.XX  £TOTAL" (check this first for quantity info)
-        (r'^(.{2,}?)\s+(\d+(?:\.\d+)?)\s*@\s*[£$€]?(\d*\.\d{2})\s+[£$€]?(\d*\.\d{2})\s*$', 'qty_at_price'),
-        # Pattern: "ITEM NAME  QTY x £X.XX" or "ITEM NAME  QTY x £X.XX  £TOTAL"
-        (r'^(.{2,}?)\s+(\d+(?:\.\d+)?)\s*x\s*[£$€]?(\d*\.\d{2})(?:\s+[£$€]?(\d*\.\d{2}))?\s*$', 'qty_x_price'),
-        # Pattern: "ITEM NAME  £X.XX" or "ITEM NAME  X.XX" (simple case, no quantity)
-        (r'^(.{2,}?)\s+[£$€]?(\d*\.\d{2})\s*$', 'simple'),
+        # Pattern: "ITEM NAME  QTY @ £X.XX  £TOTAL"
+        (r'^(.{2,}?)\s{2,}(\d+(?:\.\d+)?)\s*@\s*[£$€]?\s*(\d+\.?\d*)\s+[£$€]?\s*(\d+\.?\d*)', 'qty_at_price'),
+        # Pattern: "ITEM NAME  QTY x £X.XX" or with total
+        (r'^(.{2,}?)\s{2,}(\d+(?:\.\d+)?)\s*[xX]\s*[£$€]?\s*(\d+\.?\d*)(?:\s+[£$€]?\s*(\d+\.?\d*))?', 'qty_x_price'),
+        # Pattern: "ITEM NAME     £X.XX" (2+ spaces before price, price at or near end)
+        (r'^(.{2,}?)\s{2,}[£$€]?\s*(\d+\.?\d{0,2})\s*$', 'simple_currency'),
+        # Pattern: "ITEM NAME     X.XX" (no currency symbol, 2+ spaces gap)
+        (r'^(.{2,}?)\s{2,}(\d+\.\d{2})\s*$', 'simple'),
+    ]
+
+    skip_patterns = [
+        r'\bSUBTOTAL\b', r'\bTOTAL\b', r'\bTAX\b', r'\bBALANCE\s*DUE\b',
+        r'\bAMOUNT\s*DUE\b', r'\bTHANK\s*YOU\b', r'\bCASHIER\b',
+        r'\bCHANGE\s*DUE\b', r'\bCARD\s*ENDING\b', r'\bPAYMENT\b',
+        r'\bSAVINGS\b', r'\bPROMOTIONS?\b', r'\bCLUBCARD\b',
+        r'\bSPECIAL\s*OFFER\b', r'\bVISA\b', r'^CARD\b',
+        r'\bVAT\b', r'\bAID\b', r'\bPAN\b', r'\bAUTHOR\b',
     ]
 
     line_items = []
 
+    def _clean_item_name(name: str) -> str:
+        """Strip leading quantity prefix and OCR artifacts from item names."""
+        # Remove leading "1 ", "I ", "1  " etc. (OCR often includes the qty column)
+        cleaned = re.sub(r'^[1IlL|]\s+', '', name)
+        # Remove leading OCR noise like "==", "--", "=="
+        cleaned = re.sub(r'^[=\-|]+\s*', '', cleaned)
+        return cleaned.strip()
+
     for line in lines:
         # Skip lines that look like headers, footers, or totals
         line_upper = line.upper()
-        if any(keyword in line_upper for keyword in [
-            'TOTAL', 'SUBTOTAL', 'TAX', 'BALANCE', 'THANK', 'VISIT',
-            'STORE', 'ADDRESS', 'PHONE', 'CASHIER', 'CARD', 'CHANGE'
-        ]):
+        if any(re.search(p, line_upper) for p in skip_patterns):
+            continue
+
+        # Skip discount/negative price lines
+        if re.search(r'-[£$€]?\d+\.\d{2}', line):
             continue
 
         # Try each pattern
@@ -268,22 +346,20 @@ def parse_receipt(raw_text: str) -> ExtractionResult:
             if match:
                 groups = match.groups()
 
-                if pattern_type == 'simple':
-                    # Simple: ITEM NAME  $X.XX
-                    item_name = groups[0].strip()
+                if pattern_type in ('simple', 'simple_currency'):
+                    item_name = _clean_item_name(groups[0])
                     price = groups[1]
 
                     line_items.append(LineItem(
                         raw_text=line,
                         parsed_name=item_name,
                         quantity=1.0,
-                        total_price=MoneyInfo(amount=price, currency="USD", confidence=0.75),
+                        total_price=MoneyInfo(amount=price, currency=currency, confidence=0.75),
                         confidence=0.75
                     ))
 
                 elif pattern_type == 'qty_at_price':
-                    # With quantity: ITEM NAME  QTY @ $X.XX  $TOTAL
-                    item_name = groups[0].strip()
+                    item_name = _clean_item_name(groups[0])
                     qty = float(groups[1])
                     unit_price = groups[2]
                     total_price = groups[3]
@@ -292,14 +368,13 @@ def parse_receipt(raw_text: str) -> ExtractionResult:
                         raw_text=line,
                         parsed_name=item_name,
                         quantity=qty,
-                        unit_price=MoneyInfo(amount=unit_price, currency="USD", confidence=0.8),
-                        total_price=MoneyInfo(amount=total_price, currency="USD", confidence=0.8),
+                        unit_price=MoneyInfo(amount=unit_price, currency=currency, confidence=0.8),
+                        total_price=MoneyInfo(amount=total_price, currency=currency, confidence=0.8),
                         confidence=0.8
                     ))
 
                 elif pattern_type == 'qty_x_price':
-                    # QTY x PRICE format (with optional total)
-                    item_name = groups[0].strip()
+                    item_name = _clean_item_name(groups[0])
                     qty = float(groups[1])
                     unit_price = groups[2]
                     total_price = groups[3] if len(groups) > 3 and groups[3] else None
@@ -308,12 +383,34 @@ def parse_receipt(raw_text: str) -> ExtractionResult:
                         raw_text=line,
                         parsed_name=item_name,
                         quantity=qty,
-                        unit_price=MoneyInfo(amount=unit_price, currency="USD", confidence=0.8),
-                        total_price=MoneyInfo(amount=total_price, currency="USD", confidence=0.8) if total_price else None,
+                        unit_price=MoneyInfo(amount=unit_price, currency=currency, confidence=0.8),
+                        total_price=MoneyInfo(amount=total_price, currency=currency, confidence=0.8) if total_price else None,
                         confidence=0.8
                     ))
 
                 break  # Stop trying patterns once we match
+
+    # Second pass: catch lines with a price that weren't matched by strict patterns
+    if len(line_items) == 0:
+        logger.info("No items found with strict patterns, trying relaxed matching")
+        for line in lines:
+            line_upper = line.upper()
+            if any(re.search(p, line_upper) for p in skip_patterns):
+                continue
+            if re.search(r'-[£$€]?\d+\.\d{2}', line):
+                continue
+            match = re.search(r'^(.+?)\s+[£$€]?(\d+\.\d{2})\s*$', line)
+            if match:
+                item_name = _clean_item_name(match.group(1))
+                price = match.group(2)
+                if len(item_name) >= 2:
+                    line_items.append(LineItem(
+                        raw_text=line,
+                        parsed_name=item_name,
+                        quantity=1.0,
+                        total_price=MoneyInfo(amount=price, currency=currency, confidence=0.6),
+                        confidence=0.6
+                    ))
 
     result.line_items = line_items
 
@@ -344,10 +441,9 @@ def process_receipt(image_path: str, options: Optional[Dict] = None) -> Extracti
     """
     Full receipt processing pipeline.
 
-    Steps:
-    1. Preprocess image
-    2. Extract text via Tesseract OCR
-    3. Parse text to extract structured data
+    Tries grayscale preprocessing first (best for phone photos with
+    Tesseract 5 LSTM), then falls back to binary thresholding if the
+    grayscale result is poor. Picks whichever produces better extraction.
 
     Args:
         image_path: Path to receipt image file
@@ -365,13 +461,28 @@ def process_receipt(image_path: str, options: Optional[Dict] = None) -> Extracti
 
     logger.info(f"Starting receipt processing: {image_path}")
 
-    # Step 1: Preprocess
-    preprocessed_image = preprocess_image(image_path)
+    gray = _load_and_prepare(image_path)
 
-    # Step 2: OCR
-    raw_text = extract_text(preprocessed_image)
+    # Strategy 1: Grayscale (best for LSTM engine with phone photos)
+    grayscale_img = _preprocess_grayscale(gray)
+    grayscale_text = extract_text(grayscale_img)
+    grayscale_score = _ocr_quality_score(grayscale_text)
+    logger.info(f"Grayscale preprocessing score: {grayscale_score:.1f}")
 
-    # Step 3: Parse
+    # Strategy 2: Binary thresholding (better for clean scans)
+    binary_img = _preprocess_binary(gray)
+    binary_text = extract_text(binary_img)
+    binary_score = _ocr_quality_score(binary_text)
+    logger.info(f"Binary preprocessing score: {binary_score:.1f}")
+
+    # Pick the better result
+    if grayscale_score >= binary_score:
+        raw_text = grayscale_text
+        logger.info("Selected grayscale preprocessing (better quality)")
+    else:
+        raw_text = binary_text
+        logger.info("Selected binary preprocessing (better quality)")
+
     result = parse_receipt(raw_text)
 
     logger.info(f"Receipt processing complete with confidence {result.overall_confidence:.2f}")
