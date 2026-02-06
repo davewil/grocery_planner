@@ -53,6 +53,7 @@ def sample_receipt_base64():
 class TestTesseractExtractReceiptEndpoint:
     """Tests for /api/v1/extract-receipt endpoint with Tesseract OCR."""
 
+    @patch('main.settings.USE_OLLAMA_OCR', False)
     @patch('main.settings.USE_TESSERACT_OCR', True)
     @patch('main.settings.USE_VLLM_OCR', False)
     def test_tesseract_extract_receipt_endpoint(self, client, sample_receipt_base64):
@@ -95,6 +96,7 @@ class TestTesseractExtractReceiptEndpoint:
         assert "merchant" in payload
         assert "date" in payload
 
+    @patch('main.settings.USE_OLLAMA_OCR', False)
     @patch('main.settings.USE_TESSERACT_OCR', True)
     @patch('main.settings.USE_VLLM_OCR', False)
     def test_tesseract_endpoint_invalid_base64(self, client):
@@ -115,6 +117,7 @@ class TestTesseractExtractReceiptEndpoint:
             data = response.json()
             assert data["status"] in ["error", "failure"]
 
+    @patch('main.settings.USE_OLLAMA_OCR', False)
     @patch('main.settings.USE_TESSERACT_OCR', True)
     @patch('main.settings.USE_VLLM_OCR', False)
     @patch('main._tesseract_process_receipt', None)
@@ -135,6 +138,7 @@ class TestTesseractExtractReceiptEndpoint:
         assert data["status"] == "error"
         assert "tesseract" in data["error"].lower() or "503" in data["error"]
 
+    @patch('main.settings.USE_OLLAMA_OCR', False)
     @patch('main.settings.USE_TESSERACT_OCR', True)
     @patch('main.settings.USE_VLLM_OCR', False)
     def test_tesseract_endpoint_creates_artifact(self, client, sample_receipt_base64):

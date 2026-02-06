@@ -128,8 +128,9 @@ def test_extract_receipt(client):
         "payload": payload
     }
 
-    # Force mock OCR mode (fake base64 won't work with real Tesseract)
-    with patch.object(settings, "USE_VLLM_OCR", False), \
+    # Force mock OCR mode (fake base64 won't work with real OCR)
+    with patch.object(settings, "USE_OLLAMA_OCR", False), \
+         patch.object(settings, "USE_VLLM_OCR", False), \
          patch.object(settings, "USE_TESSERACT_OCR", False):
         response = client.post("/api/v1/extract-receipt", json=request_data)
     assert response.status_code == 200

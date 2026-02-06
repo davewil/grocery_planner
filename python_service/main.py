@@ -478,7 +478,43 @@ async def extract_receipt_endpoint(request: BaseRequest, db: Session = Depends(g
     try:
         payload = ExtractionRequestPayload(**request.payload)
 
-        if settings.USE_VLLM_OCR:
+        if settings.USE_OLLAMA_OCR:
+            # Ollama Vision - local OCR with llava model
+            from ollama_ocr_service import extract_receipt_ollama
+
+            image_b64 = payload.image_base64
+            if not image_b64 and payload.image_url:
+                import httpx
+                import base64
+                async with httpx.AsyncClient() as http_client:
+                    resp = await http_client.get(payload.image_url)
+                    image_b64 = base64.b64encode(resp.content).decode()
+
+            if not image_b64:
+                raise ValueError("Either image_base64 or image_url required")
+
+            result = extract_receipt_ollama(image_b64)
+
+            flat_items = []
+            for item in result["items"]:
+                flat_items.append(ExtractedItem(
+                    name=item["name"],
+                    quantity=item.get("quantity", 1.0),
+                    unit=item.get("unit"),
+                    price=item.get("price"),
+                    confidence=item.get("confidence", 0.9),
+                ))
+
+            response_payload = ExtractionResponsePayload(
+                items=flat_items,
+                total=result.get("total"),
+                merchant=result.get("merchant"),
+                date=result.get("date"),
+            )
+
+            model_id = f"ollama-{settings.OLLAMA_MODEL}"
+            model_version = "ollama"
+        elif settings.USE_VLLM_OCR:
             # Real OCR via vLLM
             from ocr_service import extract_receipt
 
@@ -642,12 +678,14 @@ async def extract_receipt_endpoint(request: BaseRequest, db: Session = Depends(g
             status="error",
             error_message=str(e),
             model_id=(
-                settings.VLLM_MODEL if settings.USE_VLLM_OCR
+                f"ollama-{settings.OLLAMA_MODEL}" if settings.USE_OLLAMA_OCR
+                else settings.VLLM_MODEL if settings.USE_VLLM_OCR
                 else "tesseract-ocr" if settings.USE_TESSERACT_OCR
                 else "mock-ocr"
             ),
             model_version=(
-                "vllm" if settings.USE_VLLM_OCR
+                "ollama" if settings.USE_OLLAMA_OCR
+                else "vllm" if settings.USE_VLLM_OCR
                 else "tesseract-5.x" if settings.USE_TESSERACT_OCR
                 else "1.0.0"
             ),

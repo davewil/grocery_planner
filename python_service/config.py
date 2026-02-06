@@ -8,6 +8,10 @@ Environment variables:
 - OCR_TIMEOUT: Timeout in seconds for OCR requests (default: 60)
 - CLASSIFICATION_MODEL: Model for zero-shot classification (default: valhalla/distilbart-mnli-12-3)
 - USE_REAL_CLASSIFICATION: Enable real ML classification (default: false)
+- USE_OLLAMA_OCR: Use Ollama for receipt OCR (default: true, highest priority)
+- OLLAMA_BASE_URL: Ollama API base URL (default: http://localhost:11434)
+- OLLAMA_MODEL: Ollama model for OCR (default: llava)
+- OLLAMA_OCR_TIMEOUT: Timeout in seconds for Ollama OCR requests (default: 120)
 - USE_TESSERACT_OCR: Use Tesseract OCR as fallback when VLM is disabled (default: true)
 """
 
@@ -23,8 +27,14 @@ class Settings:
     OCR_TIMEOUT: int = int(os.getenv("OCR_TIMEOUT", "60"))
 
     # Feature flags for gradual rollout
+    USE_OLLAMA_OCR: bool = os.getenv("USE_OLLAMA_OCR", "true").lower() == "true"
     USE_VLLM_OCR: bool = os.getenv("USE_VLLM_OCR", "false").lower() == "true"
     USE_TESSERACT_OCR: bool = os.getenv("USE_TESSERACT_OCR", "true").lower() == "true"
+
+    # Ollama Vision OCR settings
+    OLLAMA_BASE_URL: str = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
+    OLLAMA_MODEL: str = os.getenv("OLLAMA_MODEL", "llava")
+    OLLAMA_OCR_TIMEOUT: int = int(os.getenv("OLLAMA_OCR_TIMEOUT", "120"))
 
     # Zero-shot classification settings
     CLASSIFICATION_MODEL: str = os.getenv(
