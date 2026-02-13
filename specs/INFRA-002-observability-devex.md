@@ -1,7 +1,7 @@
 # INFRA-002: Observability & Developer Experience
 
-**Status**: IN PROGRESS (Phase 1 + Phase 2 + Phase 3 + Phase 4 + Phase 6 + Phase 7 Complete)
-**Priority**: High (blocking receipt processing debugging)
+**Status**: PAUSED (Phase 1-4, 6-7 Complete — Phase 5 remaining)
+**Priority**: Medium (no longer blocking — receipt debugging resolved)
 **Created**: 2026-02-05
 **Related**: INFRA-001 (Azure Deployment), AI-003 (Receipt Scanning)
 
@@ -892,7 +892,7 @@ docker compose down
 | **2** | Tidewave integration (1) | 0.5 day | Medium - debugging capability | **DONE** |
 | **3** | Docker Compose (7A, 7B) | 1 day | High - dev parity | **DONE** |
 | **4** | OTEL instrumentation (2A, 2B, 2C) | 2 days | High - distributed tracing | **DONE** |
-| **5** | Grafana stack (3) | 1 day | High - visualization |
+| **5** | Grafana stack (3) | 1 day | High - visualization | **PAUSED** |
 | **6** | Integration tests (5A, 5B) | 1.5 days | High - CI safety | **DONE** |
 | **7** | Contract testing (6A, 6B) | 0.5 day | Medium - API safety | **DONE** |
 
@@ -968,3 +968,43 @@ docker compose down
    docker compose stop python-service
    mix phx.server  # Should log warning about AI service
    ```
+
+---
+
+## 9. Return Plan — Phase 5: Grafana Observability Stack
+
+**Status**: Not started — return to this when local trace visualization is needed.
+
+**Current state**: OTEL instrumentation is fully wired (Elixir + Python), but the dev
+exporter is set to `:none` in `config/dev.exs` because there is no local collector.
+The `grpcbox` gRPC channel crashes on startup when no Tempo/collector is listening
+on `:4317`, producing noisy warnings.
+
+### What to do when returning
+
+1. **Stand up the local Grafana stack (Section 3)**
+   - Create `docker-compose.observability.yml` with Tempo, Loki, Prometheus, Grafana
+   - Create config files: `config/tempo/tempo.yaml`, `config/prometheus/prometheus.yml`
+   - Create Grafana provisioning: `config/grafana/provisioning/datasources/`, dashboards
+
+2. **Re-enable the OTLP exporter in dev**
+   - `config/dev.exs`: switch `traces_exporter` back to `:otlp`
+   - Ensure `bin/dev-full` starts the observability profile
+
+3. **Pre-configured dashboards (Section 3)**
+   - Service overview: request rate, latency percentiles, error rate, Oban queue depth
+   - Trace explorer: service map, trace search, span details
+
+4. **Consider switching to HTTP protocol**
+   - `otlp_protocol: :http_protobuf` on port `4318` avoids the `grpcbox` ETS issue
+     entirely if gRPC continues to be problematic
+   - Simpler dependency chain, easier to debug
+
+5. **Verify end-to-end trace correlation**
+   - Browser → Phoenix → Python service → back
+   - Confirm `traceparent` header propagation via `opentelemetry_req`
+
+### Open questions for later
+- Do we want always-on observability in dev, or opt-in via `bin/dev-full`?
+- Should production use Application Insights (Azure) or self-hosted Grafana Cloud?
+- Is Loki worth the complexity, or are structured logs to stdout sufficient?

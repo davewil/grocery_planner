@@ -87,9 +87,11 @@ config :phoenix_live_view,
   enable_expensive_runtime_checks: true
 
 # OpenTelemetry for local development
+# Exporter disabled until local Grafana/Tempo stack is running (see INFRA-002 Phase 5).
+# To enable: start `bin/dev-full` and switch traces_exporter back to :otlp.
 config :opentelemetry,
   span_processor: :batch,
-  traces_exporter: :otlp
+  traces_exporter: :none
 
 config :opentelemetry_exporter,
   otlp_protocol: :grpc,

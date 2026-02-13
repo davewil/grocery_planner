@@ -706,7 +706,11 @@ defmodule GroceryPlannerWeb.ReceiptsLive do
          ) do
       {:ok, receipt} ->
         # Load receipt_items relationship
-        receipt = Ash.load!(receipt, :receipt_items)
+        receipt =
+          Ash.load!(receipt, :receipt_items,
+            actor: socket.assigns.current_user,
+            tenant: socket.assigns.current_account.id
+          )
         socket = assign(socket, :selected_receipt, receipt)
 
         # Subscribe to PubSub for real-time updates on pending/processing receipts
