@@ -711,6 +711,7 @@ defmodule GroceryPlannerWeb.ReceiptsLive do
             actor: socket.assigns.current_user,
             tenant: socket.assigns.current_account.id
           )
+
         socket = assign(socket, :selected_receipt, receipt)
 
         # Subscribe to PubSub for real-time updates on pending/processing receipts
