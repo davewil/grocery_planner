@@ -38,6 +38,8 @@ npm-debug.log
 # Uploaded receipt files
 /priv/uploads/receipts/*
 !/priv/uploads/receipts/.gitkeep
+/priv/static/uploads/receipts/*
+!/priv/static/uploads/receipts/.gitkeep
 
 # AI agent prompt transcripts
 *-userprompt.txt
@@ -70,4 +72,8 @@ htmlcov/
 venv/
 ENV/
 ai_service.db
+python_service/tests/*.RAW-01.COVER.jpg
 
+# Local agent/session state
+.omc/
+**/.omc/

@@ -602,13 +602,17 @@ defmodule GroceryPlannerWeb.ReceiptLive do
     idx = String.to_integer(idx)
 
     total_price =
-      case Float.parse(value) do
-        {amount, _} when amount >= 0 ->
-          currency = detect_currency(socket.assigns.receipt)
-          Money.new(round(amount * 100), currency)
-
-        _ ->
+      case value do
+        "" ->
           nil
+
+        value ->
+          currency = detect_currency(socket.assigns.receipt)
+
+          case Money.parse("#{currency} #{value}") do
+            %Money{} = money -> money
+            {:error, _} -> nil
+          end
       end
 
     items =
