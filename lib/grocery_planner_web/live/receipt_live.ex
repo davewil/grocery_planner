@@ -48,6 +48,13 @@ defmodule GroceryPlannerWeb.ReceiptLive do
   end
 
   @impl true
+  def terminate(_reason, socket) do
+    # Clean up any temp files when LiveView terminates
+    cleanup_temp_file(socket.assigns.duplicate_file_params)
+    :ok
+  end
+
+  @impl true
   def render(assigns) do
     ~H"""
     <Layouts.app
@@ -757,12 +764,17 @@ defmodule GroceryPlannerWeb.ReceiptLive do
 
   @impl true
   def handle_event("back_to_upload", _, socket) do
+    # Clean up temp file if returning from duplicate confirmation
+    cleanup_temp_file(socket.assigns.duplicate_file_params)
+
     socket =
       socket
       |> assign(:step, :upload)
       |> assign(:receipt, nil)
       |> assign(:receipt_items, [])
       |> assign(:error, nil)
+      |> assign(:duplicate_receipt, nil)
+      |> assign(:duplicate_file_params, nil)
 
     {:noreply, socket}
   end
@@ -898,6 +910,9 @@ defmodule GroceryPlannerWeb.ReceiptLive do
 
     case ReceiptProcessor.upload(file_params, user, account, force: true) do
       {:ok, receipt} ->
+        # Clean up temp file after successful upload
+        cleanup_temp_file(file_params)
+
         if connected?(socket) do
           Phoenix.PubSub.subscribe(GroceryPlanner.PubSub, "receipt:#{receipt.id}")
         end
@@ -913,6 +928,9 @@ defmodule GroceryPlannerWeb.ReceiptLive do
          |> assign(:duplicate_file_params, nil)}
 
       {:error, reason} ->
+        # Clean up temp file on failure
+        cleanup_temp_file(file_params)
+
         {:noreply,
          socket
          |> assign(:step, :upload)
@@ -920,6 +938,18 @@ defmodule GroceryPlannerWeb.ReceiptLive do
          |> assign(:duplicate_receipt, nil)
          |> assign(:duplicate_file_params, nil)}
     end
+  end
+
+  @impl true
+  def handle_event("cancel_duplicate", _, socket) do
+    # Clean up temp file when user cancels duplicate confirmation
+    cleanup_temp_file(socket.assigns.duplicate_file_params)
+
+    {:noreply,
+     socket
+     |> assign(:step, :upload)
+     |> assign(:duplicate_receipt, nil)
+     |> assign(:duplicate_file_params, nil)}
   end
 
   @impl true
@@ -1105,4 +1135,16 @@ defmodule GroceryPlannerWeb.ReceiptLive do
       _ -> :GBP
     end
   end
+
+  defp cleanup_temp_file(nil), do: :ok
+
+  defp cleanup_temp_file(%{path: path}) when is_binary(path) do
+    if File.exists?(path) do
+      File.rm(path)
+    end
+
+    :ok
+  end
+
+  defp cleanup_temp_file(_), do: :ok
 end
