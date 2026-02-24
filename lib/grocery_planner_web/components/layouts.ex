@@ -57,7 +57,7 @@ defmodule GroceryPlannerWeb.Layouts do
             <nav class="hidden lg:flex flex-none">
               <ul class="flex items-center space-x-2">
                 <%= if assigns[:current_user] do %>
-                  <li>
+                  <li :if={!@current_user.family_focus}>
                     <.link
                       navigate="/dashboard"
                       class="px-4 py-2 text-base-content/70 hover:text-base-content font-medium transition"
@@ -65,7 +65,7 @@ defmodule GroceryPlannerWeb.Layouts do
                       Dashboard
                     </.link>
                   </li>
-                  <li>
+                  <li :if={!@current_user.family_focus}>
                     <.link
                       navigate="/inventory"
                       class="px-4 py-2 text-base-content/70 hover:text-base-content font-medium transition"
@@ -73,7 +73,7 @@ defmodule GroceryPlannerWeb.Layouts do
                       Inventory
                     </.link>
                   </li>
-                  <li>
+                  <li :if={!@current_user.family_focus}>
                     <.link
                       navigate="/receipts"
                       class="px-4 py-2 text-base-content/70 hover:text-base-content font-medium transition"
@@ -89,7 +89,7 @@ defmodule GroceryPlannerWeb.Layouts do
                       Recipes
                     </.link>
                   </li>
-                  <li>
+                  <li :if={!@current_user.family_focus}>
                     <.link
                       navigate="/meal-planner"
                       class="px-4 py-2 text-base-content/70 hover:text-base-content font-medium transition"
@@ -97,7 +97,7 @@ defmodule GroceryPlannerWeb.Layouts do
                       Meal Planner
                     </.link>
                   </li>
-                  <li>
+                  <li :if={!@current_user.family_focus}>
                     <.link
                       navigate="/voting"
                       class="px-4 py-2 text-base-content/70 hover:text-base-content font-medium transition flex items-center gap-1"
@@ -114,7 +114,7 @@ defmodule GroceryPlannerWeb.Layouts do
                       </span>
                     </.link>
                   </li>
-                  <li>
+                  <li :if={!@current_user.family_focus}>
                     <.link
                       navigate="/shopping"
                       class="px-4 py-2 text-base-content/70 hover:text-base-content font-medium transition"
@@ -130,7 +130,7 @@ defmodule GroceryPlannerWeb.Layouts do
                       Family
                     </.link>
                   </li>
-                  <li>
+                  <li :if={!@current_user.family_focus}>
                     <.link
                       navigate="/analytics"
                       class="px-4 py-2 text-base-content/70 hover:text-base-content font-medium transition"
@@ -201,6 +201,7 @@ defmodule GroceryPlannerWeb.Layouts do
             <nav class="flex flex-col space-y-2">
               <%= if assigns[:current_user] do %>
                 <.link
+                  :if={!@current_user.family_focus}
                   navigate="/dashboard"
                   class="px-4 py-2 text-base-content/70 hover:text-base-content hover:bg-base-200 rounded-lg font-medium transition"
                   phx-click={JS.add_class("hidden", to: "#mobile-menu")}
@@ -208,6 +209,7 @@ defmodule GroceryPlannerWeb.Layouts do
                   Dashboard
                 </.link>
                 <.link
+                  :if={!@current_user.family_focus}
                   navigate="/inventory"
                   class="px-4 py-2 text-base-content/70 hover:text-base-content hover:bg-base-200 rounded-lg font-medium transition"
                   phx-click={JS.add_class("hidden", to: "#mobile-menu")}
@@ -215,6 +217,7 @@ defmodule GroceryPlannerWeb.Layouts do
                   Inventory
                 </.link>
                 <.link
+                  :if={!@current_user.family_focus}
                   navigate="/receipts"
                   class="px-4 py-2 text-base-content/70 hover:text-base-content hover:bg-base-200 rounded-lg font-medium transition"
                   phx-click={JS.add_class("hidden", to: "#mobile-menu")}
@@ -229,6 +232,7 @@ defmodule GroceryPlannerWeb.Layouts do
                   Recipes
                 </.link>
                 <.link
+                  :if={!@current_user.family_focus}
                   navigate="/meal-planner"
                   class="px-4 py-2 text-base-content/70 hover:text-base-content hover:bg-base-200 rounded-lg font-medium transition"
                   phx-click={JS.add_class("hidden", to: "#mobile-menu")}
@@ -236,6 +240,7 @@ defmodule GroceryPlannerWeb.Layouts do
                   Meal Planner
                 </.link>
                 <.link
+                  :if={!@current_user.family_focus}
                   navigate="/voting"
                   class="px-4 py-2 text-base-content/70 hover:text-base-content hover:bg-base-200 rounded-lg font-medium transition flex items-center gap-2"
                   phx-click={JS.add_class("hidden", to: "#mobile-menu")}
@@ -252,6 +257,7 @@ defmodule GroceryPlannerWeb.Layouts do
                   </span>
                 </.link>
                 <.link
+                  :if={!@current_user.family_focus}
                   navigate="/shopping"
                   class="px-4 py-2 text-base-content/70 hover:text-base-content hover:bg-base-200 rounded-lg font-medium transition"
                   phx-click={JS.add_class("hidden", to: "#mobile-menu")}
@@ -266,6 +272,7 @@ defmodule GroceryPlannerWeb.Layouts do
                   Family
                 </.link>
                 <.link
+                  :if={!@current_user.family_focus}
                   navigate="/analytics"
                   class="px-4 py-2 text-base-content/70 hover:text-base-content hover:bg-base-200 rounded-lg font-medium transition"
                   phx-click={JS.add_class("hidden", to: "#mobile-menu")}

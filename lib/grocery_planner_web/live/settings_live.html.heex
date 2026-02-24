@@ -124,6 +124,18 @@
             required
           />
 
+          <div class="flex items-center justify-between pt-2">
+            <div>
+              <label class="text-sm font-medium text-base-content/80 block">
+                Family Focus
+              </label>
+              <p class="text-xs text-base-content/60">
+                Show only Recipes, Family, and Settings in navigation
+              </p>
+            </div>
+            <.input field={@user_form[:family_focus]} type="checkbox" />
+          </div>
+
           <div class="pt-2">
             <.button phx-disable-with="Saving..." class="btn-primary">
               Save Changes

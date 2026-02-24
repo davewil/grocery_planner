@@ -34,7 +34,8 @@ defmodule GroceryPlannerWeb.SettingsLive do
           "name" => socket.assigns.current_user.name,
           "email" => to_string(socket.assigns.current_user.email),
           "theme" => socket.assigns.current_user.theme,
-          "meal_planner_layout" => socket.assigns.current_user.meal_planner_layout
+          "meal_planner_layout" => socket.assigns.current_user.meal_planner_layout,
+          "family_focus" => socket.assigns.current_user.family_focus
         },
         as: :user
       )
@@ -169,7 +170,8 @@ defmodule GroceryPlannerWeb.SettingsLive do
            name: params["name"],
            email: params["email"],
            theme: params["theme"],
-           meal_planner_layout: params["meal_planner_layout"]
+           meal_planner_layout: params["meal_planner_layout"],
+           family_focus: params["family_focus"] == "true"
          }) do
       {:ok, user} ->
         {:noreply,
