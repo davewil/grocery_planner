@@ -149,17 +149,7 @@ defmodule GroceryPlannerWeb.FamilyLive do
     result =
       case current do
         nil ->
-          # nil -> liked
-          Family.set_recipe_preference(
-            account.id,
-            member_id,
-            recipe_id,
-            %{preference: :liked},
-            opts
-          )
-
-        {:liked, _id} ->
-          # liked -> disliked
+          # unchecked -> checked: create :disliked record
           Family.set_recipe_preference(
             account.id,
             member_id,
@@ -168,8 +158,8 @@ defmodule GroceryPlannerWeb.FamilyLive do
             opts
           )
 
-        {:disliked, pref_id} ->
-          # disliked -> clear (use stored ID, no extra query)
+        {_pref, pref_id} ->
+          # checked -> unchecked: delete the record
           pref = %GroceryPlanner.Family.RecipePreference{id: pref_id}
           Family.destroy_recipe_preference(pref, opts)
       end

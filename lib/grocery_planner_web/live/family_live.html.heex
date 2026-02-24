@@ -202,33 +202,22 @@
                   <%= for member <- @family_members do %>
                     <td class="text-center">
                       <% entry = Map.get(@preference_matrix, {recipe.id, member.id})
-                      pref = if entry, do: elem(entry, 0) %>
-                      <button
-                        phx-click="toggle_preference"
-                        phx-value-recipe-id={recipe.id}
-                        phx-value-member-id={member.id}
-                        class={[
-                          "btn btn-ghost btn-sm btn-square text-lg",
-                          pref == :liked && "text-success",
-                          pref == :disliked && "text-error"
-                        ]}
-                        title={
-                          case pref do
-                            :liked -> "#{member.name} likes this — click to change to dislike"
-                            :disliked -> "#{member.name} dislikes this — click to clear"
-                            _ -> "No preference — click to mark as liked"
-                          end
-                        }
-                      >
-                        <%= case pref do %>
-                          <% :liked -> %>
-                            ✓
-                          <% :disliked -> %>
-                            ✗
-                          <% _ -> %>
-                            <span class="opacity-20">·</span>
-                        <% end %>
-                      </button>
+                      is_disliked = entry != nil %>
+                      <label class="cursor-pointer flex items-center justify-center">
+                        <input
+                          type="checkbox"
+                          checked={is_disliked}
+                          phx-click="toggle_preference"
+                          phx-value-recipe-id={recipe.id}
+                          phx-value-member-id={member.id}
+                          class="checkbox checkbox-sm checkbox-error"
+                          title={
+                            if is_disliked,
+                              do: "#{member.name} dislikes this — click to clear",
+                              else: "#{member.name} will eat this — click to mark as disliked"
+                          }
+                        />
+                      </label>
                     </td>
                   <% end %>
                 </tr>

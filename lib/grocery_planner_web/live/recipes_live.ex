@@ -4,6 +4,8 @@ defmodule GroceryPlannerWeb.RecipesLive do
 
   on_mount {GroceryPlannerWeb.Auth, :require_authenticated_user}
 
+  alias GroceryPlanner.Family
+  alias GroceryPlanner.Family.MealTimeSolution
   alias GroceryPlanner.MealPlanning.Voting
 
   @per_page 12
@@ -11,6 +13,12 @@ defmodule GroceryPlannerWeb.RecipesLive do
   def mount(_params, _session, socket) do
     voting_active =
       Voting.voting_active?(socket.assigns.current_account.id, socket.assigns.current_user)
+
+    has_family_members? =
+      Family.list_family_members!(
+        actor: socket.assigns.current_user,
+        tenant: socket.assigns.current_account.id
+      ) != []
 
     socket =
       socket
@@ -24,6 +32,9 @@ defmodule GroceryPlannerWeb.RecipesLive do
       |> assign(:prep_time_filter, nil)
       |> assign(:page, 1)
       |> assign(:per_page, @per_page)
+      |> assign(:has_family_members, has_family_members?)
+      |> assign(:meal_solution, nil)
+      |> assign(:meal_solution_recipe_id, nil)
       |> load_recipes()
 
     {:ok, socket}
@@ -153,6 +164,34 @@ defmodule GroceryPlannerWeb.RecipesLive do
       |> load_recipes()
 
     {:noreply, socket}
+  end
+
+  def handle_event("plan_family_meal", %{"id" => recipe_id}, socket) do
+    user = socket.assigns.current_user
+    account = socket.assigns.current_account
+    opts = [actor: user, tenant: account.id]
+
+    case GroceryPlanner.Recipes.get_recipe(recipe_id, opts) do
+      {:ok, recipe} ->
+        case MealTimeSolution.compute(recipe, opts) do
+          {:ok, solution} ->
+            {:noreply,
+             assign(socket,
+               meal_solution: solution,
+               meal_solution_recipe_id: recipe_id
+             )}
+
+          {:error, :no_family_members} ->
+            {:noreply, put_flash(socket, :error, "No family members found")}
+        end
+
+      _ ->
+        {:noreply, put_flash(socket, :error, "Recipe not found")}
+    end
+  end
+
+  def handle_event("dismiss_meal_solution", _, socket) do
+    {:noreply, assign(socket, meal_solution: nil, meal_solution_recipe_id: nil)}
   end
 
   defp load_recipes(socket) do
