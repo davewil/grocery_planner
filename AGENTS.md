@@ -42,6 +42,8 @@ custom classes must fully style the input
 - Implement **subtle micro-interactions** (e.g., button hover effects, and smooth transitions)
 - Ensure **clean typography, spacing, and layout balance** for a refined, premium look
 - Focus on **delightful details** like hover effects, loading states, and smooth page transitions
+- **Never use same-color nested components** — when placing interactive elements (badges, buttons, links) inside colored containers (alerts, cards with colored backgrounds), always use a contrasting color scheme. For example, `badge-warning` inside `alert-warning` is invisible. Use `bg-base-100 text-base-content` or a different color variant instead. This applies to all daisyUI semantic color pairings (success, warning, error, info, primary, secondary)
+- **Clickable elements must look clickable** — interactive elements should have clear visual affordances: use `cursor-pointer`, add hover effects (`hover:opacity-70`), and include icons (e.g., `hero-x-mark` for removable items, `hero-plus` for addable items) so users understand the element is interactive without relying on hover discovery alone
 
 
 <!-- usage-rules-start -->

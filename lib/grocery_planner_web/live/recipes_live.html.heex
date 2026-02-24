@@ -204,17 +204,50 @@
           </button>
         </div>
 
+        <p class="text-sm text-base-content/60 mb-3">
+          Click a name to remove them from the plan.
+          <span :if={@meal_solution.excluded_members != []}>
+            Click excluded members to add them back.
+          </span>
+        </p>
+
+        <%= if @meal_solution.excluded_members != [] do %>
+          <div class="flex flex-wrap gap-2 mb-4">
+            <span class="text-sm text-base-content/60 self-center">Excluded:</span>
+            <button
+              :for={member <- @meal_solution.excluded_members}
+              phx-click="include_member"
+              phx-value-id={member.id}
+              class="badge badge-ghost badge-sm gap-1 cursor-pointer hover:badge-primary transition-colors"
+              type="button"
+            >
+              <.icon name="hero-plus" class="w-3 h-3" />
+              {member.name}
+            </button>
+          </div>
+        <% end %>
+
         <%= if @meal_solution.uncoverable_members != [] do %>
           <div class="alert alert-warning mb-4">
             <.icon name="hero-exclamation-triangle" class="w-5 h-5" />
             <div>
               <p class="font-semibold">Can't feed everybody</p>
+              <p class="text-sm mb-2">
+                No suitable recipes found for:
+              </p>
+              <div class="flex flex-wrap gap-1 mb-2">
+                <button
+                  :for={member <- @meal_solution.uncoverable_members}
+                  phx-click="exclude_member"
+                  phx-value-id={member.id}
+                  class="badge bg-base-100 text-base-content border-base-300 badge-sm gap-1 cursor-pointer hover:opacity-70 transition-opacity"
+                  type="button"
+                >
+                  {member.name}
+                  <.icon name="hero-x-mark" class="w-3 h-3" />
+                </button>
+              </div>
               <p class="text-sm">
-                No suitable recipes found for: {Enum.map_join(
-                  @meal_solution.uncoverable_members,
-                  ", ",
-                  & &1.name
-                )}.
                 <.link navigate="/family" class="link link-primary">
                   Update preferences on the Family page
                 </.link>
@@ -226,7 +259,21 @@
         <%= if @meal_solution.supplementary_recipes == [] and @meal_solution.uncoverable_members == [] do %>
           <div class="alert alert-success">
             <.icon name="hero-check-circle" class="w-5 h-5" />
-            <span>Everyone eats {@meal_solution.primary_recipe.name}!</span>
+            <div>
+              <span>Everyone eats {@meal_solution.primary_recipe.name}!</span>
+              <div class="flex flex-wrap gap-1 mt-1">
+                <button
+                  :for={member <- @meal_solution.covered_by_primary}
+                  phx-click="exclude_member"
+                  phx-value-id={member.id}
+                  class="badge badge-success badge-sm gap-1 cursor-pointer hover:opacity-70 transition-opacity"
+                  type="button"
+                >
+                  {member.name}
+                  <.icon name="hero-x-mark" class="w-3 h-3" />
+                </button>
+              </div>
+            </div>
           </div>
         <% else %>
           <p class="text-sm text-base-content/60 mb-4">
@@ -238,6 +285,21 @@
               <span class="badge badge-primary badge-sm mt-0.5">Primary</span>
               <div>
                 <p class="font-semibold">{@meal_solution.primary_recipe.name}</p>
+                <div
+                  :if={@meal_solution.covered_by_primary != []}
+                  class="flex flex-wrap gap-1 mt-1"
+                >
+                  <button
+                    :for={member <- @meal_solution.covered_by_primary}
+                    phx-click="exclude_member"
+                    phx-value-id={member.id}
+                    class="badge badge-primary badge-outline badge-sm gap-1 cursor-pointer hover:opacity-70 transition-opacity"
+                    type="button"
+                  >
+                    {member.name}
+                    <.icon name="hero-x-mark" class="w-3 h-3" />
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -248,9 +310,18 @@
               <span class="badge badge-secondary badge-sm mt-0.5">+{idx + 1}</span>
               <div>
                 <p class="font-semibold">{entry.recipe.name}</p>
-                <p class="text-sm text-base-content/60">
-                  For: {Enum.map_join(entry.covers, ", ", & &1.name)}
-                </p>
+                <div class="flex flex-wrap gap-1 mt-1">
+                  <button
+                    :for={member <- entry.covers}
+                    phx-click="exclude_member"
+                    phx-value-id={member.id}
+                    class="badge badge-secondary badge-outline badge-sm gap-1 cursor-pointer hover:opacity-70 transition-opacity"
+                    type="button"
+                  >
+                    {member.name}
+                    <.icon name="hero-x-mark" class="w-3 h-3" />
+                  </button>
+                </div>
               </div>
             </div>
           </div>

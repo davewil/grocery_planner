@@ -198,6 +198,90 @@ defmodule GroceryPlanner.Family.MealTimeSolutionTest do
     end
   end
 
+  describe "compute/2 with exclude_member_ids" do
+    test "excludes specified members from the solution", %{
+      account: account,
+      user: user,
+      opts: opts
+    } do
+      member1 = create_family_member(account, user, %{name: "Alice"})
+      member2 = create_family_member(account, user, %{name: "Bob"})
+      recipe = create_recipe(account, user, %{name: "Pasta"})
+
+      # Bob dislikes Pasta — normally requires a supplementary recipe
+      set_recipe_preference(account, user, member2, recipe, :disliked)
+
+      # Exclude Bob — solution should be trivial (only Alice eats primary)
+      exclude_opts = Keyword.put(opts, :exclude_member_ids, MapSet.new([member2.id]))
+      assert {:ok, solution} = MealTimeSolution.compute(recipe, exclude_opts)
+      assert solution.supplementary_recipes == []
+      assert length(solution.covered_by_primary) == 1
+      assert hd(solution.covered_by_primary).id == member1.id
+      assert length(solution.excluded_members) == 1
+      assert hd(solution.excluded_members).id == member2.id
+      assert MealTimeSolution.complete?(solution)
+    end
+
+    test "excluding all members returns empty solution with excluded list", %{
+      account: account,
+      user: user,
+      opts: opts
+    } do
+      member1 = create_family_member(account, user, %{name: "Alice"})
+      member2 = create_family_member(account, user, %{name: "Bob"})
+      recipe = create_recipe(account, user, %{name: "Pasta"})
+
+      exclude_opts =
+        Keyword.put(opts, :exclude_member_ids, MapSet.new([member1.id, member2.id]))
+
+      assert {:ok, solution} = MealTimeSolution.compute(recipe, exclude_opts)
+      assert solution.covered_by_primary == []
+      assert solution.supplementary_recipes == []
+      assert solution.uncoverable_members == []
+      assert length(solution.excluded_members) == 2
+    end
+
+    test "excluding uncoverable member makes solution complete", %{
+      account: account,
+      user: user,
+      opts: opts
+    } do
+      _member1 = create_family_member(account, user, %{name: "Alice"})
+      picky = create_family_member(account, user, %{name: "Picky Pete"})
+      recipe_a = create_recipe(account, user, %{name: "Pasta"})
+      recipe_b = create_recipe(account, user, %{name: "Nuggets"})
+
+      # Picky Pete dislikes everything
+      set_recipe_preference(account, user, picky, recipe_a, :disliked)
+      set_recipe_preference(account, user, picky, recipe_b, :disliked)
+
+      # Without exclusion: Picky is uncoverable
+      assert {:ok, without_exclusion} = MealTimeSolution.compute(recipe_a, opts)
+      refute MealTimeSolution.complete?(without_exclusion)
+
+      # Exclude Picky: solution becomes complete
+      exclude_opts = Keyword.put(opts, :exclude_member_ids, MapSet.new([picky.id]))
+      assert {:ok, with_exclusion} = MealTimeSolution.compute(recipe_a, exclude_opts)
+      assert MealTimeSolution.complete?(with_exclusion)
+      assert length(with_exclusion.excluded_members) == 1
+      assert hd(with_exclusion.excluded_members).id == picky.id
+    end
+
+    test "empty exclude set behaves like normal compute", %{
+      account: account,
+      user: user,
+      opts: opts
+    } do
+      _member1 = create_family_member(account, user, %{name: "Alice"})
+      recipe = create_recipe(account, user, %{name: "Pasta"})
+
+      exclude_opts = Keyword.put(opts, :exclude_member_ids, MapSet.new())
+      assert {:ok, solution} = MealTimeSolution.compute(recipe, exclude_opts)
+      assert solution.excluded_members == []
+      assert length(solution.covered_by_primary) == 1
+    end
+  end
+
   describe "complete?/1" do
     test "returns true when no uncoverable members" do
       solution = %MealTimeSolution{

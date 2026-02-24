@@ -17,14 +17,16 @@ defmodule GroceryPlanner.Family.MealTimeSolution do
     :primary_recipe,
     covered_by_primary: [],
     supplementary_recipes: [],
-    uncoverable_members: []
+    uncoverable_members: [],
+    excluded_members: []
   ]
 
   @type t :: %__MODULE__{
           primary_recipe: map(),
           covered_by_primary: [map()],
           supplementary_recipes: [%{recipe: map(), covers: [map()]}],
-          uncoverable_members: [map()]
+          uncoverable_members: [map()],
+          excluded_members: [map()]
         }
 
   @doc """
@@ -60,12 +62,27 @@ defmodule GroceryPlanner.Family.MealTimeSolution do
   """
   @spec compute(map(), keyword()) :: {:ok, t()} | {:error, :no_family_members}
   def compute(primary_recipe, opts \\ []) do
-    members = Family.list_family_members!(opts)
+    {exclude_member_ids, opts} = Keyword.pop(opts, :exclude_member_ids, MapSet.new())
+    all_members = Family.list_family_members!(opts)
 
-    if members == [] do
+    if all_members == [] do
       {:error, :no_family_members}
     else
-      compute_solution(primary_recipe, members, opts)
+      {excluded, active} =
+        Enum.split_with(all_members, fn m -> MapSet.member?(exclude_member_ids, m.id) end)
+
+      if active == [] do
+        {:ok,
+         %__MODULE__{
+           primary_recipe: primary_recipe,
+           excluded_members: excluded
+         }}
+      else
+        case compute_solution(primary_recipe, active, opts) do
+          {:ok, solution} -> {:ok, %{solution | excluded_members: excluded}}
+          error -> error
+        end
+      end
     end
   end
 

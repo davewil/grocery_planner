@@ -155,6 +155,141 @@ defmodule GroceryPlannerWeb.RecipesLiveTest do
     # end
   end
 
+  describe "Meal Time Solution - Exclude Member" do
+    test "clicking a member excludes them and regenerates solution", %{
+      conn: conn,
+      account: account,
+      user: user
+    } do
+      _member1 =
+        GroceryPlanner.Family.create_family_member!(
+          account.id,
+          %{name: "Alice"},
+          authorize?: false,
+          tenant: account.id
+        )
+
+      member2 =
+        GroceryPlanner.Family.create_family_member!(
+          account.id,
+          %{name: "Bob"},
+          authorize?: false,
+          tenant: account.id
+        )
+
+      recipe = create_recipe(account, user, %{name: "Pasta"})
+      _alt_recipe = create_recipe(account, user, %{name: "Nuggets"})
+
+      # Bob dislikes Pasta
+      GroceryPlanner.Family.set_recipe_preference!(
+        account.id,
+        member2.id,
+        recipe.id,
+        %{preference: :disliked},
+        authorize?: false,
+        tenant: account.id
+      )
+
+      {:ok, view, _html} = live(conn, "/recipes")
+
+      # Plan family meal
+      view
+      |> element("button[phx-click='plan_family_meal'][phx-value-id='#{recipe.id}']")
+      |> render_click()
+
+      html = render(view)
+      assert html =~ "Meal Time Solution"
+      assert html =~ "Pasta"
+      assert html =~ "Nuggets"
+      assert html =~ "Alice"
+      assert html =~ "Bob"
+
+      # Exclude Bob — should simplify the solution
+      view
+      |> element("button[phx-click='exclude_member'][phx-value-id='#{member2.id}']")
+      |> render_click()
+
+      html = render(view)
+      assert html =~ "Everyone eats Pasta"
+      assert html =~ "Excluded:"
+      assert html =~ "Bob"
+      # Alice should still appear in the solution
+      assert html =~ "Alice"
+
+      # Re-include Bob
+      view
+      |> element("button[phx-click='include_member'][phx-value-id='#{member2.id}']")
+      |> render_click()
+
+      html = render(view)
+      # Bob is back, supplementary recipe needed again
+      assert html =~ "Nuggets"
+      refute html =~ "Excluded:"
+    end
+
+    test "excluding all members shows empty solution with excluded list", %{
+      conn: conn,
+      account: account,
+      user: user
+    } do
+      member1 =
+        GroceryPlanner.Family.create_family_member!(
+          account.id,
+          %{name: "Alice"},
+          authorize?: false,
+          tenant: account.id
+        )
+
+      recipe = create_recipe(account, user, %{name: "Pasta"})
+
+      {:ok, view, _html} = live(conn, "/recipes")
+
+      view
+      |> element("button[phx-click='plan_family_meal'][phx-value-id='#{recipe.id}']")
+      |> render_click()
+
+      # Exclude the only member
+      view
+      |> element("button[phx-click='exclude_member'][phx-value-id='#{member1.id}']")
+      |> render_click()
+
+      html = render(view)
+      assert html =~ "Excluded:"
+      assert html =~ "Alice"
+    end
+
+    test "dismiss clears excluded members", %{
+      conn: conn,
+      account: account,
+      user: user
+    } do
+      _member1 =
+        GroceryPlanner.Family.create_family_member!(
+          account.id,
+          %{name: "Alice"},
+          authorize?: false,
+          tenant: account.id
+        )
+
+      recipe = create_recipe(account, user, %{name: "Pasta"})
+
+      {:ok, view, _html} = live(conn, "/recipes")
+
+      view
+      |> element("button[phx-click='plan_family_meal'][phx-value-id='#{recipe.id}']")
+      |> render_click()
+
+      # Dismiss
+      view
+      |> element("button[phx-click='dismiss_meal_solution']")
+      |> render_click()
+
+      html = render(view)
+      refute html =~ "Meal Time Solution"
+      refute html =~ "Excluded:"
+    end
+  end
+
   describe "Recipe Show" do
     test "renders recipe details", %{conn: conn, account: account, user: user} do
       recipe =

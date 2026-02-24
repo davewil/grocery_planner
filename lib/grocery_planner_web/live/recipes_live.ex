@@ -35,6 +35,7 @@ defmodule GroceryPlannerWeb.RecipesLive do
       |> assign(:has_family_members, has_family_members?)
       |> assign(:meal_solution, nil)
       |> assign(:meal_solution_recipe_id, nil)
+      |> assign(:excluded_member_ids, MapSet.new())
       |> load_recipes()
 
     {:ok, socket}
@@ -167,31 +168,53 @@ defmodule GroceryPlannerWeb.RecipesLive do
   end
 
   def handle_event("plan_family_meal", %{"id" => recipe_id}, socket) do
-    user = socket.assigns.current_user
-    account = socket.assigns.current_account
-    opts = [actor: user, tenant: account.id]
+    socket = assign(socket, :excluded_member_ids, MapSet.new())
+    {:noreply, recompute_meal_solution(socket, recipe_id)}
+  end
 
-    case GroceryPlanner.Recipes.get_recipe(recipe_id, opts) do
-      {:ok, recipe} ->
-        case MealTimeSolution.compute(recipe, opts) do
-          {:ok, solution} ->
-            {:noreply,
-             assign(socket,
-               meal_solution: solution,
-               meal_solution_recipe_id: recipe_id
-             )}
+  def handle_event("exclude_member", %{"id" => member_id}, socket) do
+    excluded = MapSet.put(socket.assigns.excluded_member_ids, member_id)
+    socket = assign(socket, :excluded_member_ids, excluded)
+    {:noreply, recompute_meal_solution(socket, socket.assigns.meal_solution_recipe_id)}
+  end
 
-          {:error, :no_family_members} ->
-            {:noreply, put_flash(socket, :error, "No family members found")}
-        end
-
-      _ ->
-        {:noreply, put_flash(socket, :error, "Recipe not found")}
-    end
+  def handle_event("include_member", %{"id" => member_id}, socket) do
+    excluded = MapSet.delete(socket.assigns.excluded_member_ids, member_id)
+    socket = assign(socket, :excluded_member_ids, excluded)
+    {:noreply, recompute_meal_solution(socket, socket.assigns.meal_solution_recipe_id)}
   end
 
   def handle_event("dismiss_meal_solution", _, socket) do
-    {:noreply, assign(socket, meal_solution: nil, meal_solution_recipe_id: nil)}
+    {:noreply,
+     assign(socket,
+       meal_solution: nil,
+       meal_solution_recipe_id: nil,
+       excluded_member_ids: MapSet.new()
+     )}
+  end
+
+  defp recompute_meal_solution(socket, recipe_id) do
+    user = socket.assigns.current_user
+    account = socket.assigns.current_account
+    excluded = socket.assigns.excluded_member_ids
+    opts = [actor: user, tenant: account.id, exclude_member_ids: excluded]
+
+    case GroceryPlanner.Recipes.get_recipe(recipe_id, actor: user, tenant: account.id) do
+      {:ok, recipe} ->
+        case MealTimeSolution.compute(recipe, opts) do
+          {:ok, solution} ->
+            assign(socket,
+              meal_solution: solution,
+              meal_solution_recipe_id: recipe_id
+            )
+
+          {:error, :no_family_members} ->
+            put_flash(socket, :error, "No family members found")
+        end
+
+      _ ->
+        put_flash(socket, :error, "Recipe not found")
+    end
   end
 
   defp load_recipes(socket) do
