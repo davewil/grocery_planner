@@ -70,7 +70,8 @@ config :grocery_planner,
     GroceryPlanner.Shopping,
     GroceryPlanner.Notifications,
     GroceryPlanner.Analytics,
-    GroceryPlanner.AI
+    GroceryPlanner.AI,
+    GroceryPlanner.Family
   ]
 
 config :grocery_planner, :receipt_upload_dir, "priv/static/uploads/receipts"

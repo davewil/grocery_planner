@@ -53,6 +53,7 @@ defmodule GroceryPlannerWeb.Router do
     live("/shopping", ShoppingLive)
     live("/voting", VotingLive)
     live("/analytics", AnalyticsLive)
+    live("/family", FamilyLive)
     live("/receipts", ReceiptsLive)
     live("/receipts/scan", ReceiptLive, :index)
     live("/receipts/:id", ReceiptsLive)

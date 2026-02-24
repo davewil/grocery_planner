@@ -1,0 +1,196 @@
+<Layouts.app
+  flash={@flash}
+  current_user={@current_user}
+  current_account={@current_account}
+  current_scope={@current_scope}
+  voting_active={@voting_active}
+>
+  <div class="px-4 py-10 sm:px-6 lg:px-8">
+    <.page_header
+      title="Family"
+      description="Manage family members and track recipe preferences"
+    />
+
+    <%!-- Family Members Section --%>
+    <div class="card bg-base-100 shadow-sm border border-base-200 mb-8">
+      <div class="card-body">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="card-title text-lg">Family Members</h2>
+          <button
+            :if={!@adding_member}
+            phx-click="show_add_member"
+            class="btn btn-primary btn-sm"
+          >
+            + Add Member
+          </button>
+        </div>
+
+        <%!-- Add Member Form --%>
+        <form
+          :if={@adding_member}
+          phx-submit="save_member"
+          class="flex items-center gap-2 mb-4"
+        >
+          <input
+            type="text"
+            name="name"
+            value={@new_member_name}
+            placeholder="Enter name..."
+            class="input input-bordered input-sm flex-1"
+            autofocus
+            phx-mounted={JS.focus()}
+          />
+          <button type="submit" class="btn btn-primary btn-sm">Save</button>
+          <button type="button" phx-click="cancel_add_member" class="btn btn-ghost btn-sm">
+            Cancel
+          </button>
+        </form>
+
+        <%!-- Member List --%>
+        <div :if={@family_members == []} class="text-base-content/50 text-center py-8">
+          <p class="text-lg mb-2">No family members yet</p>
+          <p>Add your family members to start tracking who likes which recipes</p>
+        </div>
+
+        <div :if={@family_members != []} class="flex flex-wrap gap-2">
+          <%= for member <- @family_members do %>
+            <div class="badge badge-lg gap-2 py-3">
+              <%= if @editing_member == member.id do %>
+                <form phx-submit="update_member" class="flex items-center gap-1">
+                  <input type="hidden" name="member_id" value={member.id} />
+                  <input
+                    type="text"
+                    name="name"
+                    value={@edit_member_name}
+                    class="input input-bordered input-xs w-24"
+                    autofocus
+                    phx-mounted={JS.focus()}
+                  />
+                  <button type="submit" class="btn btn-ghost btn-xs">✓</button>
+                  <button type="button" phx-click="cancel_edit_member" class="btn btn-ghost btn-xs">
+                    ✗
+                  </button>
+                </form>
+              <% else %>
+                <span>{member.name}</span>
+                <button
+                  phx-click="edit_member"
+                  phx-value-id={member.id}
+                  class="btn btn-ghost btn-xs opacity-50 hover:opacity-100"
+                  title="Edit name"
+                >
+                  ✎
+                </button>
+                <button
+                  phx-click="delete_member"
+                  phx-value-id={member.id}
+                  class="btn btn-ghost btn-xs opacity-50 hover:opacity-100 text-error"
+                  data-confirm={"Remove #{member.name} from the family?"}
+                  title="Remove member"
+                >
+                  ✕
+                </button>
+              <% end %>
+            </div>
+          <% end %>
+        </div>
+      </div>
+    </div>
+
+    <%!-- Preference Matrix Section --%>
+    <div :if={@family_members != [] && @all_recipes != []} class="card bg-base-100 shadow-sm border border-base-200">
+      <div class="card-body">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="card-title text-lg">Recipe Preferences</h2>
+          <form phx-change="search_recipes" class="flex-none">
+            <input
+              type="text"
+              name="search"
+              value={@recipe_search}
+              placeholder="Search recipes..."
+              class="input input-bordered input-sm w-48"
+              phx-debounce="300"
+            />
+          </form>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="table table-sm">
+            <thead>
+              <tr>
+                <th class="sticky left-0 bg-base-100 z-10 min-w-[200px]">Recipe</th>
+                <%= for member <- @family_members do %>
+                  <th class="text-center min-w-[60px]">{member.name}</th>
+                <% end %>
+              </tr>
+            </thead>
+            <tbody>
+              <%= for recipe <- @recipes do %>
+                <tr class="hover">
+                  <td class="sticky left-0 bg-base-100 z-10 font-medium">
+                    {recipe.name}
+                  </td>
+                  <%= for member <- @family_members do %>
+                    <td class="text-center">
+                      <% entry = Map.get(@preference_matrix, {recipe.id, member.id})
+                      pref = if entry, do: elem(entry, 0) %>
+                      <button
+                        phx-click="toggle_preference"
+                        phx-value-recipe-id={recipe.id}
+                        phx-value-member-id={member.id}
+                        class={[
+                          "btn btn-ghost btn-sm btn-square text-lg",
+                          pref == :liked && "text-success",
+                          pref == :disliked && "text-error"
+                        ]}
+                        title={
+                          case pref do
+                            :liked -> "#{member.name} likes this — click to change to dislike"
+                            :disliked -> "#{member.name} dislikes this — click to clear"
+                            _ -> "No preference — click to mark as liked"
+                          end
+                        }
+                      >
+                        <%= case pref do %>
+                          <% :liked -> %>
+                            ✓
+                          <% :disliked -> %>
+                            ✗
+                          <% _ -> %>
+                            <span class="opacity-20">·</span>
+                        <% end %>
+                      </button>
+                    </td>
+                  <% end %>
+                </tr>
+              <% end %>
+
+              <tr :if={@recipes == []}>
+                <td
+                  colspan={length(@family_members) + 1}
+                  class="text-center text-base-content/50 py-8"
+                >
+                  No recipes match your search
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <%!-- Empty States --%>
+    <div
+      :if={@family_members != [] && @all_recipes == []}
+      class="card bg-base-100 shadow-sm border border-base-200"
+    >
+      <div class="card-body text-center py-12">
+        <p class="text-base-content/50 text-lg">No recipes yet</p>
+        <p class="text-base-content/40 mt-1">
+          <.link navigate="/recipes/new" class="link link-primary">Add some recipes</.link>
+          first, then come back to track family preferences
+        </p>
+      </div>
+    </div>
+  </div>
+</Layouts.app>

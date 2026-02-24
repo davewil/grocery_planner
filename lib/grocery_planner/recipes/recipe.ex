@@ -436,6 +436,10 @@ defmodule GroceryPlanner.Recipes.Recipe do
     has_many :follow_up_recipes, GroceryPlanner.Recipes.Recipe do
       destination_attribute :parent_recipe_id
     end
+
+    has_many :recipe_preferences, GroceryPlanner.Family.RecipePreference do
+      destination_attribute :recipe_id
+    end
   end
 
   calculations do
