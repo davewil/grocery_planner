@@ -65,6 +65,45 @@ defmodule GroceryPlanner.OnboardingTest do
                                       |> Enum.map(& &1.name))
   end
 
+  test "seed_account/2 with nil kit seeds categories and locations but no recipes or items", %{
+    account: account,
+    user: user
+  } do
+    assert :ok = Onboarding.seed_account(account.id, nil)
+
+    # Categories should be seeded
+    categories =
+      GroceryPlanner.Inventory.Category
+      |> Ash.Query.for_read(:read, %{}, actor: user, tenant: account.id)
+      |> Ash.read!()
+
+    assert length(categories) > 0
+
+    # Storage locations should be seeded
+    locations =
+      GroceryPlanner.Inventory.StorageLocation
+      |> Ash.Query.for_read(:read, %{}, actor: user, tenant: account.id)
+      |> Ash.read!()
+
+    assert length(locations) > 0
+
+    # No recipes should exist
+    recipes =
+      Recipe
+      |> Ash.Query.for_read(:read, %{}, actor: user, tenant: account.id)
+      |> Ash.read!()
+
+    assert recipes == []
+
+    # No grocery items should exist
+    items =
+      GroceryItem
+      |> Ash.Query.for_read(:read, %{}, actor: user, tenant: account.id)
+      |> Ash.read!()
+
+    assert items == []
+  end
+
   test "seed_account/2 with single_couple kit seeds green bag chain", %{
     account: account,
     user: user

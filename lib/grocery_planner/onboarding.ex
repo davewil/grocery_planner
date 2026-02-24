@@ -13,19 +13,19 @@ defmodule GroceryPlanner.Onboarding do
   Accepts an optional kit_type (default: :omnivore).
   """
   def seed_account(account_id, kit_type \\ :omnivore) do
-    Logger.info("Seeding account #{account_id} with #{kit_type} starter kit...")
+    Logger.info("Seeding account #{account_id} with #{kit_type || "no"} starter kit...")
 
-    # 1. Seed Categories
+    # 1. Seed Categories (always)
     category_map = seed_categories(account_id)
 
-    # 2. Seed Storage Locations
+    # 2. Seed Storage Locations (always)
     seed_storage_locations(account_id)
 
-    # 3. Seed Grocery Items (Large set, filtered by kit)
-    item_map = seed_grocery_items(account_id, category_map, kit_type)
-
-    # 4. Seed Recipes & Ingredients (Large set, filtered by kit, handles sequences)
-    seed_recipes(account_id, item_map, kit_type)
+    # 3. Seed Grocery Items & Recipes (only when a kit is selected)
+    if kit_type do
+      item_map = seed_grocery_items(account_id, category_map, kit_type)
+      seed_recipes(account_id, item_map, kit_type)
+    end
 
     Logger.info("Seeding completed for account #{account_id}.")
     :ok

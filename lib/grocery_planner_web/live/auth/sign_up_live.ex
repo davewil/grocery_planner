@@ -35,7 +35,11 @@ defmodule GroceryPlannerWeb.Auth.SignUpLive do
     %{"email" => email, "name" => name, "password" => password, "account_name" => account_name} =
       params
 
-    kit_type = String.to_existing_atom(params["kit_type"] || "omnivore")
+    kit_type =
+      case params["kit_type"] do
+        "none" -> nil
+        val -> String.to_existing_atom(val || "omnivore")
+      end
 
     with {:ok, account} <- Accounts.Account.create(%{name: account_name}, authorize?: false),
          {:ok, user} <- Accounts.User.create(email, name, password, authorize?: false),
