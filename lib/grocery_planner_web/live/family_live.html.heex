@@ -67,7 +67,11 @@
                     phx-mounted={JS.focus()}
                   />
                   <button type="submit" class="btn btn-ghost btn-xs">✓</button>
-                  <button type="button" phx-click="cancel_edit_member" class="btn btn-ghost btn-xs">
+                  <button
+                    type="button"
+                    phx-click="cancel_edit_member"
+                    class="btn btn-ghost btn-xs"
+                  >
                     ✗
                   </button>
                 </form>
@@ -98,7 +102,10 @@
     </div>
 
     <%!-- Preference Matrix Section --%>
-    <div :if={@family_members != [] && @all_recipes != []} class="card bg-base-100 shadow-sm border border-base-200">
+    <div
+      :if={@family_members != [] && @all_recipes != []}
+      class="card bg-base-100 shadow-sm border border-base-200"
+    >
       <div class="card-body">
         <div class="flex items-center justify-between mb-4">
           <h2 class="card-title text-lg">Recipe Preferences</h2>
