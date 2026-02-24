@@ -101,6 +101,68 @@
       </div>
     </div>
 
+    <%!-- Add Recipe from TheMealDB --%>
+    <div
+      :if={@family_members != []}
+      class="card bg-base-100 shadow-sm border border-base-200 mb-8"
+    >
+      <div class="card-body">
+        <h2 class="card-title text-lg mb-4">Add Recipe</h2>
+        <form phx-submit="mealdb_search" class="flex items-center gap-2">
+          <input
+            type="text"
+            name="query"
+            value={@mealdb_query}
+            placeholder="Search TheMealDB to add a recipe..."
+            class="input input-bordered input-sm flex-1"
+            required
+          />
+          <button type="submit" class="btn btn-primary btn-sm">Search</button>
+          <button
+            :if={@mealdb_searched}
+            type="button"
+            phx-click="clear_mealdb_search"
+            class="btn btn-ghost btn-sm"
+          >
+            Clear
+          </button>
+        </form>
+
+        <div :if={@mealdb_loading} class="flex items-center gap-2 mt-4 text-base-content/60">
+          <span class="loading loading-spinner loading-sm"></span>
+          <span>Searching...</span>
+        </div>
+
+        <div
+          :if={@mealdb_searched && !@mealdb_loading && @mealdb_results == []}
+          class="text-base-content/50 text-sm mt-4"
+        >
+          No results found
+        </div>
+
+        <div :if={!@mealdb_loading && @mealdb_results != []} class="mt-4 space-y-2">
+          <%= for meal <- @mealdb_results do %>
+            <div class="flex items-center justify-between py-2 px-3 rounded-lg hover:bg-base-200 transition">
+              <div>
+                <span class="font-medium">{meal.name}</span>
+                <span :if={meal.category || meal.area} class="text-sm text-base-content/60 ml-2">
+                  {Enum.join(Enum.filter([meal.category, meal.area], & &1), " · ")}
+                </span>
+              </div>
+              <button
+                phx-click="mealdb_import"
+                phx-value-id={meal.external_id}
+                phx-disable-with="Adding..."
+                class="btn btn-primary btn-xs"
+              >
+                Add
+              </button>
+            </div>
+          <% end %>
+        </div>
+      </div>
+    </div>
+
     <%!-- Preference Matrix Section --%>
     <div
       :if={@family_members != [] && @all_recipes != []}
@@ -114,7 +176,7 @@
               type="text"
               name="search"
               value={@recipe_search}
-              placeholder="Search recipes..."
+              placeholder="Filter recipes..."
               class="input input-bordered input-sm w-48"
               phx-debounce="300"
             />
@@ -171,32 +233,9 @@
                   <% end %>
                 </tr>
               <% end %>
-
-              <tr :if={@recipes == []}>
-                <td
-                  colspan={length(@family_members) + 1}
-                  class="text-center text-base-content/50 py-8"
-                >
-                  No recipes match your search
-                </td>
-              </tr>
             </tbody>
           </table>
         </div>
-      </div>
-    </div>
-
-    <%!-- Empty States --%>
-    <div
-      :if={@family_members != [] && @all_recipes == []}
-      class="card bg-base-100 shadow-sm border border-base-200"
-    >
-      <div class="card-body text-center py-12">
-        <p class="text-base-content/50 text-lg">No recipes yet</p>
-        <p class="text-base-content/40 mt-1">
-          <.link navigate="/recipes/new" class="link link-primary">Add some recipes</.link>
-          first, then come back to track family preferences
-        </p>
       </div>
     </div>
   </div>

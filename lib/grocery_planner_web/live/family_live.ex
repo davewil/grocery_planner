@@ -4,6 +4,8 @@ defmodule GroceryPlannerWeb.FamilyLive do
 
   on_mount {GroceryPlannerWeb.Auth, :require_authenticated_user}
 
+  alias GroceryPlanner.External
+  alias GroceryPlanner.External.RecipeImporter
   alias GroceryPlanner.Family
   alias GroceryPlanner.Recipes
   alias GroceryPlanner.MealPlanning.Voting
@@ -21,6 +23,10 @@ defmodule GroceryPlannerWeb.FamilyLive do
       |> assign(:new_member_name, "")
       |> assign(:edit_member_name, "")
       |> assign(:recipe_search, "")
+      |> assign(:mealdb_query, "")
+      |> assign(:mealdb_results, [])
+      |> assign(:mealdb_loading, false)
+      |> assign(:mealdb_searched, false)
       |> load_data()
 
     {:ok, socket}
@@ -175,10 +181,75 @@ defmodule GroceryPlannerWeb.FamilyLive do
     end
   end
 
-  # -- Recipe search --
+  # -- Recipe search/filter --
 
   def handle_event("search_recipes", %{"search" => search}, socket) do
     {:noreply, assign(socket, recipe_search: search) |> filter_recipes()}
+  end
+
+  # -- TheMealDB search + import --
+
+  def handle_event("mealdb_search", %{"query" => query}, socket) do
+    socket =
+      socket
+      |> assign(:mealdb_query, query)
+      |> assign(:mealdb_loading, true)
+      |> assign(:mealdb_searched, true)
+
+    send(self(), {:perform_mealdb_search, query})
+
+    {:noreply, socket}
+  end
+
+  def handle_event("mealdb_import", %{"id" => external_id}, socket) do
+    account_id = socket.assigns.current_account.id
+
+    case RecipeImporter.import_recipe(external_id, account_id) do
+      {:ok, _recipe} ->
+        socket =
+          socket
+          |> assign(:mealdb_results, [])
+          |> assign(:mealdb_searched, false)
+          |> assign(:mealdb_query, "")
+          |> load_data()
+          |> put_flash(:info, "Recipe imported successfully!")
+
+        {:noreply, socket}
+
+      {:error, _error} ->
+        {:noreply, put_flash(socket, :error, "Failed to import recipe. It may already exist.")}
+    end
+  end
+
+  def handle_event("clear_mealdb_search", _, socket) do
+    {:noreply,
+     assign(socket,
+       mealdb_query: "",
+       mealdb_results: [],
+       mealdb_loading: false,
+       mealdb_searched: false
+     )}
+  end
+
+  def handle_info({:perform_mealdb_search, query}, socket) do
+    case External.search_recipes(query) do
+      {:ok, results} ->
+        socket =
+          socket
+          |> assign(:mealdb_results, results)
+          |> assign(:mealdb_loading, false)
+
+        {:noreply, socket}
+
+      {:error, _reason} ->
+        socket =
+          socket
+          |> assign(:mealdb_results, [])
+          |> assign(:mealdb_loading, false)
+          |> put_flash(:error, "Failed to search TheMealDB")
+
+        {:noreply, socket}
+    end
   end
 
   # -- Data loading --
