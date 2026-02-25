@@ -52,7 +52,8 @@ defmodule GroceryPlanner.MixProject do
       {:ash, "~> 3.0"},
       {:ash_json_api, "~> 1.0"},
       {:open_api_spex, "~> 3.0"},
-      {:picosat_elixir, "~> 0.2"},
+      {:picosat_elixir, "~> 0.2", only: :prod},
+      {:simple_sat, ">= 0.1.1", only: [:dev, :test]},
       {:bcrypt_elixir, "~> 3.0"},
       {:igniter, "~> 0.6", only: [:dev, :test]},
       {:phoenix, "~> 1.8.1"},
@@ -115,8 +116,7 @@ defmodule GroceryPlanner.MixProject do
         "run priv/repo/seeds.exs"
       ],
       "python.setup": [
-        "cmd python3 -m venv python_service/.venv",
-        "cmd python_service/.venv/bin/pip install -q -r python_service/requirements.txt"
+        "cmd python scripts/python_setup.py"
       ],
       "ecto.setup": ["ecto.create", "ecto.migrate", "run priv/repo/seeds.exs"],
       "ecto.reset": ["ecto.drop", "ecto.setup"],
