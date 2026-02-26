@@ -165,8 +165,8 @@ defmodule GroceryPlanner.Infrastructure.DockerComposeTest do
     test "services use correct Docker images or build context" do
       content = File.read!(@docker_compose_path)
 
-      # Postgres uses official image
-      assert content =~ ~r/postgres:.*image: postgres:/s, "postgres should use official image"
+      # Postgres uses pgvector image (postgres + vector extensions)
+      assert content =~ ~r/postgres:.*image: pgvector\/pgvector:pg/s, "postgres should use pgvector image"
 
       # Python service uses build
       assert content =~ ~r/python-service:.*build:/s, "python-service should use build"
